@@ -183,7 +183,7 @@ class PasswordResetRequestView(APIView):
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 
                 # Create reset URL (frontend URL)
-                reset_url = f"https://darra.ng/reset-password/{uid}/{token}"
+                reset_url = f"https://http://127.0.0.1:8000/reset-password/{uid}/{token}"
                 
                 # Send password reset email
                 send_password_reset_email(email, reset_url)
