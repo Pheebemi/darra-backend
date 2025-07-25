@@ -269,6 +269,12 @@ class UpdatePasswordView(APIView):
 class BankDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
+    def get(self, request):
+        # Return all bank accounts for the user
+        accounts = BankDetail.objects.filter(user=request.user)
+        serializer = BankDetailSerializer(accounts, many=True)
+        return Response(serializer.data)
+
     def post(self, request):
         bank_code = request.data.get('bank_code')
         account_number = request.data.get('account_number')
@@ -300,6 +306,14 @@ class BankDetailView(APIView):
         )
         serializer = BankDetailSerializer(bank_detail)
         return Response({'status': True, 'account_name': account_name, 'data': serializer.data})
+
+    def delete(self, request, pk=None):
+        try:
+            account = BankDetail.objects.get(pk=pk, user=request.user)
+            account.delete()
+            return Response({'success': True})
+        except BankDetail.DoesNotExist:
+            return Response({'error': 'Bank account not found'}, status=404)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
