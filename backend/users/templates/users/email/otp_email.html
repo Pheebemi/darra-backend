@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .otp {
+            font-size: 24px;
+            font-weight: bold;
+            color: #4A90E2;
+            text-align: center;
+            padding: 20px;
+            margin: 20px 0;
+            background-color: #F5F5F5;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>{% if is_verification %}Welcome to Darra!{% else %}Login Verification{% endif %}</h2>
+        
+        {% if is_verification %}
+        <p>Thank you for signing up! To complete your registration, please use the following OTP:</p>
+        {% else %}
+        <p>You requested to login using OTP. Please use the following code:</p>
+        {% endif %}
+
+        <div class="otp">{{ otp }}</div>
+
+        <p>This code will expire in 10 minutes.</p>
+
+        {% if is_verification %}
+        <p>If you didn't create an account on Darra, you can safely ignore this email.</p>
+        {% else %}
+        <p>If you didn't request this login, please secure your account by changing your password.</p>
+        {% endif %}
+
+        <p>Best regards,<br>The Darra Team</p>
+    </div>
+</body>
+</html> 
