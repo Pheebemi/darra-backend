@@ -180,10 +180,11 @@ class PasswordResetRequestView(APIView):
                 user = User.objects.get(email=email)
                 # Generate password reset token
                 token = default_token_generator.make_token(user)
+                
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
                 
-                # Create reset URL (frontend URL)
-                reset_url = f"https://http://127.0.0.1:8000/reset-password/{uid}/{token}"
+                # Update the reset URL to match your URL pattern
+                reset_url = f"http://127.0.0.1:8000/api/auth/reset-password-confirm/{uid}/{token}/"
                 
                 # Send password reset email
                 send_password_reset_email(email, reset_url)
