@@ -178,17 +178,22 @@ class PasswordResetRequestView(APIView):
             email = serializer.validated_data['email']
             try:
                 user = User.objects.get(email=email)
+                # Generate password reset token
                 token = default_token_generator.make_token(user)
+                
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
-                # CHANGE THIS URL to your frontend/mobile app route:
-                reset_url = f"https://yourfrontend.com/reset-password/{uid}/{token}/"
-                # For Expo mobile app, you might use a deep link:
-                # reset_url = f"myapp://reset-password/{uid}/{token}"
+                
+                # Update the reset URL to match your URL pattern
+                reset_url = f"http://127.0.0.1:8000/api/auth/reset-password-confirm/{uid}/{token}/"
+                
+                # Send password reset email
                 send_password_reset_email(email, reset_url)
+                
                 return Response({
                     "message": "Password reset instructions sent to your email."
                 })
             except User.DoesNotExist:
+                # Return success even if user doesn't exist (security)
                 return Response({
                     "message": "If an account exists with this email, you will receive password reset instructions."
                 })
@@ -314,11 +319,6 @@ class BankDetailView(APIView):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def check_brand_name(request):
-    brand_name = request.GET.get('brand_name', '').strip()
-    slug = slugify(brand_name)
-    user = request.user
-    exists = User.objects.filter(brand_slug=slug).exclude(id=user.id).exists()
-    return Response({'available': not exists})
     brand_name = request.GET.get('brand_name', '').strip()
     slug = slugify(brand_name)
     user = request.user
