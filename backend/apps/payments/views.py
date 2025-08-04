@@ -1,0 +1,109 @@
+from rest_framework import status, generics
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from django.shortcuts import get_object_or_404
+from django.http import HttpResponse
+from .models import Payment, UserLibrary
+from .serializers import (
+    PaymentSerializer, 
+    UserLibrarySerializer, 
+    CheckoutSerializer
+)
+from .services import PaystackService, PaymentService
+
+class CheckoutView(generics.CreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = CheckoutSerializer
+    
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        
+        try:
+            # Create payment from cart items
+            payment = PaymentService.create_payment_from_cart(
+                user=request.user,
+                cart_items=serializer.validated_data['items']
+            )
+            
+            # Initialize payment with Paystack
+            paystack_service = PaystackService()
+            paystack_response = paystack_service.initialize_payment(payment)
+            
+            return Response({
+                'payment': PaymentSerializer(payment).data,
+                'paystack_data': paystack_response,
+                'authorization_url': paystack_response.get('data', {}).get('authorization_url')
+            }, status=status.HTTP_201_CREATED)
+            
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+def verify_payment(request, reference):
+    """Verify payment with Paystack and process if successful"""
+    try:
+        payment = get_object_or_404(Payment, reference=reference)
+        
+        if payment.status == Payment.PaymentStatus.SUCCESS:
+            return Response({
+                'message': 'Payment already verified',
+                'payment': PaymentSerializer(payment).data
+            })
+        
+        # Verify with Paystack
+        paystack_service = PaystackService()
+        paystack_response = paystack_service.verify_payment(reference)
+        
+        # Check if payment was successful
+        if paystack_response.get('data', {}).get('status') == 'success':
+            # Process successful payment
+            payment = paystack_service.process_successful_payment(payment, paystack_response)
+            
+            return Response({
+                'message': 'Payment verified successfully',
+                'payment': PaymentSerializer(payment).data
+            })
+        else:
+            # Update payment status to failed
+            payment.status = Payment.PaymentStatus.FAILED
+            payment.gateway_response = str(paystack_response)
+            payment.save()
+            
+            return Response({
+                'message': 'Payment verification failed',
+                'payment': PaymentSerializer(payment).data
+            }, status=status.HTTP_400_BAD_REQUEST)
+            
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+class UserLibraryView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = UserLibrarySerializer
+    
+    def get_queryset(self):
+        return UserLibrary.objects.filter(user=self.request.user).select_related('product')
+
+class PaymentHistoryView(generics.ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = PaymentSerializer
+    
+    def get_queryset(self):
+        return Payment.objects.filter(user=self.request.user).order_by('-created_at')
+
+@api_view(['GET'])
+def payment_status(request, reference):
+    """Get payment status"""
+    try:
+        payment = get_object_or_404(Payment, reference=reference)
+        return Response(PaymentSerializer(payment).data)
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST) 

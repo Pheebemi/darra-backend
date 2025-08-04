@@ -33,7 +33,7 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '172.20.10.2', 
+    '192.168.148.184', 
       # <-- add your local IP here
 ]
 
@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     # Local apps
     'users',
     'products',
+    'apps.payments',
 ]
 
 MIDDLEWARE = [
@@ -189,3 +190,12 @@ else:
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
     EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
+
+# Paystack settings
+PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', 'sk_test_your_test_secret_key_here')
+PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', 'pk_test_your_test_public_key_here')
+BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
+
+# Currency settings
+CURRENCY = os.getenv('CURRENCY', 'NGN')
+CURRENCY_SYMBOL = os.getenv('CURRENCY_SYMBOL', '₦')
