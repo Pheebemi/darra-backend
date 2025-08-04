@@ -87,10 +87,16 @@ Use these test cards for testing:
 1. **User adds products to cart** in mobile app
 2. **User proceeds to checkout** and enters email
 3. **Backend creates payment record** and initializes Paystack payment
-4. **User is redirected to Paystack** to complete payment
-5. **Paystack redirects back** to your app with payment status
+4. **PaystackWebView opens in-app** to complete payment securely
+5. **WebView detects success/error** and handles callbacks automatically
 6. **Backend verifies payment** and adds products to user library
-7. **User can access purchased products** in their library
+7. **User is redirected to library** to access purchased products
+
+### In-App Payment Benefits:
+- ✅ **No external browser** - Users stay within your app
+- ✅ **Seamless experience** - No app switching or redirection issues
+- ✅ **Better UX** - Custom loading states and error handling
+- ✅ **Automatic callback handling** - No need for deep linking setup
 
 ## Step 7: Production Setup
 
