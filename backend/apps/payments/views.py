@@ -46,9 +46,12 @@ class CheckoutView(generics.CreateAPIView):
 def verify_payment(request, reference):
     """Verify payment with Paystack and process if successful"""
     try:
+        print(f"DEBUG: Verifying payment with reference: {reference}")
         payment = get_object_or_404(Payment, reference=reference)
+        print(f"DEBUG: Found payment with status: {payment.status}")
         
         if payment.status == Payment.PaymentStatus.SUCCESS:
+            print("DEBUG: Payment already verified")
             return Response({
                 'message': 'Payment already verified',
                 'payment': PaymentSerializer(payment).data
@@ -57,17 +60,21 @@ def verify_payment(request, reference):
         # Verify with Paystack
         paystack_service = PaystackService()
         paystack_response = paystack_service.verify_payment(reference)
+        print(f"DEBUG: Paystack response status: {paystack_response.get('data', {}).get('status')}")
         
         # Check if payment was successful
         if paystack_response.get('data', {}).get('status') == 'success':
+            print("DEBUG: Payment successful, processing...")
             # Process successful payment
             payment = paystack_service.process_successful_payment(payment, paystack_response)
+            print(f"DEBUG: Payment processed, new status: {payment.status}")
             
             return Response({
                 'message': 'Payment verified successfully',
                 'payment': PaymentSerializer(payment).data
             })
         else:
+            print("DEBUG: Payment verification failed")
             # Update payment status to failed
             payment.status = Payment.PaymentStatus.FAILED
             payment.gateway_response = str(paystack_response)
@@ -79,6 +86,7 @@ def verify_payment(request, reference):
             }, status=status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:
+        print(f"DEBUG: Exception during verification: {str(e)}")
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
@@ -106,4 +114,46 @@ def payment_status(request, reference):
     except Exception as e:
         return Response({
             'error': str(e)
-        }, status=status.HTTP_400_BAD_REQUEST) 
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+def paystack_webhook(request):
+    """Handle Paystack webhook for payment updates"""
+    try:
+        # Get the webhook data
+        webhook_data = request.data
+        print(f"DEBUG: Received webhook data: {webhook_data}")
+        
+        # Extract the reference from the webhook
+        reference = webhook_data.get('data', {}).get('reference')
+        if not reference:
+            return Response({'error': 'No reference found'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        print(f"DEBUG: Processing webhook for reference: {reference}")
+        
+        # Get the payment
+        try:
+            payment = Payment.objects.get(reference=reference)
+        except Payment.DoesNotExist:
+            return Response({'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
+        
+        # Check if payment was successful
+        if webhook_data.get('data', {}).get('status') == 'success':
+            print(f"DEBUG: Webhook indicates successful payment for {reference}")
+            
+            # Process the successful payment
+            paystack_service = PaystackService()
+            payment = paystack_service.process_successful_payment(payment, webhook_data)
+            
+            return Response({'message': 'Webhook processed successfully'})
+        else:
+            print(f"DEBUG: Webhook indicates failed payment for {reference}")
+            payment.status = Payment.PaymentStatus.FAILED
+            payment.gateway_response = str(webhook_data)
+            payment.save()
+            
+            return Response({'message': 'Payment marked as failed'})
+            
+    except Exception as e:
+        print(f"DEBUG: Webhook error: {str(e)}")
+        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST) 

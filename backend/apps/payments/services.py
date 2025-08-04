@@ -53,21 +53,28 @@ class PaystackService:
     
     def process_successful_payment(self, payment, paystack_data):
         """Process successful payment and add products to user library"""
+        print(f"DEBUG: Processing successful payment for user: {payment.user.email}")
+        
         # Update payment status
         payment.status = Payment.PaymentStatus.SUCCESS
         payment.paystack_transaction_id = paystack_data.get('data', {}).get('id')
         payment.gateway_response = str(paystack_data)
         payment.save()
+        print(f"DEBUG: Payment status updated to: {payment.status}")
         
         # Add products to user library
         purchases = payment.purchases.all()
+        print(f"DEBUG: Found {purchases.count()} purchases to add to library")
+        
         for purchase in purchases:
-            UserLibrary.objects.get_or_create(
+            library_item, created = UserLibrary.objects.get_or_create(
                 user=payment.user,
                 product=purchase.product,
                 purchase=purchase
             )
+            print(f"DEBUG: {'Created' if created else 'Updated'} library item for product: {purchase.product.title}")
         
+        print(f"DEBUG: Successfully processed payment and added items to library")
         return payment
 
 class PaymentService:
