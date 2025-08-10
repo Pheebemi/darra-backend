@@ -5,6 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from .models import Payment, Purchase, UserLibrary
 from products.models import Product
+from users.utils import send_purchase_receipt_email, send_seller_notification_email
 
 class PaystackService:
     def __init__(self):
@@ -94,6 +95,20 @@ class PaystackService:
                 continue
         
         print(f"DEBUG: Successfully processed payment and added items to library")
+        
+        # Send emails after successful payment processing
+        try:
+            # Send receipt to buyer
+            send_purchase_receipt_email(payment, purchases)
+            
+            # Send notification to seller(s)
+            send_seller_notification_email(payment, purchases)
+            
+            print(f"DEBUG: Successfully sent purchase emails")
+        except Exception as e:
+            print(f"DEBUG: Error sending purchase emails: {str(e)}")
+            # Don't fail the payment process if emails fail
+        
         return payment
 
 class PaymentService:

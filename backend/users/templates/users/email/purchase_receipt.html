@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Purchase Receipt - Darra</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f8f9fa;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+            border-radius: 10px 10px 0 0;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 28px;
+            font-weight: 600;
+        }
+        .content {
+            background: white;
+            padding: 30px;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        .receipt-details {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+        .receipt-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px 0;
+            border-bottom: 1px solid #e9ecef;
+        }
+        .receipt-row:last-child {
+            border-bottom: none;
+            font-weight: bold;
+            font-size: 18px;
+            color: #667eea;
+        }
+        .product-item {
+            background: white;
+            border: 1px solid #e9ecef;
+            border-radius: 8px;
+            padding: 20px;
+            margin: 15px 0;
+        }
+        .product-title {
+            font-size: 18px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 8px;
+        }
+        .product-details {
+            color: #666;
+            font-size: 14px;
+        }
+        .footer {
+            text-align: center;
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #e9ecef;
+            color: #666;
+            font-size: 14px;
+        }
+        .thank-you {
+            text-align: center;
+            margin: 20px 0;
+            font-size: 18px;
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🎉 Purchase Successful!</h1>
+        <p>Thank you for your purchase on Darra</p>
+    </div>
+    
+    <div class="content">
+        <div class="thank-you">
+            Thank you for your purchase, {{ customer_name }}!
+        </div>
+        
+        <div class="receipt-details">
+            <h3>Receipt Details</h3>
+            <div class="receipt-row">
+                <span>Order Reference:</span>
+                <span>{{ payment_reference }}</span>
+            </div>
+            <div class="receipt-row">
+                <span>Order Date:</span>
+                <span>{{ order_date }}</span>
+            </div>
+            <div class="receipt-row">
+                <span>Payment Status:</span>
+                <span style="color: #28a745; font-weight: 600;">{{ payment_status }}</span>
+            </div>
+        </div>
+        
+        <h3>Products Purchased</h3>
+        {% for purchase in purchases %}
+        <div class="product-item">
+            <div class="product-title">{{ purchase.product.title }}</div>
+            <div class="product-details">
+                <div class="receipt-row">
+                    <span>Type:</span>
+                    <span>{{ purchase.product.product_type|title }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span>Quantity:</span>
+                    <span>{{ purchase.quantity }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span>Unit Price:</span>
+                    <span>₦{{ purchase.unit_price|floatformat:2 }}</span>
+                </div>
+                <div class="receipt-row">
+                    <span>Total:</span>
+                    <span>₦{{ purchase.total_price|floatformat:2 }}</span>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+        
+        <div class="receipt-details">
+            <div class="receipt-row">
+                <span>Total Amount:</span>
+                <span>₦{{ total_amount|floatformat:2 }}</span>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>Your products are now available in your library.</p>
+            <p>If you have any questions, please contact our support team.</p>
+            <p>&copy; 2024 Darra. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html> 
