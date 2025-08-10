@@ -17,6 +17,14 @@ class PaymentSerializer(serializers.ModelSerializer):
         model = Payment
         fields = ['id', 'reference', 'amount', 'currency', 'status', 'created_at', 'purchases']
         read_only_fields = ['id', 'reference', 'status', 'created_at', 'purchases']
+    
+    def to_representation(self, instance):
+        """Custom representation to ensure proper amount formatting"""
+        data = super().to_representation(instance)
+        # Ensure amount is a proper number (Django DecimalField can sometimes cause precision issues)
+        if 'amount' in data and data['amount'] is not None:
+            data['amount'] = float(instance.amount)
+        return data
 
 class UserLibrarySerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)

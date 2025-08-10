@@ -117,7 +117,20 @@ class PaymentHistoryView(generics.ListAPIView):
     serializer_class = PaymentSerializer
     
     def get_queryset(self):
-        return Payment.objects.filter(user=self.request.user).order_by('-created_at')
+        return Payment.objects.filter(user=self.request.user).prefetch_related('purchases__product').order_by('-created_at')
+    
+    def list(self, request, *args, **kwargs):
+        """Custom list method to add debugging"""
+        queryset = self.filter_queryset(self.get_queryset())
+        serializer = self.get_serializer(queryset, many=True)
+        data = serializer.data
+        
+        # Debug: Log the first few payment amounts
+        if data and len(data) > 0:
+            print(f"DEBUG: PaymentHistoryView - First payment amount: {data[0].get('amount')}, Type: {type(data[0].get('amount'))}")
+            print(f"DEBUG: PaymentHistoryView - First payment currency: {data[0].get('currency')}")
+        
+        return Response(data)
 
 @api_view(['GET'])
 def payment_status(request, reference):
