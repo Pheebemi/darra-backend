@@ -33,7 +33,7 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '192.168.148.184', 
+    '172.20.10.6', 
       # <-- add your local IP here
 ]
 

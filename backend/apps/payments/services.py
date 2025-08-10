@@ -67,12 +67,31 @@ class PaystackService:
         print(f"DEBUG: Found {purchases.count()} purchases to add to library")
         
         for purchase in purchases:
-            library_item, created = UserLibrary.objects.get_or_create(
-                user=payment.user,
-                product=purchase.product,
-                purchase=purchase
-            )
-            print(f"DEBUG: {'Created' if created else 'Updated'} library item for product: {purchase.product.title}")
+            try:
+                # Check if library item already exists
+                existing_library_item = UserLibrary.objects.filter(
+                    user=payment.user,
+                    product=purchase.product
+                ).first()
+                
+                if existing_library_item:
+                    print(f"DEBUG: Library item already exists for product: {purchase.product.title}")
+                    # Update the existing library item with the new purchase reference
+                    existing_library_item.purchase = purchase
+                    existing_library_item.save()
+                else:
+                    # Create new library item
+                    UserLibrary.objects.create(
+                        user=payment.user,
+                        product=purchase.product,
+                        purchase=purchase
+                    )
+                    print(f"DEBUG: Created new library item for product: {purchase.product.title}")
+                    
+            except Exception as e:
+                print(f"DEBUG: Error adding product to library: {str(e)}")
+                # Continue with other products even if one fails
+                continue
         
         print(f"DEBUG: Successfully processed payment and added items to library")
         return payment

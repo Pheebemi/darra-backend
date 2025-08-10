@@ -65,14 +65,28 @@ def verify_payment(request, reference):
         # Check if payment was successful
         if paystack_response.get('data', {}).get('status') == 'success':
             print("DEBUG: Payment successful, processing...")
-            # Process successful payment
-            payment = paystack_service.process_successful_payment(payment, paystack_response)
-            print(f"DEBUG: Payment processed, new status: {payment.status}")
-            
-            return Response({
-                'message': 'Payment verified successfully',
-                'payment': PaymentSerializer(payment).data
-            })
+            try:
+                # Process successful payment
+                payment = paystack_service.process_successful_payment(payment, paystack_response)
+                print(f"DEBUG: Payment processed, new status: {payment.status}")
+                
+                return Response({
+                    'message': 'Payment verified successfully',
+                    'payment': PaymentSerializer(payment).data
+                })
+            except Exception as process_error:
+                print(f"DEBUG: Error processing payment: {str(process_error)}")
+                # If there's an error processing (like duplicate library items), 
+                # still return success since the payment was actually successful
+                if "UNIQUE constraint failed" in str(process_error):
+                    print("DEBUG: Duplicate library items detected, but payment was successful")
+                    return Response({
+                        'message': 'Payment verified successfully (items already in library)',
+                        'payment': PaymentSerializer(payment).data
+                    })
+                else:
+                    # Re-raise other errors
+                    raise process_error
         else:
             print("DEBUG: Payment verification failed")
             # Update payment status to failed
