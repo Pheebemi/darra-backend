@@ -246,10 +246,8 @@ class UpdatePasswordView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
-        print(f"UpdatePassword request data: {request.data}")
         serializer = UpdatePasswordSerializer(data=request.data)
         if serializer.is_valid():
-            print(f"Serializer is valid. User: {request.user}")
             user = request.user
             if user.check_password(serializer.validated_data['old_password']):
                 # Update password
@@ -268,11 +266,9 @@ class UpdatePasswordView(APIView):
                 return Response({
                     "message": "Password updated successfully. Please login again."
                 })
-            print("Current password is incorrect")
             return Response({
                 "old_password": ["Current password is incorrect."]
             }, status=status.HTTP_400_BAD_REQUEST)
-        print(f"Serializer errors: {serializer.errors}")
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class BankDetailView(APIView):
