@@ -5,7 +5,7 @@ from django.conf import settings
 from django.core.exceptions import ValidationError
 from .models import Payment, Purchase, UserLibrary
 from products.models import Product
-from users.utils import send_purchase_receipt_email, send_seller_notification_email
+from users.utils import send_purchase_receipt_email, send_seller_notification_email, send_event_ticket_email
 
 class PaystackService:
     def __init__(self):
@@ -98,11 +98,37 @@ class PaystackService:
         
         # Send emails after successful payment processing
         try:
-            # Send receipt to buyer
-            send_purchase_receipt_email(payment, purchases)
+            # Check if any purchases are events
+            has_events = any(p.product.product_type == 'event' for p in purchases)
             
-            # Send notification to seller(s)
-            send_seller_notification_email(payment, purchases)
+            if has_events:
+                # Handle event tickets
+                for purchase in purchases:
+                    if purchase.product.product_type == 'event':
+                        # Import here to avoid circular imports
+                        from apps.events.models import EventTicket
+                        
+                        # Create tickets based on quantity
+                        tickets = []
+                        for _ in range(purchase.quantity):
+                            ticket = EventTicket.objects.create(
+                                purchase=purchase,
+                                buyer=payment.user,
+                                event=purchase.product
+                            )
+                            tickets.append(ticket)
+                        
+                        # Send event ticket email
+                        send_event_ticket_email(purchase, tickets)
+                        
+                        print(f"DEBUG: Created {len(tickets)} event tickets and sent email")
+                
+                # Send seller notifications for events
+                send_seller_notification_email(payment, purchases)
+            else:
+                # Send regular purchase emails for non-event products
+                send_purchase_receipt_email(payment, purchases)
+                send_seller_notification_email(payment, purchases)
             
             print(f"DEBUG: Successfully sent purchase emails")
         except Exception as e:
