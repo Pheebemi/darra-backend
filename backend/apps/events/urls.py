@@ -9,3 +9,5 @@ urlpatterns = [
     path('verify/<str:ticket_id>/', views.verify_ticket, name='verify_ticket'),
     path('seller-stats/', views.seller_event_stats, name='seller_stats'),
 ]
+
+

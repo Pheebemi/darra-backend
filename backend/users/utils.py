@@ -1,7 +1,8 @@
-from django.core.mail import send_mail, EmailMultiAlternatives
+from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from datetime import datetime
+from django.core.mail import EmailMultiAlternatives
 
 def send_otp_email(email: str, otp: str, is_verification: bool = True):
     subject = 'Verify your email' if is_verification else 'Login OTP'
@@ -91,7 +92,7 @@ def send_purchase_receipt_email(payment, purchases):
             html_message=html_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[payment.user.email],
-            fail_silently=False,
+            fail_silently=True,  # Changed to True to prevent email errors from breaking payment
         )
         
         print(f"Purchase receipt email sent to {payment.user.email}")
@@ -174,7 +175,7 @@ def send_seller_notification_email(payment, purchases):
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[seller.email],
-                fail_silently=False,
+                fail_silently=True,  # Changed to True to prevent email errors from breaking payment
             )
             
             print(f"Seller notification email sent to {seller.email}")
@@ -183,7 +184,7 @@ def send_seller_notification_email(payment, purchases):
         
     except Exception as e:
         print(f"Error sending seller notification email: {str(e)}")
-        return False
+        return False 
 
 def send_event_ticket_email(purchase, tickets):
     """Send event ticket email with QR codes to buyer"""
@@ -252,11 +253,12 @@ def send_event_ticket_email(purchase, tickets):
                     print(f"Error attaching QR code for ticket {ticket.ticket_id}: {str(e)}")
                     # Continue with other tickets even if one fails
         
-        email.send()
+        email.send(fail_silently=True)  # Added fail_silently=True to prevent email errors from breaking payment
         
         print(f"Event ticket email sent to {buyer.email}")
         return True
         
     except Exception as e:
         print(f"Error sending event ticket email: {str(e)}")
+        # Don't fail the payment process - just log the error
         return False 

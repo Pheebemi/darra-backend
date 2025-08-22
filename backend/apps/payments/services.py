@@ -96,7 +96,7 @@ class PaystackService:
         
         print(f"DEBUG: Successfully processed payment and added items to library")
         
-        # Send emails after successful payment processing
+        # Send emails after successful payment processing (non-blocking)
         try:
             # Check if any purchases are events
             has_events = any(p.product.product_type == 'event' for p in purchases)
@@ -118,21 +118,37 @@ class PaystackService:
                             )
                             tickets.append(ticket)
                         
-                        # Send event ticket email
-                        send_event_ticket_email(purchase, tickets)
-                        
-                        print(f"DEBUG: Created {len(tickets)} event tickets and sent email")
+                        # Send event ticket email (non-blocking)
+                        try:
+                            send_event_ticket_email(purchase, tickets)
+                            print(f"DEBUG: Created {len(tickets)} event tickets and sent email")
+                        except Exception as email_error:
+                            print(f"DEBUG: Email failed but tickets created: {str(email_error)}")
+                            # Continue - don't fail the payment
                 
-                # Send seller notifications for events
-                send_seller_notification_email(payment, purchases)
+                # Send seller notifications for events (non-blocking)
+                try:
+                    send_seller_notification_email(payment, purchases)
+                except Exception as email_error:
+                    print(f"DEBUG: Seller notification email failed: {str(email_error)}")
+                    # Continue - don't fail the payment
             else:
-                # Send regular purchase emails for non-event products
-                send_purchase_receipt_email(payment, purchases)
-                send_seller_notification_email(payment, purchases)
+                # Send regular purchase emails for non-event products (non-blocking)
+                try:
+                    send_purchase_receipt_email(payment, purchases)
+                except Exception as email_error:
+                    print(f"DEBUG: Purchase receipt email failed: {str(email_error)}")
+                    # Continue - don't fail the payment
+                
+                try:
+                    send_seller_notification_email(payment, purchases)
+                except Exception as email_error:
+                    print(f"DEBUG: Seller notification email failed: {str(email_error)}")
+                    # Continue - don't fail the payment
             
-            print(f"DEBUG: Successfully sent purchase emails")
+            print(f"DEBUG: Payment processing completed successfully")
         except Exception as e:
-            print(f"DEBUG: Error sending purchase emails: {str(e)}")
+            print(f"DEBUG: Error in payment processing: {str(e)}")
             # Don't fail the payment process if emails fail
         
         return payment
