@@ -96,8 +96,11 @@ class PaystackService:
         
         print(f"DEBUG: Successfully processed payment and added items to library")
         
-        # Send emails after successful payment processing (non-blocking)
+        # Send emails and notifications after successful payment processing (non-blocking)
         try:
+            # Import notification service
+            from apps.notifications.services import NotificationService
+                   
             # Check if any purchases are events
             has_events = any(p.product.product_type == 'event' for p in purchases)
             
@@ -145,6 +148,20 @@ class PaystackService:
                 except Exception as email_error:
                     print(f"DEBUG: Seller notification email failed: {str(email_error)}")
                     # Continue - don't fail the payment
+            
+            # Send notifications (non-blocking)
+            try:
+                # Send payment notification to buyer
+                NotificationService.send_payment_notification(payment, payment.user)
+                
+                # Send order notifications to sellers
+                for purchase in purchases:
+                    NotificationService.send_order_notification(purchase, purchase.product.owner)
+                
+                print(f"DEBUG: Notifications sent successfully")
+            except Exception as notification_error:
+                print(f"DEBUG: Notification error: {str(notification_error)}")
+                # Continue - don't fail the payment process
             
             print(f"DEBUG: Payment processing completed successfully")
         except Exception as e:
