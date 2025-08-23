@@ -31,8 +31,8 @@ class UserLibrarySerializer(serializers.ModelSerializer):
     
     class Meta:
         model = UserLibrary
-        fields = ['id', 'product', 'added_at']
-        read_only_fields = ['id', 'added_at']
+        fields = ['id', 'product', 'quantity', 'added_at']
+        read_only_fields = ['id', 'quantity', 'added_at']
 
 class CartItemSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()

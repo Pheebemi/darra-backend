@@ -44,10 +44,8 @@ class UserLibrary(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='library_items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='library_owners')
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='library_entries')
+    quantity = models.PositiveIntegerField(default=1)  # Add quantity field
     added_at = models.DateTimeField(auto_now_add=True)
 
-    class Meta:
-        unique_together = ['user', 'product']
-
     def __str__(self):
-        return f"{self.user.email} - {self.product.title}" 
+        return f"{self.user.email} - {self.product.title} x{self.quantity}" 

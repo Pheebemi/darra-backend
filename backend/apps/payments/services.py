@@ -69,25 +69,25 @@ class PaystackService:
         
         for purchase in purchases:
             try:
-                # Check if library item already exists
-                existing_library_item = UserLibrary.objects.filter(
-                    user=payment.user,
-                    product=purchase.product
-                ).first()
-                
-                if existing_library_item:
-                    print(f"DEBUG: Library item already exists for product: {purchase.product.title}")
-                    # Update the existing library item with the new purchase reference
-                    existing_library_item.purchase = purchase
-                    existing_library_item.save()
+                if purchase.product.product_type == 'event':
+                    # For event tickets, create separate library entries for each ticket
+                    for ticket_number in range(purchase.quantity):
+                        UserLibrary.objects.create(
+                            user=payment.user,
+                            product=purchase.product,
+                            purchase=purchase,
+                            quantity=1  # Each library entry represents 1 ticket
+                        )
+                    print(f"DEBUG: Created {purchase.quantity} library entries for event: {purchase.product.title}")
                 else:
-                    # Create new library item
+                    # For digital products, create one library entry with the full quantity
                     UserLibrary.objects.create(
                         user=payment.user,
                         product=purchase.product,
-                        purchase=purchase
+                        purchase=purchase,
+                        quantity=purchase.quantity
                     )
-                    print(f"DEBUG: Created new library item for product: {purchase.product.title}")
+                    print(f"DEBUG: Created library entry for digital product: {purchase.product.title} x{purchase.quantity}")
                     
             except Exception as e:
                 print(f"DEBUG: Error adding product to library: {str(e)}")
