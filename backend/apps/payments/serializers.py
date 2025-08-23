@@ -28,11 +28,35 @@ class PaymentSerializer(serializers.ModelSerializer):
 
 class UserLibrarySerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
+    event_tickets = serializers.SerializerMethodField()
     
     class Meta:
         model = UserLibrary
-        fields = ['id', 'product', 'quantity', 'added_at']
-        read_only_fields = ['id', 'quantity', 'added_at']
+        fields = ['id', 'product', 'quantity', 'added_at', 'event_tickets']
+        read_only_fields = ['id', 'quantity', 'added_at', 'event_tickets']
+    
+    def get_event_tickets(self, obj):
+        """Get event ticket details including QR codes for event products"""
+        if obj.product.product_type == 'event':
+            from apps.events.models import EventTicket
+            from django.conf import settings
+            
+            tickets = EventTicket.objects.filter(purchase=obj.purchase)
+            result = []
+            for ticket in tickets:
+                qr_url = None
+                if ticket.qr_code:
+                    qr_url = f"{settings.BASE_URL}{ticket.qr_code.url}"
+                
+                result.append({
+                    'id': ticket.id,
+                    'ticket_id': str(ticket.ticket_id),
+                    'qr_code_url': qr_url,
+                    'is_used': ticket.is_used,
+                    'created_at': ticket.created_at
+                })
+            return result
+        return []
 
 class CartItemSerializer(serializers.Serializer):
     product_id = serializers.IntegerField()

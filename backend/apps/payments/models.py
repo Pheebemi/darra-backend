@@ -44,8 +44,15 @@ class UserLibrary(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='library_items')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='library_owners')
     purchase = models.ForeignKey(Purchase, on_delete=models.CASCADE, related_name='library_entries')
-    quantity = models.PositiveIntegerField(default=1)  # Add quantity field
+    quantity = models.PositiveIntegerField(default=1)
     added_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):
-        return f"{self.user.email} - {self.product.title} x{self.quantity}" 
+        return f"{self.user.email} - {self.product.title} x{self.quantity}"
+    
+    def get_event_tickets(self):
+        """Get the actual EventTicket objects for event products"""
+        if self.product.product_type == 'event':
+            from apps.events.models import EventTicket
+            return EventTicket.objects.filter(purchase=self.purchase)
+        return [] 
