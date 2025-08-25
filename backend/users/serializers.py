@@ -129,4 +129,4 @@ class UpdatePasswordSerializer(serializers.Serializer):
 class BankDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankDetail
-        fields = ['bank_code', 'bank_name', 'account_number', 'account_name']
+        fields = ['id', 'bank_code', 'bank_name', 'account_number', 'account_name']

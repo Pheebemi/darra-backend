@@ -116,3 +116,4 @@ class NotificationService:
         except Exception as e:
             print(f"Error sending bulk promotional notifications: {str(e)}")
             return 0
+

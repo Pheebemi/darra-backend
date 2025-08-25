@@ -53,6 +53,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
+    'csp',  # Content Security Policy
     
     # Local apps
     'users',
@@ -65,6 +66,8 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add WhiteNoise for static files
+    'csp.middleware.CSPMiddleware',  # Content Security Policy
+    'core.middleware.CustomSecurityMiddleware',  # Custom security headers
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -177,7 +180,21 @@ SIMPLE_JWT = {
 }
 
 # CORS settings
-CORS_ALLOW_ALL_ORIGINS = True  # Allow all origins in development
+if DEBUG:
+    # Development: Allow all origins for local development
+    CORS_ALLOW_ALL_ORIGINS = True
+    print("🔧 CORS: Development mode - allowing all origins")
+else:
+    # Production: Only allow specific trusted domains
+    CORS_ALLOW_ALL_ORIGINS = False
+    CORS_ALLOWED_ORIGINS = [
+        "https://darra-app.com",           # Replace with your actual domain
+        "https://app.darra-app.com",       # Replace with your app domain
+        "https://www.darra-app.com",       # Replace with your www domain
+        "https://your-mobile-app.com",     # Your mobile app domain if any
+    ]
+    print("🔒 CORS: Production mode - restricted origins")
+
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
     'DELETE',
@@ -208,3 +225,32 @@ BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
 # Currency settings
 CURRENCY = os.getenv('CURRENCY', 'NGN')
 CURRENCY_SYMBOL = os.getenv('CURRENCY_SYMBOL', '₦')
+
+# Security Settings
+SECURE_BROWSER_XSS_FILTER = True
+SECURE_CONTENT_TYPE_NOSNIFF = True
+SECURE_HSTS_SECONDS = 31536000  # 1 year
+SECURE_HSTS_INCLUDE_SUBDOMAINS = True
+SECURE_HSTS_PRELOAD = True
+X_FRAME_OPTIONS = 'DENY'  # Prevent clickjacking
+SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
+
+# Additional Security Headers
+SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = 'require-corp'
+
+# Content Security Policy (CSP) - New format for django-csp 4.0+
+CONTENT_SECURITY_POLICY = {
+    'DIRECTIVES': {
+        'default-src': ("'self'",),
+        'style-src': ("'self'", "'unsafe-inline'", "https://fonts.googleapis.com"),
+        'script-src': ("'self'", "'unsafe-inline'", "https://js.paystack.co"),
+        'img-src': ("'self'", "data:", "https:", "blob:"),
+        'font-src': ("'self'", "https://fonts.gstatic.com"),
+        'connect-src': ("'self'", "https://api.paystack.co"),
+        'frame-src': ("'self'", "https://checkout.paystack.com"),
+        'object-src': ("'none'",),
+        'base-uri': ("'self'",),
+        'form-action': ("'self'", "https://checkout.paystack.com"),
+    }
+}

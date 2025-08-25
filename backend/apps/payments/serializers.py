@@ -1,6 +1,13 @@
 from rest_framework import serializers
-from .models import Payment, Purchase, UserLibrary
+from django.conf import settings
+from .models import Payment, Purchase, UserLibrary, SellerCommission, PayoutRequest, SellerEarnings
 from products.serializers import ProductSerializer
+from users.serializers import UserProfileSerializer
+
+class PaymentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Payment
+        fields = ['id', 'reference', 'amount', 'currency', 'status', 'created_at']
 
 class PurchaseSerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
@@ -8,23 +15,6 @@ class PurchaseSerializer(serializers.ModelSerializer):
     class Meta:
         model = Purchase
         fields = ['id', 'product', 'quantity', 'unit_price', 'total_price', 'created_at']
-        read_only_fields = ['id', 'unit_price', 'total_price', 'created_at']
-
-class PaymentSerializer(serializers.ModelSerializer):
-    purchases = PurchaseSerializer(many=True, read_only=True)
-    
-    class Meta:
-        model = Payment
-        fields = ['id', 'reference', 'amount', 'currency', 'status', 'created_at', 'purchases']
-        read_only_fields = ['id', 'reference', 'status', 'created_at', 'purchases']
-    
-    def to_representation(self, instance):
-        """Custom representation to ensure proper amount formatting"""
-        data = super().to_representation(instance)
-        # Ensure amount is a proper number (Django DecimalField can sometimes cause precision issues)
-        if 'amount' in data and data['amount'] is not None:
-            data['amount'] = float(instance.amount)
-        return data
 
 class UserLibrarySerializer(serializers.ModelSerializer):
     product = ProductSerializer(read_only=True)
@@ -42,27 +32,109 @@ class UserLibrarySerializer(serializers.ModelSerializer):
             from django.conf import settings
             
             tickets = EventTicket.objects.filter(purchase=obj.purchase)
-            result = []
-            for ticket in tickets:
-                qr_url = None
-                if ticket.qr_code:
-                    qr_url = f"{settings.BASE_URL}{ticket.qr_code.url}"
-                
-                result.append({
-                    'id': ticket.id,
-                    'ticket_id': str(ticket.ticket_id),
-                    'qr_code_url': qr_url,
-                    'is_used': ticket.is_used,
-                    'created_at': ticket.created_at
-                })
-            return result
+            return [{
+                'id': ticket.id,
+                'ticket_id': str(ticket.ticket_id),
+                'qr_code_url': f"{settings.BASE_URL}{ticket.qr_code.url}" if ticket.qr_code else None,
+                'is_used': ticket.is_used,
+                'created_at': ticket.created_at
+            } for ticket in tickets]
         return []
 
-class CartItemSerializer(serializers.Serializer):
-    product_id = serializers.IntegerField()
-    quantity = serializers.IntegerField(min_value=1, default=1)
-
 class CheckoutSerializer(serializers.Serializer):
-    items = CartItemSerializer(many=True)
-    email = serializers.EmailField()
-    callback_url = serializers.URLField(required=False) 
+    items = serializers.ListField(
+        child=serializers.DictField(),
+        min_length=1
+    )
+    email = serializers.EmailField(required=False)  # Make email optional
+
+class SellerCommissionSerializer(serializers.ModelSerializer):
+    product_title = serializers.CharField(source='purchase.product.title', read_only=True)
+    customer_email = serializers.CharField(source='purchase.payment.user.email', read_only=True)
+    customer_name = serializers.CharField(source='purchase.payment.user.full_name', read_only=True)
+    
+    class Meta:
+        model = SellerCommission
+        fields = [
+            'id', 'product_title', 'customer_email', 'customer_name',
+            'product_price', 'commission_amount', 'seller_payout',
+            'status', 'created_at', 'paid_at'
+        ]
+        read_only_fields = fields
+
+class PayoutRequestSerializer(serializers.ModelSerializer):
+    bank_name = serializers.CharField(source='bank_details.bank_name', read_only=True)
+    account_number = serializers.CharField(source='bank_details.account_number', read_only=True)
+    account_name = serializers.CharField(source='bank_details.account_name', read_only=True)
+    
+    class Meta:
+        model = PayoutRequest
+        fields = [
+            'id', 'amount', 'bank_name', 'account_number', 'account_name',
+            'status', 'transfer_reference', 'created_at', 'processed_at'
+        ]
+        read_only_fields = ['id', 'status', 'transfer_reference', 'created_at', 'processed_at']
+
+class CreatePayoutRequestSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PayoutRequest
+        fields = ['amount', 'bank_details']
+    
+    def validate_amount(self, value):
+        """Validate payout amount"""
+        if value <= 0:
+            raise serializers.ValidationError("Payout amount must be greater than 0")
+        
+        # Check if seller has enough available balance
+        seller = self.context['request'].user
+        try:
+            earnings = seller.earnings
+            if value > earnings.available_balance:
+                raise serializers.ValidationError(
+                    f"Insufficient balance. Available: ₦{earnings.available_balance}"
+                )
+        except SellerEarnings.DoesNotExist:
+            raise serializers.ValidationError("No earnings found")
+        
+        # Check minimum payout amount (₦1,000)
+        if value < 1000:
+            raise serializers.ValidationError("Minimum payout amount is ₦1,000")
+        
+        return value
+    
+    def validate_bank_details(self, value):
+        """Validate bank details belong to seller"""
+        seller = self.context['request'].user
+        if value.user != seller:
+            raise serializers.ValidationError("Bank details must belong to you")
+        return value
+
+class SellerEarningsSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SellerEarnings
+        fields = [
+            'total_sales', 'total_commission', 'total_payouts', 
+            'available_balance', 'last_updated'
+        ]
+        read_only_fields = fields
+
+class AnalyticsSerializer(serializers.Serializer):
+    """Serializer for analytics data"""
+    total_revenue = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_orders = serializers.IntegerField()
+    revenue_growth = serializers.DecimalField(max_digits=5, decimal_places=2)
+    conversion_rate = serializers.DecimalField(max_digits=5, decimal_places=2)
+    avg_order_value = serializers.DecimalField(max_digits=10, decimal_places=2)
+    aov_growth = serializers.DecimalField(max_digits=5, decimal_places=2)
+    customer_countries = serializers.IntegerField()
+    top_products = serializers.ListField()
+    daily_revenue = serializers.ListField()
+    total_customers = serializers.IntegerField()
+    
+    # Commission and earnings data
+    total_earnings = serializers.DecimalField(max_digits=12, decimal_places=2)
+    total_commission = serializers.DecimalField(max_digits=12, decimal_places=2)
+    net_payout = serializers.DecimalField(max_digits=12, decimal_places=2)
+    pending_payouts = serializers.DecimalField(max_digits=12, decimal_places=2)
+    recent_commissions = serializers.ListField()
+    recent_payouts = serializers.ListField() 

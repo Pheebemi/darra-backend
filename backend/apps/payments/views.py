@@ -4,23 +4,43 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
-from .models import Payment, UserLibrary
+from django.db.models import Sum, Count
+from django.utils import timezone
+from datetime import timedelta
+from .models import Payment, UserLibrary, SellerCommission, PayoutRequest, SellerEarnings
 from .serializers import (
     PaymentSerializer, 
     UserLibrarySerializer, 
-    CheckoutSerializer
+    CheckoutSerializer,
+    SellerCommissionSerializer,
+    PayoutRequestSerializer,
+    CreatePayoutRequestSerializer,
+    SellerEarningsSerializer
 )
-from .services import PaystackService, PaymentService
+from .services import PaystackService, PaymentService, PayoutService
 
 class CheckoutView(generics.CreateAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = CheckoutSerializer
     
     def create(self, request, *args, **kwargs):
+        print(f"DEBUG: Checkout request data: {request.data}")
+        print(f"DEBUG: Checkout request user: {request.user.email}")
+        
         serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        if not serializer.is_valid():
+            print(f"DEBUG: Checkout validation errors: {serializer.errors}")
+            return Response({
+                'error': 'Invalid checkout data',
+                'details': serializer.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        print(f"DEBUG: Checkout validated data: {serializer.validated_data}")
         
         try:
+            # Use user's email if not provided in request
+            email = serializer.validated_data.get('email') or request.user.email
+            
             # Create payment from cart items
             payment = PaymentService.create_payment_from_cart(
                 user=request.user,
@@ -38,6 +58,7 @@ class CheckoutView(generics.CreateAPIView):
             }, status=status.HTTP_201_CREATED)
             
         except Exception as e:
+            print(f"DEBUG: Checkout error: {str(e)}")
             return Response({
                 'error': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
@@ -88,29 +109,30 @@ def verify_payment(request, reference):
                     # Re-raise other errors
                     raise process_error
         else:
-            print("DEBUG: Payment verification failed")
-            # Update payment status to failed
-            payment.status = Payment.PaymentStatus.FAILED
-            payment.gateway_response = str(paystack_response)
-            payment.save()
-            
+            print(f"DEBUG: Payment not successful: {paystack_response}")
             return Response({
-                'message': 'Payment verification failed',
-                'payment': PaymentSerializer(payment).data
+                'error': 'Payment verification failed',
+                'paystack_response': paystack_response
             }, status=status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:
-        print(f"DEBUG: Exception during verification: {str(e)}")
+        print(f"DEBUG: Error in verify_payment: {str(e)}")
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
 
-class UserLibraryView(generics.ListAPIView):
-    permission_classes = [IsAuthenticated]
-    serializer_class = UserLibrarySerializer
-    
-    def get_queryset(self):
-        return UserLibrary.objects.filter(user=self.request.user).select_related('product')
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def get_user_library(request):
+    """Get user's purchased products"""
+    try:
+        library_items = UserLibrary.objects.filter(user=request.user).select_related('product', 'purchase')
+        serializer = UserLibrarySerializer(library_items, many=True)
+        return Response(serializer.data)
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 class PaymentHistoryView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
@@ -166,21 +188,206 @@ def paystack_webhook(request):
         
         # Check if payment was successful
         if webhook_data.get('data', {}).get('status') == 'success':
-            print(f"DEBUG: Webhook indicates successful payment for {reference}")
+            print("DEBUG: Webhook indicates successful payment")
             
-            # Process the successful payment
-            paystack_service = PaystackService()
-            payment = paystack_service.process_successful_payment(payment, webhook_data)
-            
-            return Response({'message': 'Webhook processed successfully'})
+            # Process the payment if it hasn't been processed yet
+            if payment.status != Payment.PaymentStatus.SUCCESS:
+                paystack_service = PaystackService()
+                payment = paystack_service.process_successful_payment(payment, webhook_data)
+                print(f"DEBUG: Payment processed via webhook, new status: {payment.status}")
+            else:
+                print("DEBUG: Payment already processed")
         else:
-            print(f"DEBUG: Webhook indicates failed payment for {reference}")
-            payment.status = Payment.PaymentStatus.FAILED
-            payment.gateway_response = str(webhook_data)
-            payment.save()
-            
-            return Response({'message': 'Payment marked as failed'})
+            print(f"DEBUG: Webhook indicates payment status: {webhook_data.get('data', {}).get('status')}")
+        
+        return Response({'status': 'success'})
+        
+    except Exception as e:
+        print(f"DEBUG: Error processing webhook: {str(e)}")
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+# New endpoints for seller earnings and payouts
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def seller_earnings(request):
+    """Get seller's earnings overview"""
+    if request.user.user_type != 'seller':
+        return Response({'error': 'Only sellers can access this'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        # Get or create earnings record
+        earnings, created = SellerEarnings.objects.get_or_create(seller=request.user)
+        
+        # Update earnings if not created
+        if not created:
+            paystack_service = PaystackService()
+            paystack_service.update_seller_earnings(request.user)
+            earnings.refresh_from_db()
+        
+        serializer = SellerEarningsSerializer(earnings)
+        return Response(serializer.data)
+        
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def seller_commissions(request):
+    """Get seller's commission history"""
+    if request.user.user_type != 'seller':
+        return Response({'error': 'Only sellers can access this'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        commissions = SellerCommission.objects.filter(
+            seller=request.user
+        ).select_related('purchase__product', 'purchase__payment__user').order_by('-created_at')
+        
+        serializer = SellerCommissionSerializer(commissions, many=True)
+        return Response(serializer.data)
+        
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def seller_payouts(request):
+    """Get seller's payout history"""
+    if request.user.user_type != 'seller':
+        return Response({'error': 'Only sellers can access this'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        payouts = PayoutRequest.objects.filter(
+            seller=request.user
+        ).select_related('bank_details').order_by('-created_at')
+        
+        serializer = PayoutRequestSerializer(payouts, many=True)
+        return Response(serializer.data)
+        
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def request_payout(request):
+    """Request a payout"""
+    if request.user.user_type != 'seller':
+        return Response({'error': 'Only sellers can access this'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        serializer = CreatePayoutRequestSerializer(
+            data=request.data, 
+            context={'request': request}
+        )
+        serializer.is_valid(raise_exception=True)
+        
+        # Create payout request
+        payout_request = serializer.save(seller=request.user)
+        
+        # Process payout immediately
+        payout_service = PayoutService()
+        success = payout_service.process_payout(payout_request)
+        
+        if success:
+            return Response({
+                'message': 'Payout processed successfully',
+                'payout': PayoutRequestSerializer(payout_request).data
+            }, status=status.HTTP_201_CREATED)
+        else:
+            return Response({
+                'message': 'Payout request created but processing failed',
+                'payout': PayoutRequestSerializer(payout_request).data
+            }, status=status.HTTP_202_ACCEPTED)
             
     except Exception as e:
-        print(f"DEBUG: Webhook error: {str(e)}")
-        return Response({'error': str(e)}, status=status.HTTP_400_BAD_REQUEST) 
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def seller_analytics(request):
+    """Get comprehensive seller analytics including earnings"""
+    if request.user.user_type != 'seller':
+        return Response({'error': 'Only sellers can access this'}, status=status.HTTP_403_FORBIDDEN)
+    
+    try:
+        # Get time range from query params
+        time_range = request.query_params.get('timeRange', '7d')
+        
+        # Calculate date range
+        end_date = timezone.now()
+        if time_range == '7d':
+            start_date = end_date - timedelta(days=7)
+        elif time_range == '30d':
+            start_date = end_date - timedelta(days=30)
+        elif time_range == '90d':
+            start_date = end_date - timedelta(days=90)
+        elif time_range == '1y':
+            start_date = end_date - timedelta(days=365)
+        else:
+            start_date = end_date - timedelta(days=7)
+        
+        # Get commissions in date range
+        commissions = SellerCommission.objects.filter(
+            seller=request.user,
+            created_at__range=(start_date, end_date)
+        )
+        
+        # Calculate analytics
+        total_revenue = commissions.aggregate(total=Sum('product_price'))['total'] or 0
+        total_orders = commissions.count()
+        total_commission = commissions.aggregate(total=Sum('commission_amount'))['total'] or 0
+        net_payout = commissions.aggregate(total=Sum('seller_payout'))['total'] or 0
+        
+        # Get pending payouts
+        pending_payouts = PayoutRequest.objects.filter(
+            seller=request.user,
+            status='pending'
+        ).aggregate(total=Sum('amount'))['total'] or 0
+        
+        # Get recent commissions
+        recent_commissions = commissions.order_by('-created_at')[:5]
+        commission_data = SellerCommissionSerializer(recent_commissions, many=True).data
+        
+        # Get recent payouts
+        recent_payouts = PayoutRequest.objects.filter(
+            seller=request.user
+        ).order_by('-created_at')[:5]
+        payout_data = PayoutRequestSerializer(recent_payouts, many=True).data
+        
+        analytics_data = {
+            'total_revenue': total_revenue,
+            'total_orders': total_orders,
+            'revenue_growth': 0,  # You can implement growth calculation
+            'conversion_rate': 0,  # You can implement conversion calculation
+            'avg_order_value': total_revenue / total_orders if total_orders > 0 else 0,
+            'aov_growth': 0,  # You can implement AOV growth calculation
+            'customer_countries': 1,  # Default value
+            'top_products': [],  # You can implement top products
+            'daily_revenue': [],  # You can implement daily revenue
+            'total_customers': total_orders,  # For now, assume 1 customer per order
+            
+            # Commission and earnings data
+            'total_earnings': net_payout,
+            'total_commission': total_commission,
+            'net_payout': net_payout,
+            'pending_payouts': pending_payouts,
+            'recent_commissions': commission_data,
+            'recent_payouts': payout_data
+        }
+        
+        return Response(analytics_data)
+        
+    except Exception as e:
+        return Response({
+            'error': str(e)
+        }, status=status.HTTP_400_BAD_REQUEST) 

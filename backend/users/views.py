@@ -276,9 +276,14 @@ class BankDetailView(APIView):
 
     def get(self, request):
         # Return all bank accounts for the user
-        accounts = BankDetail.objects.filter(user=request.user)
-        serializer = BankDetailSerializer(accounts, many=True)
-        return Response(serializer.data)
+        try:
+            account = BankDetail.objects.get(user=request.user)
+            serializer = BankDetailSerializer(account)
+            # Return as array since frontend expects multiple accounts
+            return Response([serializer.data])
+        except BankDetail.DoesNotExist:
+            # Return empty array if no bank account exists
+            return Response([])
 
     def post(self, request):
         bank_code = request.data.get('bank_code')
@@ -286,9 +291,9 @@ class BankDetailView(APIView):
         bank_name = request.data.get('bank_name')
 
         # Validate with Paystack
-        PAYSTACK_SECRET_KEY = 'sk_test_28880cfe8f38d298104855fd9480c57c7178dfe4'  # Replace with your real secret key or use settings
+        from django.conf import settings
         headers = {
-            'Authorization': f'Bearer {PAYSTACK_SECRET_KEY}',
+            'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}',
         }
         url = f'https://api.paystack.co/bank/resolve?account_number={account_number}&bank_code={bank_code}'
         resp = requests.get(url, headers=headers)

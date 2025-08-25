@@ -5,3 +5,4 @@ class EventsConfig(AppConfig):
     name = 'apps.events'
 
 
+

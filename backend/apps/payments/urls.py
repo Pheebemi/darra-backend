@@ -1,13 +1,30 @@
 from django.urls import path
-from . import views
-
-app_name = 'payments'
+from .views import (
+    CheckoutView,
+    verify_payment,
+    get_user_library,
+    PaymentHistoryView,
+    payment_status,
+    paystack_webhook,
+    seller_earnings,
+    seller_commissions,
+    seller_payouts,
+    request_payout,
+    seller_analytics
+)
 
 urlpatterns = [
-    path('checkout/', views.CheckoutView.as_view(), name='checkout'),
-    path('verify/<str:reference>/', views.verify_payment, name='verify_payment'),
-    path('status/<str:reference>/', views.payment_status, name='payment_status'),
-    path('webhook/', views.paystack_webhook, name='paystack_webhook'),
-    path('library/', views.UserLibraryView.as_view(), name='user_library'),
-    path('history/', views.PaymentHistoryView.as_view(), name='payment_history'),
+    path('checkout/', CheckoutView.as_view(), name='checkout'),
+    path('verify/<str:reference>/', verify_payment, name='verify_payment'),
+    path('library/', get_user_library, name='user_library'),
+    path('history/', PaymentHistoryView.as_view(), name='payment_history'),
+    path('status/<str:reference>/', payment_status, name='payment_status'),
+    path('webhook/', paystack_webhook, name='paystack_webhook'),
+    
+    # Seller earnings and payouts
+    path('seller/earnings/', seller_earnings, name='seller_earnings'),
+    path('seller/commissions/', seller_commissions, name='seller_commissions'),
+    path('seller/payouts/', seller_payouts, name='seller_payouts'),
+    path('seller/request-payout/', request_payout, name='request_payout'),
+    path('seller/analytics/', seller_analytics, name='seller_analytics'),
 ] 
