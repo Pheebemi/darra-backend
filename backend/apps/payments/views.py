@@ -33,20 +33,51 @@ class CheckoutView(generics.CreateAPIView):
     
     def create(self, request, *args, **kwargs):
         print(f"DEBUG: Checkout request data: {request.data}")
+        print(f"DEBUG: Request data type: {type(request.data)}")
+        print(f"DEBUG: Serializer class: {self.serializer_class}")
+        
         serializer = self.get_serializer(data=request.data)
+        print(f"DEBUG: Serializer created: {serializer}")
+        print(f"DEBUG: Serializer class name: {serializer.__class__.__name__}")
+        
         if serializer.is_valid():
+            print(f"DEBUG: Serializer is valid")
+            print(f"DEBUG: Validated data: {serializer.validated_data}")
+            print(f"DEBUG: Validated data type: {type(serializer.validated_data)}")
+            print(f"DEBUG: Items in validated data: {serializer.validated_data.get('items', [])}")
+            
             try:
-                # Process checkout
-                payment_data = PaymentService.create_payment_from_cart(request.user, serializer.validated_data)
-                return Response(payment_data, status=status.HTTP_201_CREATED)
-        except Exception as e:
+                # Process checkout - pass only the items list, not the entire validated_data
+                payment = PaymentService.create_payment_from_cart(request.user, serializer.validated_data['items'])
+                
+                # Initialize Paystack payment to get authorization URL
+                paystack_service = PaystackService()
+                print(f"DEBUG: Initializing Paystack payment for payment ID: {payment.id}")
+                print(f"DEBUG: Payment reference: {payment.reference}")
+                print(f"DEBUG: Payment amount: {payment.amount}")
+                print(f"DEBUG: User email: {payment.user.email}")
+                
+                paystack_response = paystack_service.initialize_payment(payment)
+                print(f"DEBUG: Paystack response: {paystack_response}")
+                
+                # Return payment data with Paystack authorization URL
+                response_data = {
+                    'payment': PaymentSerializer(payment).data,
+                    'paystack_data': paystack_response,
+                    'authorization_url': paystack_response.get('data', {}).get('authorization_url')
+                }
+                
+                print(f"DEBUG: Final response data: {response_data}")
+                return Response(response_data, status=status.HTTP_201_CREATED)
+            except Exception as e:
                 print(f"DEBUG: Checkout error: {str(e)}")
-            return Response({
+                return Response({
                     'error': 'Checkout failed',
                     'details': str(e)
-            }, status=status.HTTP_400_BAD_REQUEST)
+                }, status=status.HTTP_400_BAD_REQUEST)
         else:
             print(f"DEBUG: Checkout validation errors: {serializer.errors}")
+            print(f"DEBUG: Serializer errors type: {type(serializer.errors)}")
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
@@ -158,10 +189,10 @@ def paystack_webhook(request):
     # Apply rate limiting to webhook endpoint
     throttle_classes = [WebhookRateThrottle]
     
-        # Get the webhook data
-        webhook_data = request.data
-        print(f"DEBUG: Received webhook data: {webhook_data}")
-        
+    # Get the webhook data
+    webhook_data = request.data
+    print(f"DEBUG: Received webhook data: {webhook_data}")
+    
     try:
         # Extract the reference from the webhook
         reference = webhook_data.get('data', {}).get('reference')

@@ -41,9 +41,14 @@ class UserLibrarySerializer(serializers.ModelSerializer):
             } for ticket in tickets]
         return []
 
+class CheckoutItemSerializer(serializers.Serializer):
+    """Serializer for individual checkout items"""
+    product_id = serializers.IntegerField(required=True)
+    quantity = serializers.IntegerField(required=True, min_value=1)
+
 class CheckoutSerializer(serializers.Serializer):
     items = serializers.ListField(
-        child=serializers.DictField(),
+        child=CheckoutItemSerializer(),
         min_length=1
     )
     email = serializers.EmailField(required=False)  # Make email optional

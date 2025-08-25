@@ -248,6 +248,10 @@ class PaymentService:
     @staticmethod
     def create_payment_from_cart(user, cart_items):
         """Create payment from cart items"""
+        print(f"DEBUG: PaymentService.create_payment_from_cart called with cart_items: {cart_items}")
+        print(f"DEBUG: Type of cart_items: {type(cart_items)}")
+        print(f"DEBUG: Length of cart_items: {len(cart_items)}")
+        
         # Generate unique reference
         reference = f"DARRA_{uuid.uuid4().hex[:8].upper()}"
         
@@ -255,8 +259,13 @@ class PaymentService:
         total_amount = 0
         processed_items = []
         
-        for item in cart_items:
+        for i, item in enumerate(cart_items):
+            print(f"DEBUG: Processing item {i}: {item}")
+            print(f"DEBUG: Item type: {type(item)}")
+            print(f"DEBUG: Item keys: {list(item.keys()) if isinstance(item, dict) else 'Not a dict'}")
+            
             if 'product_id' in item:
+                print(f"DEBUG: Found product_id: {item['product_id']}")
                 # Frontend is sending product_id, fetch the product
                 try:
                     product = Product.objects.get(id=item['product_id'])
@@ -266,10 +275,11 @@ class PaymentService:
                         'product': product,
                         'quantity': quantity
                     })
+                    print(f"DEBUG: Successfully processed product {product.id} with quantity {quantity}")
                 except Product.DoesNotExist:
                     raise ValidationError(f"Product with ID {item['product_id']} not found")
             elif 'product' in item:
-                # Frontend is sending product object directly
+                print(f"DEBUG: Found product object: {item['product']}")
                 product = item['product']
                 quantity = item['quantity']
                 total_amount += product.price * quantity
@@ -278,6 +288,8 @@ class PaymentService:
                     'quantity': quantity
                 })
             else:
+                print(f"DEBUG: Item missing both product_id and product fields")
+                print(f"DEBUG: Available keys: {list(item.keys()) if isinstance(item, dict) else 'Not a dict'}")
                 raise ValidationError("Each item must have either 'product_id' or 'product' field")
         
         # Create payment
