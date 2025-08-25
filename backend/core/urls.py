@@ -22,16 +22,23 @@ from rest_framework_simplejwt.views import (
 )
 from django.conf import settings
 from django.conf.urls.static import static
+from .views import test_rate_limiting, test_burst_limit, test_sustained_limit
 
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('api/auth/', include('users.urls')),
+    path('api/users/', include('users.urls')),  # Add this line for bank-detail access
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('api/token/verify/', TokenVerifyView.as_view(), name='token_verify'),
     path('api/products/', include('products.urls')),
     path('api/payments/', include('apps.payments.urls')),
     path('api/', include('apps.notifications.urls')),
     path('api/events/', include('apps.events.urls')),
+    
+    # Rate limiting test endpoints
+    path('api/test/rate-limit/', test_rate_limiting, name='test_rate_limit'),
+    path('api/test/burst-limit/', test_burst_limit, name='test_burst_limit'),
+    path('api/test/sustained-limit/', test_sustained_limit, name='test_sustained_limit'),
 ]
 
 # Serve media files

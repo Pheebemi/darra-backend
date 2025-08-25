@@ -169,6 +169,21 @@ REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': (
         'rest_framework.permissions.IsAuthenticated',
     ),
+    # Rate Limiting Configuration
+    'DEFAULT_THROTTLE_CLASSES': [
+        'rest_framework.throttling.AnonRateThrottle',      # Anonymous users
+        'rest_framework.throttling.UserRateThrottle',      # Authenticated users
+        'rest_framework.throttling.ScopedRateThrottle',    # Custom scoped throttling
+    ],
+    'DEFAULT_THROTTLE_RATES': {
+        'anon': '100/hour',        # 100 requests per hour for anonymous users
+        'user': '1000/hour',       # 1000 requests per hour for authenticated users
+        'burst': '60/minute',      # 60 requests per minute (burst protection)
+        'sustained': '1000/hour',  # 1000 requests per hour (sustained usage)
+        'payment': '30/minute',    # 30 payment requests per minute
+        'auth': '10/minute',       # 10 authentication attempts per minute
+        'webhook': '100/minute',   # 100 webhook calls per minute
+    },
 }
 
 # JWT settings

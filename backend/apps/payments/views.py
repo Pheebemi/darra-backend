@@ -1,13 +1,19 @@
 from rest_framework import status, generics
 from rest_framework.decorators import api_view, permission_classes
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
+from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
 from django.http import HttpResponse
 from django.db.models import Sum, Count
 from django.utils import timezone
 from datetime import timedelta
-from .models import Payment, UserLibrary, SellerCommission, PayoutRequest, SellerEarnings
+from django.db import transaction
+from django.conf import settings
+import requests
+import json
+
+from .models import Payment, Purchase, UserLibrary, SellerCommission, PayoutRequest, SellerEarnings
 from .serializers import (
     PaymentSerializer, 
     UserLibrarySerializer, 
@@ -18,50 +24,30 @@ from .serializers import (
     SellerEarningsSerializer
 )
 from .services import PaystackService, PaymentService, PayoutService
+from core.throttling import PaymentRateThrottle, WebhookRateThrottle  # Import rate limiting
 
 class CheckoutView(generics.CreateAPIView):
-    permission_classes = [IsAuthenticated]
     serializer_class = CheckoutSerializer
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [PaymentRateThrottle]  # Rate limit payment requests
     
     def create(self, request, *args, **kwargs):
         print(f"DEBUG: Checkout request data: {request.data}")
-        print(f"DEBUG: Checkout request user: {request.user.email}")
-        
         serializer = self.get_serializer(data=request.data)
-        if not serializer.is_valid():
-            print(f"DEBUG: Checkout validation errors: {serializer.errors}")
-            return Response({
-                'error': 'Invalid checkout data',
-                'details': serializer.errors
-            }, status=status.HTTP_400_BAD_REQUEST)
-        
-        print(f"DEBUG: Checkout validated data: {serializer.validated_data}")
-        
-        try:
-            # Use user's email if not provided in request
-            email = serializer.validated_data.get('email') or request.user.email
-            
-            # Create payment from cart items
-            payment = PaymentService.create_payment_from_cart(
-                user=request.user,
-                cart_items=serializer.validated_data['items']
-            )
-            
-            # Initialize payment with Paystack
-            paystack_service = PaystackService()
-            paystack_response = paystack_service.initialize_payment(payment)
-            
-            return Response({
-                'payment': PaymentSerializer(payment).data,
-                'paystack_data': paystack_response,
-                'authorization_url': paystack_response.get('data', {}).get('authorization_url')
-            }, status=status.HTTP_201_CREATED)
-            
+        if serializer.is_valid():
+            try:
+                # Process checkout
+                payment_data = PaymentService.create_payment_from_cart(request.user, serializer.validated_data)
+                return Response(payment_data, status=status.HTTP_201_CREATED)
         except Exception as e:
-            print(f"DEBUG: Checkout error: {str(e)}")
+                print(f"DEBUG: Checkout error: {str(e)}")
             return Response({
-                'error': str(e)
+                    'error': 'Checkout failed',
+                    'details': str(e)
             }, status=status.HTTP_400_BAD_REQUEST)
+        else:
+            print(f"DEBUG: Checkout validation errors: {serializer.errors}")
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['GET'])
 def verify_payment(request, reference):
@@ -166,47 +152,40 @@ def payment_status(request, reference):
         }, status=status.HTTP_400_BAD_REQUEST)
 
 @api_view(['POST'])
+@permission_classes([AllowAny])
 def paystack_webhook(request):
     """Handle Paystack webhook for payment updates"""
-    try:
+    # Apply rate limiting to webhook endpoint
+    throttle_classes = [WebhookRateThrottle]
+    
         # Get the webhook data
         webhook_data = request.data
         print(f"DEBUG: Received webhook data: {webhook_data}")
         
+    try:
         # Extract the reference from the webhook
         reference = webhook_data.get('data', {}).get('reference')
         if not reference:
-            return Response({'error': 'No reference found'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'No reference found'}, status=400)
         
         print(f"DEBUG: Processing webhook for reference: {reference}")
         
-        # Get the payment
-        try:
-            payment = Payment.objects.get(reference=reference)
-        except Payment.DoesNotExist:
-            return Response({'error': 'Payment not found'}, status=status.HTTP_404_NOT_FOUND)
-        
-        # Check if payment was successful
+        # Process the webhook based on status
         if webhook_data.get('data', {}).get('status') == 'success':
             print("DEBUG: Webhook indicates successful payment")
-            
-            # Process the payment if it hasn't been processed yet
-            if payment.status != Payment.PaymentStatus.SUCCESS:
-                paystack_service = PaystackService()
-                payment = paystack_service.process_successful_payment(payment, webhook_data)
-                print(f"DEBUG: Payment processed via webhook, new status: {payment.status}")
-            else:
-                print("DEBUG: Payment already processed")
+            # Process successful payment
+            payment = Payment.objects.get(reference=reference)
+            payment = PaymentService.process_successful_payment(payment, webhook_data)
+            print(f"DEBUG: Payment processed via webhook, new status: {payment.status}")
         else:
             print(f"DEBUG: Webhook indicates payment status: {webhook_data.get('data', {}).get('status')}")
+            # Handle other statuses if needed
         
         return Response({'status': 'success'})
         
     except Exception as e:
         print(f"DEBUG: Error processing webhook: {str(e)}")
-        return Response({
-            'error': str(e)
-        }, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Webhook processing failed'}, status=500)
 
 # New endpoints for seller earnings and payouts
 
@@ -386,7 +365,7 @@ def seller_analytics(request):
         }
         
         return Response(analytics_data)
-        
+            
     except Exception as e:
         return Response({
             'error': str(e)

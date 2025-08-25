@@ -6,7 +6,7 @@ from rest_framework.permissions import AllowAny, IsAuthenticated
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from datetime import timedelta
-import random
+import secrets  # Cryptographically secure random
 import string
 from .serializers import (
     UserRegistrationSerializer,
@@ -29,14 +29,30 @@ from django.utils.text import slugify
 import requests
 from .models import BankDetail
 from .serializers import BankDetailSerializer
+from rest_framework.throttling import AnonRateThrottle
+from django.contrib.auth import authenticate
+from django.conf import settings
+from core.throttling import AuthenticationRateThrottle  # Import custom rate limiting
+from .otp_security import (
+    generate_secure_otp,
+    validate_otp_timing,
+    check_otp_cooldown,
+    sanitize_otp_input,
+    log_otp_attempt
+)
 
 User = get_user_model()
 
 def generate_otp():
-    return ''.join(random.choices(string.digits, k=6))
+    """
+    Generate cryptographically secure 6-digit OTP
+    Uses secrets.token_hex() for true randomness
+    """
+    return generate_secure_otp()
 
 class RegisterView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [AuthenticationRateThrottle]  # Rate limit registration
 
     def post(self, request):
         serializer = UserRegistrationSerializer(data=request.data)
@@ -64,6 +80,7 @@ class RegisterView(APIView):
 
 class VerifyOTPView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [AuthenticationRateThrottle]  # Rate limit OTP verification
 
     def post(self, request):
         serializer = OTPVerificationSerializer(data=request.data)
@@ -71,16 +88,37 @@ class VerifyOTPView(APIView):
             try:
                 user = User.objects.get(email=serializer.validated_data['email'])
                 
-                # Check if OTP is expired (10 minutes validity)
-                if user.otp_created_at and timezone.now() > user.otp_created_at + timedelta(minutes=10):
+                # Enhanced security: Validate OTP timing using utility function
+                timing_ok, timing_message = validate_otp_timing(user.otp_created_at, max_age_minutes=10)
+                if not timing_ok:
                     return Response({
-                        "message": "OTP has expired. Please request a new one."
+                        "message": timing_message
                     }, status=status.HTTP_400_BAD_REQUEST)
 
-                if user.otp == serializer.validated_data['otp']:
+                # Check if OTP exists
+                if not user.otp:
+                    log_otp_attempt(user.email, False, request.META.get('REMOTE_ADDR'))
+                    return Response({
+                        "message": "No OTP found. Please request a new one."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                # Sanitize OTP input
+                sanitized_otp = sanitize_otp_input(serializer.validated_data['otp'])
+                if not sanitized_otp:
+                    log_otp_attempt(user.email, False, request.META.get('REMOTE_ADDR'))
+                    return Response({
+                        "message": "Invalid OTP format. Please enter 6 digits."
+                    }, status=status.HTTP_400_BAD_REQUEST)
+
+                if user.otp == sanitized_otp:
+                    # Successful verification
                     user.is_verified = True
                     user.otp = ''  # Clear OTP after successful verification
+                    user.otp_created_at = None  # Clear OTP timestamp
                     user.save()
+
+                    # Log successful verification
+                    log_otp_attempt(user.email, True, request.META.get('REMOTE_ADDR'))
 
                     # Generate tokens
                     refresh = RefreshToken.for_user(user)
@@ -92,9 +130,18 @@ class VerifyOTPView(APIView):
                             "access": str(refresh.access_token)
                         }
                     })
-                return Response({
-                    "message": "Invalid OTP."
-                }, status=status.HTTP_400_BAD_REQUEST)
+                else:
+                    # Invalid OTP - clear it to prevent reuse
+                    user.otp = ''
+                    user.otp_created_at = None
+                    user.save()
+                    
+                    # Log failed verification
+                    log_otp_attempt(user.email, False, request.META.get('REMOTE_ADDR'))
+                    
+                    return Response({
+                        "message": "Invalid OTP. Please request a new one."
+                    }, status=status.HTTP_400_BAD_REQUEST)
             except User.DoesNotExist:
                 return Response({
                     "message": "User not found."
@@ -103,6 +150,7 @@ class VerifyOTPView(APIView):
 
 class LoginView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [AuthenticationRateThrottle]  # Rate limit login attempts
 
     def post(self, request):
         serializer = UserLoginSerializer(data=request.data)
@@ -139,12 +187,20 @@ class LoginView(APIView):
 
 class RequestOTPView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [AuthenticationRateThrottle]  # Rate limit OTP requests
 
     def post(self, request):
         serializer = OTPLoginSerializer(data=request.data)
         if serializer.is_valid():
             try:
                 user = User.objects.get(email=serializer.validated_data['email'])
+                
+                # Enhanced security: Check OTP cooldown using utility function
+                cooldown_ok, remaining_seconds = check_otp_cooldown(user.otp_created_at, cooldown_minutes=2)
+                if not cooldown_ok:
+                    return Response({
+                        "message": f"Please wait {remaining_seconds} seconds before requesting another OTP."
+                    }, status=status.HTTP_429_TOO_MANY_REQUESTS)
                 
                 # Generate and save new OTP
                 otp = generate_otp()
@@ -155,9 +211,12 @@ class RequestOTPView(APIView):
                 # Send OTP via email
                 try:
                     send_otp_email(user.email, otp, is_verification=False)
+                    # Log successful OTP generation
+                    log_otp_attempt(user.email, True, request.META.get('REMOTE_ADDR'))
                 except Exception as e:
                     # Log the error but don't expose it to the user
                     print(f"Failed to send email: {str(e)}")
+                    log_otp_attempt(user.email, False, request.META.get('REMOTE_ADDR'))
 
                 return Response({
                     "message": "OTP sent successfully.",
@@ -291,7 +350,6 @@ class BankDetailView(APIView):
         bank_name = request.data.get('bank_name')
 
         # Validate with Paystack
-        from django.conf import settings
         headers = {
             'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}',
         }
