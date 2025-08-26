@@ -235,6 +235,14 @@ else:
 # Paystack settings
 PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', 'sk_test_your_test_secret_key_here')
 PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', 'pk_test_your_test_public_key_here')
+
+# Flutterwave settings
+FLUTTERWAVE_SECRET_KEY = os.getenv('FLUTTERWAVE_SECRET_KEY', 'FLWSECK_TEST_your_test_secret_key_here')
+FLUTTERWAVE_PUBLIC_KEY = os.getenv('FLUTTERWAVE_PUBLIC_KEY', 'FLWPUBK_TEST_your_test_public_key_here')
+FLUTTERWAVE_ENCRYPTION_KEY = os.getenv('FLUTTERWAVE_ENCRYPTION_KEY', 'FLWSECK_TEST_your_test_encryption_key_here')
+
+# Payment provider selection (can be 'paystack' or 'flutterwave')
+PAYMENT_PROVIDER = os.getenv('PAYMENT_PROVIDER', 'paystack')
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
 
 # Currency settings

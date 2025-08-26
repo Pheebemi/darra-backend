@@ -8,6 +8,133 @@ from .models import Payment, Purchase, UserLibrary, SellerCommission, SellerEarn
 from products.models import Product
 from users.utils import send_purchase_receipt_email, send_seller_notification_email, send_event_ticket_email
 
+class FlutterwaveService:
+    def __init__(self):
+        self.secret_key = settings.FLUTTERWAVE_SECRET_KEY
+        self.public_key = settings.FLUTTERWAVE_PUBLIC_KEY
+        self.encryption_key = settings.FLUTTERWAVE_ENCRYPTION_KEY
+        self.base_url = "https://api.flutterwave.com/v3"
+        
+    def _get_headers(self):
+        return {
+            'Authorization': f'Bearer {self.secret_key}',
+            'Content-Type': 'application/json'
+        }
+    
+    def initialize_payment(self, payment):
+        """Initialize payment with Flutterwave"""
+        url = f"{self.base_url}/payments"
+        
+        payload = {
+            'tx_ref': payment.reference,  # This will now be DARRA_XXXX format
+            'amount': float(payment.amount),  # Flutterwave uses float, not kobo
+            'currency': payment.currency,
+            'redirect_url': f"{settings.BASE_URL}/api/payments/verify/{payment.reference}/",
+            'customer': {
+                'email': payment.user.email,
+                'name': payment.user.full_name,
+                'phone_number': getattr(payment.user, 'phone_number', '')
+            },
+            'customizations': {
+                'title': 'Darra App Payment',
+                'description': f'Payment for order {payment.reference}',
+                'logo': f'{settings.BASE_URL}/static/logo.png'
+            },
+            'meta': {
+                'payment_id': payment.id,
+                'user_id': payment.user.id
+            }
+        }
+        
+        try:
+            response = requests.post(url, json=payload, headers=self._get_headers())
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            raise ValidationError(f"Flutterwave API error: {str(e)}")
+    
+    def verify_payment(self, reference):
+        """Verify payment with Flutterwave"""
+        url = f"{self.base_url}/transactions/verify_by_reference?tx_ref={reference}"
+        
+        try:
+            response = requests.get(url, headers=self._get_headers())
+            response.raise_for_status()
+            return response.json()
+        except requests.exceptions.RequestException as e:
+            raise ValidationError(f"Flutterwave API error: {str(e)}")
+
+    def calculate_seller_commission(self, product_price):
+        """Calculate 4% commission and seller payout"""
+        commission = product_price * Decimal('0.04')
+        seller_payout = product_price - commission
+        return commission, seller_payout
+
+    def create_seller_commission(self, purchase):
+        """Create commission record for seller"""
+        try:
+            commission_amount, seller_payout = self.calculate_seller_commission(purchase.total_price)
+            
+            commission, created = SellerCommission.objects.get_or_create(
+                seller=purchase.product.owner,
+                purchase=purchase,
+                defaults={
+                    'product_price': purchase.total_price,
+                    'commission_amount': commission_amount,
+                    'seller_payout': seller_payout,
+                    'status': 'pending'
+                }
+            )
+            
+            if created:
+                print(f"DEBUG: Created commission record for {purchase.product.owner.email}: ₦{commission_amount}")
+            
+            return commission
+        except Exception as e:
+            print(f"DEBUG: Error creating commission: {str(e)}")
+            return None
+
+    def update_seller_earnings(self, seller):
+        """Update seller's total earnings"""
+        try:
+            # Get all commissions for this seller
+            commissions = SellerCommission.objects.filter(seller=seller)
+            
+            # Calculate totals
+            total_sales = sum(c.product_price for c in commissions)
+            total_commission = sum(c.commission_amount for c in commissions)
+            
+            # Get total payouts
+            total_payouts = sum(p.amount for p in PayoutRequest.objects.filter(
+                seller=seller, 
+                status='completed'
+            ))
+            
+            # Get or create earnings record
+            earnings, created = SellerEarnings.objects.get_or_create(
+                seller=seller,
+                defaults={
+                    'total_sales': total_sales,
+                    'total_commission': total_commission,
+                    'total_payouts': total_payouts,
+                    'available_balance': total_sales - total_commission - total_payouts
+                }
+            )
+            
+            if not created:
+                earnings.total_sales = total_sales
+                earnings.total_commission = total_commission
+                earnings.total_payouts = total_payouts
+                earnings.available_balance = total_sales - total_commission - total_payouts
+                earnings.save()
+            
+            print(f"DEBUG: Updated earnings for {seller.email}: Sales: ₦{total_sales}, Commission: ₦{total_commission}, Available: ₦{earnings.available_balance}")
+            
+            return earnings
+        except Exception as e:
+            print(f"DEBUG: Error updating earnings: {str(e)}")
+            return None
+
 class PaystackService:
     def __init__(self):
         self.secret_key = settings.PAYSTACK_SECRET_KEY
@@ -247,70 +374,173 @@ class PaystackService:
 class PaymentService:
     @staticmethod
     def create_payment_from_cart(user, cart_items):
-        """Create payment from cart items"""
+        """Create a payment record from cart items"""
         print(f"DEBUG: PaymentService.create_payment_from_cart called with cart_items: {cart_items}")
         print(f"DEBUG: Type of cart_items: {type(cart_items)}")
         print(f"DEBUG: Length of cart_items: {len(cart_items)}")
+        print(f"DEBUG: User: {user.email if user else 'No user'}")
         
-        # Generate unique reference
-        reference = f"DARRA_{uuid.uuid4().hex[:8].upper()}"
+        if not cart_items:
+            print(f"DEBUG: Cart is empty, raising ValidationError")
+            raise ValidationError("Cart is empty")
         
-        # Fetch products and calculate total amount
-        total_amount = 0
-        processed_items = []
+        print(f"DEBUG: Cart validation passed, processing {len(cart_items)} items")
         
+        # Calculate total amount
+        total_amount = Decimal('0.00')
+        purchases = []
+        
+        print(f"DEBUG: Starting to process cart items...")
+        
+        # Process each cart item
         for i, item in enumerate(cart_items):
             print(f"DEBUG: Processing item {i}: {item}")
             print(f"DEBUG: Item type: {type(item)}")
             print(f"DEBUG: Item keys: {list(item.keys()) if isinstance(item, dict) else 'Not a dict'}")
             
+            # Handle both product_id and product object formats
             if 'product_id' in item:
+                product_id = item['product_id']
+                quantity = item.get('quantity', 1)
                 print(f"DEBUG: Found product_id: {item['product_id']}")
-                # Frontend is sending product_id, fetch the product
+                
                 try:
-                    product = Product.objects.get(id=item['product_id'])
-                    quantity = item['quantity']
-                    total_amount += product.price * quantity
-                    processed_items.append({
-                        'product': product,
-                        'quantity': quantity
-                    })
-                    print(f"DEBUG: Successfully processed product {product.id} with quantity {quantity}")
+                    product = Product.objects.get(id=product_id)
                 except Product.DoesNotExist:
-                    raise ValidationError(f"Product with ID {item['product_id']} not found")
+                    raise ValidationError(f"Product with ID {product_id} not found")
+                
+                # Calculate item total
+                item_total = product.price * quantity
+                total_amount += item_total
+                
+                # Create purchase record
+                purchase = Purchase(
+                    product=product,
+                    quantity=quantity,
+                    unit_price=product.price,
+                    total_price=item_total
+                )
+                purchases.append(purchase)
+                print(f"DEBUG: Successfully processed product {product.id} with quantity {quantity}")
+                
             elif 'product' in item:
-                print(f"DEBUG: Found product object: {item['product']}")
                 product = item['product']
-                quantity = item['quantity']
-                total_amount += product.price * quantity
-                processed_items.append({
-                    'product': product,
-                    'quantity': quantity
-                })
+                quantity = item.get('quantity', 1)
+                print(f"DEBUG: Found product object: {item['product']}")
+                
+                # Calculate item total
+                item_total = product.price * quantity
+                total_amount += item_total
+                
+                # Create purchase record
+                purchase = Purchase(
+                    product=product,
+                    quantity=quantity,
+                    unit_price=product.price,
+                    total_price=item_total
+                )
+                purchases.append(purchase)
+                
             else:
                 print(f"DEBUG: Item missing both product_id and product fields")
                 print(f"DEBUG: Available keys: {list(item.keys()) if isinstance(item, dict) else 'Not a dict'}")
-                raise ValidationError("Each item must have either 'product_id' or 'product' field")
+                raise ValidationError("Invalid cart item format")
         
-        # Create payment
+        print(f"DEBUG: About to create payment record...")
+        print(f"DEBUG: User: {user.id}, {user.email}")
+        print(f"DEBUG: Total amount: {total_amount}")
+        print(f"DEBUG: Payment provider setting: {getattr(settings, 'PAYMENT_PROVIDER', 'paystack')}")
+        
+        # Generate unique reference with DARRA_ prefix
+        import random
+        import string
+        reference_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        payment_reference = f"DARRA_{reference_suffix}"
+        
+        # Create payment record with provider
         payment = Payment.objects.create(
             user=user,
-            reference=reference,
+            reference=payment_reference,
             amount=total_amount,
-            currency='NGN'
+            currency='NGN',
+            payment_provider=getattr(settings, 'PAYMENT_PROVIDER', 'paystack')
         )
         
-        # Create purchases
-        for item in processed_items:
-            Purchase.objects.create(
-                payment=payment,
-                product=item['product'],
-                quantity=item['quantity'],
-                unit_price=item['product'].price,
-                total_price=item['product'].price * item['quantity']
-            )
+        print(f"DEBUG: Payment record created successfully: {payment.id}")
         
+        print(f"DEBUG: About to create {len(purchases)} purchase records...")
+        
+        # Create purchases
+        for i, purchase in enumerate(purchases):
+            print(f"DEBUG: Creating purchase {i+1}: {purchase.product.title} x{purchase.quantity}")
+            purchase.payment = payment
+            purchase.save()
+            print(f"DEBUG: Purchase {i+1} created successfully: {purchase.id}")
+        
+        print(f"DEBUG: All purchases created successfully")
+        
+        # Save all purchases
+        for purchase in purchases:
+            purchase.save()
+            print(f"DEBUG: Saved purchase: {purchase.id}")
+        
+        print(f"DEBUG: PaymentService.create_payment_from_cart completed successfully")
+        print(f"DEBUG: Returning payment object: {payment.id}, {payment.reference}, {payment.amount}")
         return payment
+
+    @staticmethod
+    def process_successful_payment(payment):
+        """Process successful payment and add products to user library"""
+        print(f"DEBUG: Processing successful payment for user: {payment.user.email}")
+        
+        # Update payment status
+        payment.status = Payment.PaymentStatus.SUCCESS
+        payment.save()
+        print(f"DEBUG: Payment status updated to: {payment.status}")
+        
+        # Add products to user library
+        purchases = payment.purchases.all()
+        print(f"DEBUG: Found {purchases.count()} purchases to add to library")
+        
+        for purchase in purchases:
+            try:
+                # Create commission record for seller
+                from .services import PaystackService
+                paystack_service = PaystackService()
+                commission = paystack_service.create_seller_commission(purchase)
+                
+                if purchase.product.product_type == 'event':
+                    # For event tickets, create separate library entries for each ticket
+                    for ticket_number in range(purchase.quantity):
+                        UserLibrary.objects.create(
+                            user=payment.user,
+                            product=purchase.product,
+                            purchase=purchase,
+                            quantity=1
+                        )
+                    print(f"DEBUG: Created {purchase.quantity} library entries for event: {purchase.product.title}")
+                else:
+                    # For digital products, create one library entry with the full quantity
+                    UserLibrary.objects.create(
+                        user=payment.user,
+                        product=purchase.product,
+                        purchase=purchase,
+                        quantity=purchase.quantity
+                    )
+                    print(f"DEBUG: Created library entry for digital product: {purchase.product.title} x{purchase.quantity}")
+                
+                # Update seller earnings
+                if commission:
+                    paystack_service.update_seller_earnings(purchase.product.owner)
+                    
+            except Exception as e:
+                print(f"DEBUG: Error adding product to library: {str(e)}")
+                # Continue with other products even if one fails
+                continue
+        
+        print(f"DEBUG: Successfully processed payment and added items to library")
+        return payment
+
 
 class PayoutService:
     """Handle seller payouts using Paystack Transfer API"""
@@ -437,4 +667,38 @@ class PayoutService:
             payout_request.save()
             
             print(f"DEBUG: Error processing payout: {str(e)}")
-            return False 
+            return None
+
+
+class PaymentProviderFactory:
+    """Factory class to get the appropriate payment service based on settings"""
+    
+    @staticmethod
+    def get_payment_service():
+        """Get the payment service based on PAYMENT_PROVIDER setting"""
+        provider = getattr(settings, 'PAYMENT_PROVIDER', 'paystack')
+        print(f"DEBUG: PaymentProviderFactory - PAYMENT_PROVIDER setting: {provider}")
+        print(f"DEBUG: PaymentProviderFactory - Available providers: paystack, flutterwave")
+        
+        if provider == 'flutterwave':
+            print(f"DEBUG: PaymentProviderFactory - Returning FlutterwaveService")
+            return FlutterwaveService()
+        else:
+            print(f"DEBUG: PaymentProviderFactory - Returning PaystackService (default)")
+            return PaystackService()  # Default to Paystack
+    
+    @staticmethod
+    def get_payment_service_by_provider(provider_name):
+        """Get a specific payment service by name"""
+        if provider_name == 'flutterwave':
+            return FlutterwaveService()
+        elif provider_name == 'paystack':
+            return PaystackService()
+        else:
+            raise ValueError(f"Unknown payment provider: {provider_name}")
+
+
+# Legacy function for backward compatibility
+def get_payment_service():
+    """Get the default payment service (for backward compatibility)"""
+    return PaymentProviderFactory.get_payment_service() 

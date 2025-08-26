@@ -9,12 +9,18 @@ class Payment(models.Model):
         FAILED = 'failed', 'Failed'
         CANCELLED = 'cancelled', 'Cancelled'
 
+    class PaymentProvider(models.TextChoices):
+        PAYSTACK = 'paystack', 'Paystack'
+        FLUTTERWAVE = 'flutterwave', 'Flutterwave'
+
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payments')
     reference = models.CharField(max_length=100, unique=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2)
     currency = models.CharField(max_length=3, default='NGN')
     status = models.CharField(max_length=20, choices=PaymentStatus.choices, default=PaymentStatus.PENDING)
+    payment_provider = models.CharField(max_length=20, choices=PaymentProvider.choices, default=PaymentProvider.PAYSTACK)
     paystack_transaction_id = models.CharField(max_length=100, blank=True, null=True)
+    flutterwave_transaction_id = models.CharField(max_length=100, blank=True, null=True)
     gateway_response = models.TextField(blank=True, null=True)
     channel = models.CharField(max_length=50, blank=True, null=True)
     ip_address = models.GenericIPAddressField(blank=True, null=True)
@@ -23,6 +29,13 @@ class Payment(models.Model):
 
     def __str__(self):
         return f"{self.user.email} - {self.reference} - {self.status}"
+
+    @property
+    def transaction_id(self):
+        """Get the appropriate transaction ID based on payment provider"""
+        if self.payment_provider == self.PaymentProvider.FLUTTERWAVE:
+            return self.flutterwave_transaction_id
+        return self.paystack_transaction_id
 
 class Purchase(models.Model):
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='purchases')

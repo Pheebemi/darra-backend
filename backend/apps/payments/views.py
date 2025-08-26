@@ -1,5 +1,5 @@
 from rest_framework import status, generics
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -24,6 +24,7 @@ from .serializers import (
     SellerEarningsSerializer
 )
 from .services import PaystackService, PaymentService, PayoutService
+from .services import PaymentProviderFactory  # Import the factory
 from core.throttling import PaymentRateThrottle, WebhookRateThrottle  # Import rate limiting
 
 class CheckoutView(generics.CreateAPIView):
@@ -48,23 +49,35 @@ class CheckoutView(generics.CreateAPIView):
             
             try:
                 # Process checkout - pass only the items list, not the entire validated_data
+                print(f"DEBUG: About to create payment from cart with items: {serializer.validated_data['items']}")
                 payment = PaymentService.create_payment_from_cart(request.user, serializer.validated_data['items'])
+                print(f"DEBUG: Payment created successfully: {payment.id}, {payment.reference}, {payment.amount}")
                 
-                # Initialize Paystack payment to get authorization URL
-                paystack_service = PaystackService()
-                print(f"DEBUG: Initializing Paystack payment for payment ID: {payment.id}")
+                # Initialize payment with the configured provider
+                payment_service = PaymentProviderFactory.get_payment_service()
+                print(f"DEBUG: Using payment provider: {payment.payment_provider}")
+                print(f"DEBUG: Payment service type: {type(payment_service).__name__}")
+                print(f"DEBUG: Initializing {payment.payment_provider} payment for payment ID: {payment.id}")
                 print(f"DEBUG: Payment reference: {payment.reference}")
                 print(f"DEBUG: Payment amount: {payment.amount}")
                 print(f"DEBUG: User email: {payment.user.email}")
                 
-                paystack_response = paystack_service.initialize_payment(payment)
-                print(f"DEBUG: Paystack response: {paystack_response}")
+                payment_response = payment_service.initialize_payment(payment)
+                print(f"DEBUG: {payment.payment_provider} response: {payment_response}")
                 
-                # Return payment data with Paystack authorization URL
+                # Return payment data with provider-specific authorization URL
+                if payment.payment_provider == 'flutterwave':
+                    authorization_url = payment_response.get('data', {}).get('link')
+                    provider_data = payment_response
+                else:  # Paystack
+                    authorization_url = payment_response.get('data', {}).get('authorization_url')
+                    provider_data = payment_response
+                
                 response_data = {
                     'payment': PaymentSerializer(payment).data,
-                    'paystack_data': paystack_response,
-                    'authorization_url': paystack_response.get('data', {}).get('authorization_url')
+                    'provider_data': provider_data,
+                    'authorization_url': authorization_url,
+                    'payment_provider': payment.payment_provider
                 }
                 
                 print(f"DEBUG: Final response data: {response_data}")
@@ -95,17 +108,23 @@ def verify_payment(request, reference):
                 'payment': PaymentSerializer(payment).data
             })
         
-        # Verify with Paystack
-        paystack_service = PaystackService()
-        paystack_response = paystack_service.verify_payment(reference)
-        print(f"DEBUG: Paystack response status: {paystack_response.get('data', {}).get('status')}")
+        # Verify with the configured payment provider
+        payment_service = PaymentProviderFactory.get_payment_service()
+        payment_response = payment_service.verify_payment(reference)
+        print(f"DEBUG: {payment.payment_provider} response status: {payment_response.get('data', {}).get('status')}")
         
-        # Check if payment was successful
-        if paystack_response.get('data', {}).get('status') == 'success':
+        # Check if payment was successful based on provider
+        is_successful = False
+        if payment.payment_provider == 'flutterwave':
+            is_successful = payment_response.get('status') == 'successful'
+        else:  # Paystack
+            is_successful = payment_response.get('data', {}).get('status') == 'success'
+        
+        if is_successful:
             print("DEBUG: Payment successful, processing...")
             try:
-                # Process successful payment
-                payment = paystack_service.process_successful_payment(payment, paystack_response)
+                # Process the payment
+                PaymentService.process_successful_payment(payment)
                 print(f"DEBUG: Payment processed, new status: {payment.status}")
                 
                 return Response({
@@ -114,22 +133,15 @@ def verify_payment(request, reference):
                 })
             except Exception as process_error:
                 print(f"DEBUG: Error processing payment: {str(process_error)}")
-                # If there's an error processing (like duplicate library items), 
-                # still return success since the payment was actually successful
-                if "UNIQUE constraint failed" in str(process_error):
-                    print("DEBUG: Duplicate library items detected, but payment was successful")
-                    return Response({
-                        'message': 'Payment verified successfully (items already in library)',
-                        'payment': PaymentSerializer(payment).data
-                    })
-                else:
-                    # Re-raise other errors
-                    raise process_error
+                return Response({
+                    'message': 'Payment verification failed',
+                    'error': str(process_error)
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
-            print(f"DEBUG: Payment not successful: {paystack_response}")
+            print(f"DEBUG: Payment not successful: {payment_response}")
             return Response({
-                'error': 'Payment verification failed',
-                'paystack_response': paystack_response
+                'message': 'Payment not successful',
+                'status': payment_response.get('data', {}).get('status')
             }, status=status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:
@@ -184,39 +196,81 @@ def payment_status(request, reference):
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
-def paystack_webhook(request):
-    """Handle Paystack webhook for payment updates"""
-    # Apply rate limiting to webhook endpoint
-    throttle_classes = [WebhookRateThrottle]
-    
-    # Get the webhook data
-    webhook_data = request.data
-    print(f"DEBUG: Received webhook data: {webhook_data}")
-    
+@throttle_classes([WebhookRateThrottle])
+def payment_webhook(request):
+    """Handle payment webhook notifications from both Paystack and Flutterwave"""
     try:
-        # Extract the reference from the webhook
-        reference = webhook_data.get('data', {}).get('reference')
-        if not reference:
-            return Response({'error': 'No reference found'}, status=400)
+        webhook_data = request.data
+        print(f"DEBUG: Received webhook data: {webhook_data}")
         
-        print(f"DEBUG: Processing webhook for reference: {reference}")
-        
-        # Process the webhook based on status
-        if webhook_data.get('data', {}).get('status') == 'success':
-            print("DEBUG: Webhook indicates successful payment")
-            # Process successful payment
-            payment = Payment.objects.get(reference=reference)
-            payment = PaymentService.process_successful_payment(payment, webhook_data)
-            print(f"DEBUG: Payment processed via webhook, new status: {payment.status}")
+        # Determine payment provider from webhook data
+        if 'data' in webhook_data and 'reference' in webhook_data.get('data', {}):
+            # Paystack webhook format
+            reference = webhook_data.get('data', {}).get('reference')
+            provider = 'paystack'
+        elif 'tx_ref' in webhook_data:
+            # Flutterwave webhook format
+            reference = webhook_data.get('tx_ref')
+            provider = 'flutterwave'
         else:
-            print(f"DEBUG: Webhook indicates payment status: {webhook_data.get('data', {}).get('status')}")
-            # Handle other statuses if needed
+            print("DEBUG: Unknown webhook format")
+            return HttpResponse(status=400)
         
-        return Response({'status': 'success'})
+        print(f"DEBUG: Processing {provider} webhook for reference: {reference}")
         
+        # Get payment and verify status
+        payment = get_object_or_404(Payment, reference=reference)
+        
+        # Check payment status based on provider
+        if provider == 'paystack':
+            is_successful = webhook_data.get('data', {}).get('status') == 'success'
+        else:  # Flutterwave
+            is_successful = webhook_data.get('status') == 'successful'
+        
+        if is_successful:
+            print(f"DEBUG: {provider} webhook indicates successful payment")
+            try:
+                PaymentService.process_successful_payment(payment)
+                print(f"DEBUG: Payment processed via webhook, new status: {payment.status}")
+            except Exception as e:
+                print(f"DEBUG: Error processing webhook: {str(e)}")
+                return HttpResponse(status=500)
+        else:
+            print(f"DEBUG: {provider} webhook indicates payment status: {webhook_data.get('data', {}).get('status') if provider == 'paystack' else webhook_data.get('status')}")
+        
+        return HttpResponse(status=200)
     except Exception as e:
         print(f"DEBUG: Error processing webhook: {str(e)}")
-        return Response({'error': 'Webhook processing failed'}, status=500)
+        return HttpResponse(status=500)
+
+# Debug endpoint to test checkout
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def debug_checkout(request):
+    """Debug endpoint to see what data is being sent to checkout"""
+    print(f"DEBUG: Debug checkout endpoint called")
+    print(f"DEBUG: Request method: {request.method}")
+    print(f"DEBUG: Request headers: {dict(request.headers)}")
+    print(f"DEBUG: Request data: {request.data}")
+    print(f"DEBUG: Request data type: {type(request.data)}")
+    print(f"DEBUG: Request user: {request.user}")
+    
+    # Test the serializer
+    serializer = CheckoutSerializer(data=request.data)
+    if serializer.is_valid():
+        print(f"DEBUG: Serializer is valid: {serializer.validated_data}")
+        return Response({
+            'status': 'success',
+            'message': 'Checkout data is valid',
+            'data': serializer.validated_data
+        })
+    else:
+        print(f"DEBUG: Serializer errors: {serializer.errors}")
+        return Response({
+            'status': 'error',
+            'message': 'Checkout data validation failed',
+            'errors': serializer.errors
+        }, status=400)
 
 # New endpoints for seller earnings and payouts
 
