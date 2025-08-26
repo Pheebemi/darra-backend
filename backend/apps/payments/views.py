@@ -98,11 +98,12 @@ class CheckoutView(generics.CreateAPIView):
 
 @api_view(['GET'])
 def verify_payment(request, reference):
-    """Verify payment with Paystack and process if successful"""
+    """Verify payment with the correct payment provider and process if successful"""
     try:
         print(f"DEBUG: Verifying payment with reference: {reference}")
         payment = get_object_or_404(Payment, reference=reference)
         print(f"DEBUG: Found payment with status: {payment.status}")
+        print(f"DEBUG: Payment provider: {payment.payment_provider}")
         
         if payment.status == Payment.PaymentStatus.SUCCESS:
             print("DEBUG: Payment already verified")
@@ -111,17 +112,21 @@ def verify_payment(request, reference):
                 'payment': PaymentSerializer(payment).data
             })
         
-        # Verify with the configured payment provider
-        payment_service = PaymentProviderFactory.get_payment_service()
+        # Get the correct payment service for this specific payment
+        payment_service = PaymentProviderFactory.get_payment_service_by_provider(payment.payment_provider)
+        print(f"DEBUG: Using {payment.payment_provider} service for verification")
+        
         payment_response = payment_service.verify_payment(reference)
-        print(f"DEBUG: {payment.payment_provider} response status: {payment_response.get('data', {}).get('status')}")
+        print(f"DEBUG: {payment.payment_provider} verification response: {payment_response}")
         
         # Check if payment was successful based on provider
         is_successful = False
         if payment.payment_provider == 'flutterwave':
-            is_successful = payment_response.get('status') == 'successful'
+            is_successful = payment_response.get('status') == 'success'
+            print(f"DEBUG: Flutterwave status check: {payment_response.get('status')} == 'success' = {is_successful}")
         else:  # Paystack
             is_successful = payment_response.get('data', {}).get('status') == 'success'
+            print(f"DEBUG: Paystack status check: {payment_response.get('data', {}).get('status')} == 'success' = {is_successful}")
         
         if is_successful:
             print("DEBUG: Payment successful, processing...")
@@ -144,7 +149,7 @@ def verify_payment(request, reference):
             print(f"DEBUG: Payment not successful: {payment_response}")
             return Response({
                 'message': 'Payment not successful',
-                'status': payment_response.get('data', {}).get('status')
+                'status': payment_response.get('data', {}).get('status') if payment.payment_provider == 'paystack' else payment_response.get('status')
             }, status=status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:
@@ -274,6 +279,22 @@ def debug_checkout(request):
             'message': 'Checkout data validation failed',
             'errors': serializer.errors
         }, status=400)
+
+# Test endpoint for mobile app connectivity
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def test_connection(request):
+    """Simple endpoint to test mobile app connectivity"""
+    print(f"DEBUG: Test connection endpoint called from IP: {request.META.get('REMOTE_ADDR')}")
+    print(f"DEBUG: Request headers: {dict(request.headers)}")
+    
+    return Response({
+        'status': 'success',
+        'message': 'Connection successful',
+        'timestamp': timezone.now().isoformat(),
+        'client_ip': request.META.get('REMOTE_ADDR'),
+        'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+    })
 
 # New endpoints for seller earnings and payouts
 

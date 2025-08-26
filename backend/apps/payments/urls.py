@@ -7,6 +7,7 @@ from .views import (
     payment_status,
     payment_webhook,
     debug_checkout,
+    test_connection,
     seller_earnings,
     seller_commissions,
     seller_payouts,
@@ -17,6 +18,7 @@ from .views import (
 urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name='checkout'),
     path('debug-checkout/', debug_checkout, name='debug_checkout'),
+    path('test-connection/', test_connection, name='test_connection'),
     path('verify/<str:reference>/', verify_payment, name='verify_payment'),
     path('library/', get_user_library, name='user_library'),
     path('history/', PaymentHistoryView.as_view(), name='payment_history'),

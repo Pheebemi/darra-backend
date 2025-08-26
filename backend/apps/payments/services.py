@@ -38,11 +38,15 @@ class FlutterwaveService:
         """Initialize payment with Flutterwave"""
         url = f"{self.base_url}/payments"
         
+        # For mobile apps, we'll use a custom success URL that the WebView can detect
+        # The actual verification will be done manually in the WebView
+        mobile_success_url = f"https://darra.app/success?ref={payment.reference}&status=successful"
+        
         payload = {
             'tx_ref': payment.reference,  # This will now be DARRA_XXXX format
             'amount': float(payment.amount),  # Flutterwave uses float, not kobo
             'currency': payment.currency,
-            'redirect_url': f"{settings.BASE_URL}/api/payments/verify/{payment.reference}/",
+            'redirect_url': mobile_success_url,  # Use mobile-friendly URL
             'customer': {
                 'email': payment.user.email,
                 'name': payment.user.full_name,
@@ -70,12 +74,26 @@ class FlutterwaveService:
         """Verify payment with Flutterwave"""
         url = f"{self.base_url}/transactions/verify_by_reference?tx_ref={reference}"
         
+        print(f"DEBUG: Flutterwave verify_payment called with reference: {reference}")
+        print(f"DEBUG: Flutterwave verify URL: {url}")
+        print(f"DEBUG: Flutterwave headers: {self._get_headers()}")
+        
         try:
             response = requests.get(url, headers=self._get_headers())
+            print(f"DEBUG: Flutterwave API response status: {response.status_code}")
+            print(f"DEBUG: Flutterwave API response headers: {dict(response.headers)}")
+            
             response.raise_for_status()
-            return response.json()
+            response_data = response.json()
+            print(f"DEBUG: Flutterwave API response data: {response_data}")
+            
+            return response_data
         except requests.exceptions.RequestException as e:
+            print(f"DEBUG: Flutterwave API request error: {str(e)}")
             raise ValidationError(f"Flutterwave API error: {str(e)}")
+        except Exception as e:
+            print(f"DEBUG: Flutterwave API unexpected error: {str(e)}")
+            raise ValidationError(f"Flutterwave API unexpected error: {str(e)}")
 
     def calculate_seller_commission(self, product_price):
         """Calculate 4% commission and seller payout"""
