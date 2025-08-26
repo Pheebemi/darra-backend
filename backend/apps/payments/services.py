@@ -386,11 +386,12 @@ class PaystackService:
 
 class PaymentService:
     @staticmethod
-    def create_payment_from_cart(user, cart_items):
+    def create_payment_from_cart(user, cart_items, payment_provider=None):
         """Create payment from cart items"""
         print(f"DEBUG: PaymentService.create_payment_from_cart called with cart_items: {cart_items}")
         print(f"DEBUG: Type of cart_items: {type(cart_items)}")
         print(f"DEBUG: Length of cart_items: {len(cart_items)}")
+        print(f"DEBUG: Requested payment provider: {payment_provider}")
         
         # Generate unique reference
         reference = f"DARRA_{uuid.uuid4().hex[:8].upper()}"
@@ -438,7 +439,7 @@ class PaymentService:
             reference=reference,
             amount=total_amount,
             currency='NGN',
-            payment_provider=getattr(settings, 'PAYMENT_PROVIDER', 'paystack')
+            payment_provider=payment_provider if payment_provider else getattr(settings, 'PAYMENT_PROVIDER', 'paystack')
         )
         
         # Create purchases
