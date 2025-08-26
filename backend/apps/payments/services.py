@@ -15,6 +15,19 @@ class FlutterwaveService:
         self.encryption_key = settings.FLUTTERWAVE_ENCRYPTION_KEY
         self.base_url = "https://api.flutterwave.com/v3"
         
+        # Debug logging for API keys
+        print(f"DEBUG: FlutterwaveService initialized")
+        print(f"DEBUG: Secret key length: {len(self.secret_key) if self.secret_key else 0}")
+        print(f"DEBUG: Public key length: {len(self.public_key) if self.public_key else 0}")
+        print(f"DEBUG: Encryption key length: {len(self.encryption_key) if self.encryption_key else 0}")
+        print(f"DEBUG: Base URL: {self.base_url}")
+        
+        # Check if keys are placeholder values
+        if 'your_test_secret_key_here' in self.secret_key or 'your_actual_test_secret_key_here' in self.secret_key:
+            print("WARNING: Flutterwave secret key appears to be a placeholder!")
+        if 'your_test_public_key_here' in self.public_key or 'your_actual_test_public_key_here' in self.public_key:
+            print("WARNING: Flutterwave public key appears to be a placeholder!")
+        
     def _get_headers(self):
         return {
             'Authorization': f'Bearer {self.secret_key}',
@@ -374,118 +387,70 @@ class PaystackService:
 class PaymentService:
     @staticmethod
     def create_payment_from_cart(user, cart_items):
-        """Create a payment record from cart items"""
+        """Create payment from cart items"""
         print(f"DEBUG: PaymentService.create_payment_from_cart called with cart_items: {cart_items}")
         print(f"DEBUG: Type of cart_items: {type(cart_items)}")
         print(f"DEBUG: Length of cart_items: {len(cart_items)}")
-        print(f"DEBUG: User: {user.email if user else 'No user'}")
         
-        if not cart_items:
-            print(f"DEBUG: Cart is empty, raising ValidationError")
-            raise ValidationError("Cart is empty")
+        # Generate unique reference
+        reference = f"DARRA_{uuid.uuid4().hex[:8].upper()}"
         
-        print(f"DEBUG: Cart validation passed, processing {len(cart_items)} items")
+        # Fetch products and calculate total amount
+        total_amount = 0
+        processed_items = []
         
-        # Calculate total amount
-        total_amount = Decimal('0.00')
-        purchases = []
-        
-        print(f"DEBUG: Starting to process cart items...")
-        
-        # Process each cart item
         for i, item in enumerate(cart_items):
             print(f"DEBUG: Processing item {i}: {item}")
             print(f"DEBUG: Item type: {type(item)}")
             print(f"DEBUG: Item keys: {list(item.keys()) if isinstance(item, dict) else 'Not a dict'}")
             
-            # Handle both product_id and product object formats
             if 'product_id' in item:
-                product_id = item['product_id']
-                quantity = item.get('quantity', 1)
                 print(f"DEBUG: Found product_id: {item['product_id']}")
-                
+                # Frontend is sending product_id, fetch the product
                 try:
-                    product = Product.objects.get(id=product_id)
+                    product = Product.objects.get(id=item['product_id'])
+                    quantity = item['quantity']
+                    total_amount += product.price * quantity
+                    processed_items.append({
+                        'product': product,
+                        'quantity': quantity
+                    })
+                    print(f"DEBUG: Successfully processed product {product.id} with quantity {quantity}")
                 except Product.DoesNotExist:
-                    raise ValidationError(f"Product with ID {product_id} not found")
-                
-                # Calculate item total
-                item_total = product.price * quantity
-                total_amount += item_total
-                
-                # Create purchase record
-                purchase = Purchase(
-                    product=product,
-                    quantity=quantity,
-                    unit_price=product.price,
-                    total_price=item_total
-                )
-                purchases.append(purchase)
-                print(f"DEBUG: Successfully processed product {product.id} with quantity {quantity}")
-                
+                    raise ValidationError(f"Product with ID {item['product_id']} not found")
             elif 'product' in item:
-                product = item['product']
-                quantity = item.get('quantity', 1)
                 print(f"DEBUG: Found product object: {item['product']}")
-                
-                # Calculate item total
-                item_total = product.price * quantity
-                total_amount += item_total
-                
-                # Create purchase record
-                purchase = Purchase(
-                    product=product,
-                    quantity=quantity,
-                    unit_price=product.price,
-                    total_price=item_total
-                )
-                purchases.append(purchase)
-                
+                product = item['product']
+                quantity = item['quantity']
+                total_amount += product.price * quantity
+                processed_items.append({
+                    'product': product,
+                    'quantity': quantity
+                })
             else:
                 print(f"DEBUG: Item missing both product_id and product fields")
                 print(f"DEBUG: Available keys: {list(item.keys()) if isinstance(item, dict) else 'Not a dict'}")
-                raise ValidationError("Invalid cart item format")
+                raise ValidationError("Each item must have either 'product_id' or 'product' field")
         
-        print(f"DEBUG: About to create payment record...")
-        print(f"DEBUG: User: {user.id}, {user.email}")
-        print(f"DEBUG: Total amount: {total_amount}")
-        print(f"DEBUG: Payment provider setting: {getattr(settings, 'PAYMENT_PROVIDER', 'paystack')}")
-        
-        # Generate unique reference with DARRA_ prefix
-        import random
-        import string
-        reference_suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-        payment_reference = f"DARRA_{reference_suffix}"
-        
-        # Create payment record with provider
+        # Create payment with provider
         payment = Payment.objects.create(
             user=user,
-            reference=payment_reference,
+            reference=reference,
             amount=total_amount,
             currency='NGN',
             payment_provider=getattr(settings, 'PAYMENT_PROVIDER', 'paystack')
         )
         
-        print(f"DEBUG: Payment record created successfully: {payment.id}")
-        
-        print(f"DEBUG: About to create {len(purchases)} purchase records...")
-        
         # Create purchases
-        for i, purchase in enumerate(purchases):
-            print(f"DEBUG: Creating purchase {i+1}: {purchase.product.title} x{purchase.quantity}")
-            purchase.payment = payment
-            purchase.save()
-            print(f"DEBUG: Purchase {i+1} created successfully: {purchase.id}")
+        for item in processed_items:
+            Purchase.objects.create(
+                payment=payment,
+                product=item['product'],
+                quantity=item['quantity'],
+                unit_price=item['product'].price,
+                total_price=item['product'].price * item['quantity']
+            )
         
-        print(f"DEBUG: All purchases created successfully")
-        
-        # Save all purchases
-        for purchase in purchases:
-            purchase.save()
-            print(f"DEBUG: Saved purchase: {purchase.id}")
-        
-        print(f"DEBUG: PaymentService.create_payment_from_cart completed successfully")
-        print(f"DEBUG: Returning payment object: {payment.id}, {payment.reference}, {payment.amount}")
         return payment
 
     @staticmethod
@@ -505,9 +470,15 @@ class PaymentService:
         for purchase in purchases:
             try:
                 # Create commission record for seller
-                from .services import PaystackService
-                paystack_service = PaystackService()
-                commission = paystack_service.create_seller_commission(purchase)
+                commission = None
+                if payment.payment_provider == 'flutterwave':
+                    from .services import FlutterwaveService
+                    flutterwave_service = FlutterwaveService()
+                    commission = flutterwave_service.create_seller_commission(purchase)
+                else:
+                    from .services import PaystackService
+                    paystack_service = PaystackService()
+                    commission = paystack_service.create_seller_commission(purchase)
                 
                 if purchase.product.product_type == 'event':
                     # For event tickets, create separate library entries for each ticket
@@ -531,16 +502,86 @@ class PaymentService:
                 
                 # Update seller earnings
                 if commission:
-                    paystack_service.update_seller_earnings(purchase.product.owner)
-                    
+                    if payment.payment_provider == 'flutterwave':
+                        flutterwave_service.update_seller_earnings(purchase.product.owner)
+                    else:
+                        paystack_service.update_seller_earnings(purchase.product.owner)
+                        
             except Exception as e:
                 print(f"DEBUG: Error adding product to library: {str(e)}")
                 # Continue with other products even if one fails
                 continue
         
         print(f"DEBUG: Successfully processed payment and added items to library")
+        
+        # Send emails and notifications after successful payment processing (non-blocking)
+        try:
+            # Import notification service
+            from apps.notifications.services import NotificationService
+                   
+            # Check if any purchases are events
+            has_events = any(p.product.product_type == 'event' for p in purchases)
+            
+            if has_events:
+                # Handle event tickets
+                for purchase in purchases:
+                    if purchase.product.product_type == 'event':
+                        # Import here to avoid circular imports
+                        from apps.events.models import EventTicket
+                        
+                        # Create tickets based on quantity
+                        tickets = []
+                        for _ in range(purchase.quantity):
+                            ticket = EventTicket.objects.create(
+                                purchase=purchase,
+                                buyer=payment.user,
+                                event=purchase.product
+                            )
+                            tickets.append(ticket)
+                        
+                        # Send event ticket email
+                        try:
+                            send_event_ticket_email(payment.user, purchase.product, tickets)
+                        except Exception as email_error:
+                            print(f"DEBUG: Error sending event ticket email: {str(email_error)}")
+                        
+                        # Send notification
+                        try:
+                            NotificationService.send_event_ticket_notification(payment.user, purchase.product, tickets)
+                        except Exception as notif_error:
+                            print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
+                    else:
+                        # Send regular purchase receipt email
+                        try:
+                            send_purchase_receipt_email(payment.user, purchase)
+                        except Exception as email_error:
+                            print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
+                        
+                        # Send notification
+                        try:
+                            NotificationService.send_new_order_notification(purchase, purchase.product.owner)
+                        except Exception as notif_error:
+                            print(f"DEBUG: Error sending order notification: {str(notif_error)}")
+            else:
+                # Handle digital products
+                for purchase in purchases:
+                    # Send purchase receipt email
+                    try:
+                        send_purchase_receipt_email(payment.user, purchase)
+                    except Exception as email_error:
+                        print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
+                    
+                    # Send notification
+                    try:
+                        NotificationService.send_new_order_notification(purchase, purchase.product.owner)
+                    except Exception as notif_error:
+                        print(f"DEBUG: Error sending order notification: {str(notif_error)}")
+                        
+        except Exception as e:
+            print(f"DEBUG: Error sending emails/notifications: {str(e)}")
+            # Don't fail the payment if emails/notifications fail
+        
         return payment
-
 
 class PayoutService:
     """Handle seller payouts using Paystack Transfer API"""
@@ -667,7 +708,7 @@ class PayoutService:
             payout_request.save()
             
             print(f"DEBUG: Error processing payout: {str(e)}")
-            return None
+            return False
 
 
 class PaymentProviderFactory:

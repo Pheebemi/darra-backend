@@ -52,6 +52,11 @@ class CheckoutSerializer(serializers.Serializer):
         min_length=1
     )
     email = serializers.EmailField(required=False)  # Make email optional
+    payment_provider = serializers.ChoiceField(
+        choices=[('paystack', 'Paystack'), ('flutterwave', 'Flutterwave')],
+        required=False,
+        default='paystack'
+    )
 
 class SellerCommissionSerializer(serializers.ModelSerializer):
     product_title = serializers.CharField(source='purchase.product.title', read_only=True)

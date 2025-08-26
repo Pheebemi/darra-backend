@@ -53,9 +53,22 @@ class CheckoutView(generics.CreateAPIView):
                 payment = PaymentService.create_payment_from_cart(request.user, serializer.validated_data['items'])
                 print(f"DEBUG: Payment created successfully: {payment.id}, {payment.reference}, {payment.amount}")
                 
-                # Initialize payment with the configured provider
-                payment_service = PaymentProviderFactory.get_payment_service()
-                print(f"DEBUG: Using payment provider: {payment.payment_provider}")
+                # Get the payment provider from the request or use the payment's default provider
+                requested_provider = serializer.validated_data.get('payment_provider', payment.payment_provider)
+                print(f"DEBUG: Requested provider: {requested_provider}")
+                print(f"DEBUG: Payment's default provider: {payment.payment_provider}")
+                
+                # Use the requested provider if specified, otherwise use the payment's default
+                if requested_provider and requested_provider in ['paystack', 'flutterwave']:
+                    payment_service = PaymentProviderFactory.get_payment_service_by_provider(requested_provider)
+                    # Update the payment's provider to match the request
+                    payment.payment_provider = requested_provider
+                    payment.save()
+                    print(f"DEBUG: Using requested provider: {requested_provider}")
+                else:
+                    payment_service = PaymentProviderFactory.get_payment_service()
+                    print(f"DEBUG: Using default provider: {payment.payment_provider}")
+                
                 print(f"DEBUG: Payment service type: {type(payment_service).__name__}")
                 print(f"DEBUG: Initializing {payment.payment_provider} payment for payment ID: {payment.id}")
                 print(f"DEBUG: Payment reference: {payment.reference}")
