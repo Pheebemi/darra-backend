@@ -38,15 +38,11 @@ class FlutterwaveService:
         """Initialize payment with Flutterwave"""
         url = f"{self.base_url}/payments"
         
-        # For mobile apps, we'll use a custom success URL that the WebView can detect
-        # The actual verification will be done manually in the WebView
-        mobile_success_url = f"https://darra.app/success?ref={payment.reference}&status=successful"
-        
         payload = {
             'tx_ref': payment.reference,  # This will now be DARRA_XXXX format
             'amount': float(payment.amount),  # Flutterwave uses float, not kobo
             'currency': payment.currency,
-            'redirect_url': mobile_success_url,  # Use mobile-friendly URL
+            'redirect_url': f"{settings.BASE_URL}/api/payments/verify/{payment.reference}/",
             'customer': {
                 'email': payment.user.email,
                 'name': payment.user.full_name,
@@ -74,26 +70,12 @@ class FlutterwaveService:
         """Verify payment with Flutterwave"""
         url = f"{self.base_url}/transactions/verify_by_reference?tx_ref={reference}"
         
-        print(f"DEBUG: Flutterwave verify_payment called with reference: {reference}")
-        print(f"DEBUG: Flutterwave verify URL: {url}")
-        print(f"DEBUG: Flutterwave headers: {self._get_headers()}")
-        
         try:
             response = requests.get(url, headers=self._get_headers())
-            print(f"DEBUG: Flutterwave API response status: {response.status_code}")
-            print(f"DEBUG: Flutterwave API response headers: {dict(response.headers)}")
-            
             response.raise_for_status()
-            response_data = response.json()
-            print(f"DEBUG: Flutterwave API response data: {response_data}")
-            
-            return response_data
+            return response.json()
         except requests.exceptions.RequestException as e:
-            print(f"DEBUG: Flutterwave API request error: {str(e)}")
             raise ValidationError(f"Flutterwave API error: {str(e)}")
-        except Exception as e:
-            print(f"DEBUG: Flutterwave API unexpected error: {str(e)}")
-            raise ValidationError(f"Flutterwave API unexpected error: {str(e)}")
 
     def calculate_seller_commission(self, product_price):
         """Calculate 4% commission and seller payout"""
@@ -404,12 +386,11 @@ class PaystackService:
 
 class PaymentService:
     @staticmethod
-    def create_payment_from_cart(user, cart_items, payment_provider=None):
+    def create_payment_from_cart(user, cart_items):
         """Create payment from cart items"""
         print(f"DEBUG: PaymentService.create_payment_from_cart called with cart_items: {cart_items}")
         print(f"DEBUG: Type of cart_items: {type(cart_items)}")
         print(f"DEBUG: Length of cart_items: {len(cart_items)}")
-        print(f"DEBUG: Requested payment provider: {payment_provider}")
         
         # Generate unique reference
         reference = f"DARRA_{uuid.uuid4().hex[:8].upper()}"
@@ -457,7 +438,7 @@ class PaymentService:
             reference=reference,
             amount=total_amount,
             currency='NGN',
-            payment_provider=payment_provider if payment_provider else getattr(settings, 'PAYMENT_PROVIDER', 'paystack')
+            payment_provider=getattr(settings, 'PAYMENT_PROVIDER', 'paystack')
         )
         
         # Create purchases
@@ -603,11 +584,19 @@ class PaymentService:
         return payment
 
 class PayoutService:
-    """Handle seller payouts using Paystack Transfer API"""
+    """Handle seller payouts using Flutterwave Transfer API"""
     
     def __init__(self):
-        self.secret_key = settings.PAYSTACK_SECRET_KEY
-        self.base_url = "https://api.paystack.co"
+        self.secret_key = settings.FLUTTERWAVE_SECRET_KEY
+        self.base_url = "https://api.flutterwave.com/v3"  # Use the API that works for payments
+        
+        print(f"DEBUG: PayoutService initialized")
+        print(f"DEBUG: Secret key length: {len(self.secret_key) if self.secret_key else 0}")
+        print(f"DEBUG: Base URL: {self.base_url}")
+        
+        print(f"DEBUG: PayoutService initialized")
+        print(f"DEBUG: Secret key length: {len(self.secret_key) if self.secret_key else 0}")
+        print(f"DEBUG: Base URL: {self.base_url}")
     
     def _get_headers(self):
         return {
@@ -616,109 +605,107 @@ class PayoutService:
         }
     
     def process_payout(self, payout_request):
-        """Process payout using Paystack Transfer API"""
+        """Process payout using Flutterwave General Transfer Flow"""
         try:
             # Get seller's bank details
             bank_details = payout_request.bank_details
             
-            # Always use the actual bank code from the user's bank details
-            # Paystack will handle test mode validation on their end
-            recipient_data = {
-                'type': 'nuban',
-                'name': bank_details.account_name,
-                'account_number': bank_details.account_number,
-                'bank_code': bank_details.bank_code,  # Use actual bank code from user's details
-                'currency': 'NGN'
-            }
+            # Skip account verification for now and go straight to transfer
+            # The Direct Transfer API will handle account validation
+            print(f"DEBUG: Skipping account verification for {payout_request.seller.email}")
+            print(f"DEBUG: Bank code: {bank_details.bank_code}, Account number: {bank_details.account_number}")
+            print(f"DEBUG: Account name: {bank_details.account_name}")
             
-            print(f"DEBUG: Creating recipient with data: {recipient_data}")
-            
-            # Create recipient on Paystack
-            recipient_response = requests.post(
-                f'{self.base_url}/transferrecipient',
-                headers=self._get_headers(),
-                json=recipient_data
-            )
-            
-            print(f"DEBUG: Recipient response status: {recipient_response.status_code}")
-            print(f"DEBUG: Recipient response: {recipient_response.text}")
-            
-            # Check if recipient creation was successful
-            if recipient_response.status_code in [200, 201]:  # Accept both 200 and 201 as success
-                recipient_data = recipient_response.json()
-                
-                # Double-check the response status from Paystack
-                if recipient_data.get('status') == True:
-                    recipient_code = recipient_data['data']['recipient_code']
-                    print(f"DEBUG: Recipient created successfully with code: {recipient_code}")
-                else:
-                    # Paystack returned success but with false status
-                    payout_request.status = 'failed'
-                    payout_request.failure_reason = f"Paystack rejected recipient creation: {recipient_response.text}"
-                    payout_request.save()
-                    print(f"DEBUG: Paystack rejected recipient creation: {recipient_response.text}")
-                    return False
-            else:
-                # HTTP error
-                payout_request.status = 'failed'
-                payout_request.failure_reason = f"HTTP error creating recipient: {recipient_response.status_code} - {recipient_response.text}"
-                payout_request.save()
-                print(f"DEBUG: HTTP error creating recipient: {recipient_response.status_code} - {recipient_response.text}")
-                return False
-            
-            # Generate transfer reference (required by Paystack)
+            # Generate transfer reference
             import uuid
-            transfer_reference = f"payout_{uuid.uuid4().hex[:16]}"
+            transfer_reference = f"DARRA_PAYOUT_{uuid.uuid4().hex[:16].upper()}"
             
-            # Now initiate the transfer
+            # Use simple transfer structure for the old API
             transfer_data = {
-                'source': 'balance',  # From your Paystack balance
-                'amount': int(payout_request.amount * 100),  # Convert to kobo
-                'recipient': recipient_code,  # Use the recipient code from Paystack
-                'reference': transfer_reference,  # Required by Paystack
-                'reason': f'Payout for {payout_request.seller.brand_name or payout_request.seller.email}'
+                'account_bank': bank_details.bank_code,
+                'account_number': bank_details.account_number,
+                'amount': int(payout_request.amount),  # Amount in Naira
+                'narration': f'Payout for {payout_request.seller.brand_name or payout_request.seller.email}',
+                'currency': 'NGN',
+                'reference': transfer_reference,
+                'beneficiary_name': bank_details.account_name,
+                'meta': [
+                    {
+                        'metaname': 'seller_email',
+                        'metavalue': payout_request.seller.email
+                    },
+                    {
+                        'metaname': 'payout_id',
+                        'metavalue': str(payout_request.id)
+                    }
+                ]
             }
             
-            print(f"DEBUG: Initiating transfer with data: {transfer_data}")
+            print(f"DEBUG: Initiating Flutterwave transfer with data: {transfer_data}")
             
-            # Call Paystack Transfer API
+            # Call Flutterwave Transfer API (using the API that works for payments)
             response = requests.post(
-                f'{self.base_url}/transfer',
+                f'{self.base_url}/transfers',
                 headers=self._get_headers(),
                 json=transfer_data
             )
             
-            print(f"DEBUG: Transfer response status: {response.status_code}")
-            print(f"DEBUG: Transfer response: {response.text}")
+            print(f"DEBUG: Flutterwave transfer response status: {response.status_code}")
+            print(f"DEBUG: Flutterwave transfer response: {response.text}")
             
             if response.status_code == 200:
                 data = response.json()
                 
-                # Update payout request
-                payout_request.status = 'completed'
-                payout_request.paystack_transfer_id = data['data']['id']
-                payout_request.transfer_reference = transfer_reference
-                payout_request.processed_at = timezone.now()
-                payout_request.save()
-                
-                # Update seller earnings
-                try:
-                    earnings = payout_request.seller.earnings
-                    earnings.total_payouts += payout_request.amount
-                    earnings.calculate_available_balance()
-                    earnings.save()
-                except Exception as e:
-                    print(f"DEBUG: Warning - Could not update earnings: {str(e)}")
-                
-                print(f"DEBUG: Payout successful for {payout_request.seller.email}: ₦{payout_request.amount}")
-                return True
+                # Check Flutterwave Direct Transfer response status
+                if data.get('status') == 'success':
+                    # Update payout request
+                    payout_request.status = 'processing'  # Status will be 'NEW' initially
+                    payout_request.flutterwave_transfer_id = data['data']['id']
+                    payout_request.transfer_reference = transfer_reference
+                    payout_request.save()
+                    
+                    print(f"DEBUG: Flutterwave Direct Transfer initiated successfully for {payout_request.seller.email}: ₦{payout_request.amount}")
+                    print(f"DEBUG: Transfer ID: {data['data']['id']}, Status: {data['data']['status']}")
+                    
+                    # Note: The transfer status will be updated via webhook or manual verification
+                    # For now, we mark it as processing since the status is 'NEW'
+                    return True
+                else:
+                    # Flutterwave returned error
+                    payout_request.status = 'failed'
+                    payout_request.failure_reason = f"Flutterwave error: {data.get('message', 'Unknown error')}"
+                    payout_request.save()
+                    
+                    print(f"DEBUG: Flutterwave Direct Transfer failed for {payout_request.seller.email}: {data.get('message', 'Unknown error')}")
+                    return False
             else:
-                # Transfer failed
+                # HTTP error
                 payout_request.status = 'failed'
-                payout_request.failure_reason = response.text
+                
+                # Handle specific error cases
+                if response.status_code == 400:
+                    try:
+                        error_data = response.json()
+                        error_message = error_data.get('message', '')
+                        
+                        if 'IP Whitelisting' in error_message:
+                            failure_reason = "IP Whitelisting required - Contact admin to configure Flutterwave IP access"
+                            print(f"DEBUG: IP Whitelisting error - Seller needs to configure Flutterwave IP whitelist")
+                        elif 'insufficient balance' in error_message.lower():
+                            failure_reason = "Insufficient balance in Flutterwave account"
+                            print(f"DEBUG: Insufficient balance in Flutterwave account")
+                        else:
+                            failure_reason = f"Flutterwave error: {error_message}"
+                            print(f"DEBUG: Other Flutterwave error: {error_message}")
+                    except:
+                        failure_reason = f"HTTP error: {response.status_code} - {response.text}"
+                else:
+                    failure_reason = f"HTTP error: {response.status_code} - {response.text}"
+                
+                payout_request.failure_reason = failure_reason
                 payout_request.save()
                 
-                print(f"DEBUG: Payout failed for {payout_request.seller.email}: {response.text}")
+                print(f"DEBUG: Flutterwave payout HTTP error for {payout_request.seller.email}: {response.status_code} - {response.text}")
                 return False
                 
         except Exception as e:
@@ -726,8 +713,47 @@ class PayoutService:
             payout_request.failure_reason = str(e)
             payout_request.save()
             
-            print(f"DEBUG: Error processing payout: {str(e)}")
+            print(f"DEBUG: Error processing Flutterwave payout: {str(e)}")
             return False
+    
+    def verify_account(self, account_number, bank_code):
+        """Verify bank account number using Flutterwave API"""
+        try:
+            # Try the new API endpoint first
+            url = f"{self.transfer_base_url}/accounts/resolve"
+            headers = self._get_headers()
+            data = {
+                "account_number": account_number,
+                "account_bank": bank_code
+            }
+            
+            print(f"DEBUG: Verifying account with new Flutterwave API: {data}")
+            
+            response = requests.post(url, json=data, headers=headers)
+            print(f"DEBUG: Account verification response status: {response.status_code}")
+            print(f"DEBUG: Account verification response: {response.text}")
+            
+            if response.status_code == 200:
+                result = response.json()
+                if result.get('status') == 'success':
+                    print(f"DEBUG: Account verification successful: {result.get('data', {}).get('account_name')}")
+                    return result
+                else:
+                    print(f"DEBUG: Account verification failed: {result.get('message')}")
+                    return result
+            else:
+                print(f"DEBUG: Account verification HTTP error: {response.status_code}")
+                return {
+                    'status': 'error',
+                    'message': f"HTTP error: {response.status_code} - {response.text}"
+                }
+                
+        except Exception as e:
+            print(f"DEBUG: Account verification exception: {str(e)}")
+            return {
+                'status': 'error',
+                'message': f"Verification error: {str(e)}"
+            }
 
 
 class PaymentProviderFactory:

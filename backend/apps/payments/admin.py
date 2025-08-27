@@ -59,10 +59,10 @@ class SellerCommissionAdmin(admin.ModelAdmin):
 class PayoutRequestAdmin(admin.ModelAdmin):
     list_display = [
         'seller', 'amount', 'bank_name', 'account_number', 
-        'status', 'created_at', 'processed_at'
+        'status', 'created_at', 'processed_at', 'transfer_provider'
     ]
     list_filter = ['status', 'created_at']
-    search_fields = ['seller__email', 'transfer_reference', 'paystack_transfer_id']
+    search_fields = ['seller__email', 'transfer_reference', 'paystack_transfer_id', 'flutterwave_transfer_id']
     readonly_fields = ['transfer_reference', 'created_at']
     ordering = ['-created_at']
     
@@ -73,6 +73,14 @@ class PayoutRequestAdmin(admin.ModelAdmin):
     def account_number(self, obj):
         return obj.bank_details.account_number
     account_number.short_description = 'Account Number'
+    
+    def transfer_provider(self, obj):
+        if obj.flutterwave_transfer_id:
+            return 'Flutterwave'
+        elif obj.paystack_transfer_id:
+            return 'Paystack'
+        return 'N/A'
+    transfer_provider.short_description = 'Provider'
     
     actions = ['mark_as_completed', 'mark_as_failed']
     

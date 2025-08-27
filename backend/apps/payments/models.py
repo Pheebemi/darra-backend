@@ -103,6 +103,7 @@ class PayoutRequest(models.Model):
         ('failed', 'Failed')
     ], default='pending')
     paystack_transfer_id = models.CharField(max_length=100, blank=True, null=True)
+    flutterwave_transfer_id = models.CharField(max_length=100, blank=True, null=True)
     transfer_reference = models.CharField(max_length=100, unique=True, blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     processed_at = models.DateTimeField(null=True, blank=True)

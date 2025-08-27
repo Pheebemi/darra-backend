@@ -48,16 +48,26 @@ class CheckoutView(generics.CreateAPIView):
             print(f"DEBUG: Items in validated data: {serializer.validated_data.get('items', [])}")
             
             try:
-                # Process checkout - pass the items list and payment provider
+                # Process checkout - pass only the items list, not the entire validated_data
                 print(f"DEBUG: About to create payment from cart with items: {serializer.validated_data['items']}")
-                requested_provider = serializer.validated_data.get('payment_provider', 'paystack')
-                print(f"DEBUG: Creating payment with provider: {requested_provider}")
-                payment = PaymentService.create_payment_from_cart(request.user, serializer.validated_data['items'], requested_provider)
+                payment = PaymentService.create_payment_from_cart(request.user, serializer.validated_data['items'])
                 print(f"DEBUG: Payment created successfully: {payment.id}, {payment.reference}, {payment.amount}")
                 
-                # Get the payment service for the payment's provider
-                payment_service = PaymentProviderFactory.get_payment_service_by_provider(payment.payment_provider)
-                print(f"DEBUG: Using payment provider: {payment.payment_provider}")
+                # Get the payment provider from the request or use the payment's default provider
+                requested_provider = serializer.validated_data.get('payment_provider', payment.payment_provider)
+                print(f"DEBUG: Requested provider: {requested_provider}")
+                print(f"DEBUG: Payment's default provider: {payment.payment_provider}")
+                
+                # Use the requested provider if specified, otherwise use the payment's default
+                if requested_provider and requested_provider in ['paystack', 'flutterwave']:
+                    payment_service = PaymentProviderFactory.get_payment_service_by_provider(requested_provider)
+                    # Update the payment's provider to match the request
+                    payment.payment_provider = requested_provider
+                    payment.save()
+                    print(f"DEBUG: Using requested provider: {requested_provider}")
+                else:
+                    payment_service = PaymentProviderFactory.get_payment_service()
+                    print(f"DEBUG: Using default provider: {payment.payment_provider}")
                 
                 print(f"DEBUG: Payment service type: {type(payment_service).__name__}")
                 print(f"DEBUG: Initializing {payment.payment_provider} payment for payment ID: {payment.id}")
@@ -98,12 +108,11 @@ class CheckoutView(generics.CreateAPIView):
 
 @api_view(['GET'])
 def verify_payment(request, reference):
-    """Verify payment with the correct payment provider and process if successful"""
+    """Verify payment with Paystack and process if successful"""
     try:
         print(f"DEBUG: Verifying payment with reference: {reference}")
         payment = get_object_or_404(Payment, reference=reference)
         print(f"DEBUG: Found payment with status: {payment.status}")
-        print(f"DEBUG: Payment provider: {payment.payment_provider}")
         
         if payment.status == Payment.PaymentStatus.SUCCESS:
             print("DEBUG: Payment already verified")
@@ -112,21 +121,17 @@ def verify_payment(request, reference):
                 'payment': PaymentSerializer(payment).data
             })
         
-        # Get the correct payment service for this specific payment
-        payment_service = PaymentProviderFactory.get_payment_service_by_provider(payment.payment_provider)
-        print(f"DEBUG: Using {payment.payment_provider} service for verification")
-        
+        # Verify with the configured payment provider
+        payment_service = PaymentProviderFactory.get_payment_service()
         payment_response = payment_service.verify_payment(reference)
-        print(f"DEBUG: {payment.payment_provider} verification response: {payment_response}")
+        print(f"DEBUG: {payment.payment_provider} response status: {payment_response.get('data', {}).get('status')}")
         
         # Check if payment was successful based on provider
         is_successful = False
         if payment.payment_provider == 'flutterwave':
-            is_successful = payment_response.get('status') == 'success'
-            print(f"DEBUG: Flutterwave status check: {payment_response.get('status')} == 'success' = {is_successful}")
+            is_successful = payment_response.get('status') == 'successful'
         else:  # Paystack
             is_successful = payment_response.get('data', {}).get('status') == 'success'
-            print(f"DEBUG: Paystack status check: {payment_response.get('data', {}).get('status')} == 'success' = {is_successful}")
         
         if is_successful:
             print("DEBUG: Payment successful, processing...")
@@ -149,7 +154,7 @@ def verify_payment(request, reference):
             print(f"DEBUG: Payment not successful: {payment_response}")
             return Response({
                 'message': 'Payment not successful',
-                'status': payment_response.get('data', {}).get('status') if payment.payment_provider == 'paystack' else payment_response.get('status')
+                'status': payment_response.get('data', {}).get('status')
             }, status=status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:
@@ -279,22 +284,6 @@ def debug_checkout(request):
             'message': 'Checkout data validation failed',
             'errors': serializer.errors
         }, status=400)
-
-# Test endpoint for mobile app connectivity
-@api_view(['GET'])
-@permission_classes([AllowAny])
-def test_connection(request):
-    """Simple endpoint to test mobile app connectivity"""
-    print(f"DEBUG: Test connection endpoint called from IP: {request.META.get('REMOTE_ADDR')}")
-    print(f"DEBUG: Request headers: {dict(request.headers)}")
-    
-    return Response({
-        'status': 'success',
-        'message': 'Connection successful',
-        'timestamp': timezone.now().isoformat(),
-        'client_ip': request.META.get('REMOTE_ADDR'),
-        'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
-    })
 
 # New endpoints for seller earnings and payouts
 
@@ -478,4 +467,53 @@ def seller_analytics(request):
     except Exception as e:
         return Response({
             'error': str(e)
-        }, status=status.HTTP_400_BAD_REQUEST) 
+        }, status=status.HTTP_400_BAD_REQUEST)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def test_connection(request):
+    """Simple endpoint to test mobile app connectivity"""
+    print(f"DEBUG: Test connection endpoint called from IP: {request.META.get('REMOTE_ADDR')}")
+    print(f"DEBUG: Request headers: {dict(request.headers)}")
+    
+    return Response({
+        'status': 'success',
+        'message': 'Connection successful',
+        'timestamp': timezone.now().isoformat(),
+        'client_ip': request.META.get('REMOTE_ADDR'),
+        'user_agent': request.META.get('HTTP_USER_AGENT', 'Unknown')
+    })
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def test_flutterwave_connection(request):
+    """Test Flutterwave API connection"""
+    import requests
+    from .services import FlutterwaveService
+    
+    try:
+        flutterwave = FlutterwaveService()
+        
+        # Test basic API connection
+        test_url = f"{flutterwave.base_url}/banks/NG"
+        response = requests.get(test_url, headers=flutterwave._get_headers())
+        
+        result = {
+            'status': 'success' if response.status_code == 200 else 'failed',
+            'response_code': response.status_code,
+            'response_text': response.text[:200] if response.text else 'No response',
+            'api_key_length': len(flutterwave.secret_key) if flutterwave.secret_key else 0,
+            'api_key_prefix': flutterwave.secret_key[:10] + '...' if flutterwave.secret_key else 'None'
+        }
+        
+        return Response({
+            'status': 'success',
+            'flutterwave_status': result,
+            'timestamp': timezone.now().isoformat()
+        })
+    except Exception as e:
+        return Response({
+            'status': 'error',
+            'message': str(e),
+            'timestamp': timezone.now().isoformat()
+        }, status=500)
