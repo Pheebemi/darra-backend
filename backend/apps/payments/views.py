@@ -48,26 +48,19 @@ class CheckoutView(generics.CreateAPIView):
             print(f"DEBUG: Items in validated data: {serializer.validated_data.get('items', [])}")
             
             try:
-                # Process checkout - pass only the items list, not the entire validated_data
-                print(f"DEBUG: About to create payment from cart with items: {serializer.validated_data['items']}")
-                payment = PaymentService.create_payment_from_cart(request.user, serializer.validated_data['items'])
-                print(f"DEBUG: Payment created successfully: {payment.id}, {payment.reference}, {payment.amount}")
-                
-                # Get the payment provider from the request or use the payment's default provider
-                requested_provider = serializer.validated_data.get('payment_provider', payment.payment_provider)
+                # Get the requested payment provider first
+                requested_provider = serializer.validated_data.get('payment_provider', 'paystack')
                 print(f"DEBUG: Requested provider: {requested_provider}")
-                print(f"DEBUG: Payment's default provider: {payment.payment_provider}")
                 
-                # Use the requested provider if specified, otherwise use the payment's default
-                if requested_provider and requested_provider in ['paystack', 'flutterwave']:
-                    payment_service = PaymentProviderFactory.get_payment_service_by_provider(requested_provider)
-                    # Update the payment's provider to match the request
-                    payment.payment_provider = requested_provider
-                    payment.save()
-                    print(f"DEBUG: Using requested provider: {requested_provider}")
-                else:
-                    payment_service = PaymentProviderFactory.get_payment_service()
-                    print(f"DEBUG: Using default provider: {payment.payment_provider}")
+                # Process checkout - pass the payment provider directly
+                print(f"DEBUG: About to create payment from cart with items: {serializer.validated_data['items']}")
+                payment = PaymentService.create_payment_from_cart(request.user, serializer.validated_data['items'], requested_provider)
+                print(f"DEBUG: Payment created successfully: {payment.id}, {payment.reference}, {payment.amount}")
+                print(f"DEBUG: Payment provider set to: {payment.payment_provider}")
+                
+                # Get the payment service for the requested provider
+                payment_service = PaymentProviderFactory.get_payment_service_by_provider(requested_provider)
+                print(f"DEBUG: Using requested provider: {requested_provider}")
                 
                 print(f"DEBUG: Payment service type: {type(payment_service).__name__}")
                 print(f"DEBUG: Initializing {payment.payment_provider} payment for payment ID: {payment.id}")
