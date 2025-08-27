@@ -114,17 +114,35 @@ def verify_payment(request, reference):
                 'payment': PaymentSerializer(payment).data
             })
         
-        # Verify with the configured payment provider
-        payment_service = PaymentProviderFactory.get_payment_service()
+        # Verify with the specific payment provider for this payment
+        print(f"DEBUG: Getting payment service for provider: {payment.payment_provider}")
+        payment_service = PaymentProviderFactory.get_payment_service_by_provider(payment.payment_provider)
+        print(f"DEBUG: Payment service type: {type(payment_service).__name__}")
         payment_response = payment_service.verify_payment(reference)
-        print(f"DEBUG: {payment.payment_provider} response status: {payment_response.get('data', {}).get('status')}")
+        print(f"DEBUG: {payment.payment_provider} response: {payment_response}")
+        print(f"DEBUG: {payment.payment_provider} response type: {type(payment_response)}")
+        print(f"DEBUG: {payment.payment_provider} response keys: {list(payment_response.keys()) if isinstance(payment_response, dict) else 'Not a dict'}")
+        
+        if payment.payment_provider == 'flutterwave':
+            print(f"DEBUG: Flutterwave status: {payment_response.get('status')}")
+            print(f"DEBUG: Flutterwave status type: {type(payment_response.get('status'))}")
+        else:
+            print(f"DEBUG: Paystack status: {payment_response.get('data', {}).get('status')}")
+            print(f"DEBUG: Paystack status type: {type(payment_response.get('data', {}).get('status'))}")
         
         # Check if payment was successful based on provider
         is_successful = False
         if payment.payment_provider == 'flutterwave':
-            is_successful = payment_response.get('status') == 'successful'
+            flutterwave_status = payment_response.get('status')
+            # Flutterwave returns 'success', not 'successful'
+            is_successful = flutterwave_status == 'success'
+            print(f"DEBUG: Flutterwave status check - Raw status: '{flutterwave_status}', is_successful: {is_successful}")
         else:  # Paystack
-            is_successful = payment_response.get('data', {}).get('status') == 'success'
+            paystack_status = payment_response.get('data', {}).get('status')
+            is_successful = paystack_status == 'success'
+            print(f"DEBUG: Paystack status check - Raw status: '{paystack_status}', is_successful: {is_successful}")
+        
+        print(f"DEBUG: Final is_successful result: {is_successful}")
         
         if is_successful:
             print("DEBUG: Payment successful, processing...")
@@ -145,9 +163,15 @@ def verify_payment(request, reference):
                 }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             print(f"DEBUG: Payment not successful: {payment_response}")
+            # Return the correct status based on provider
+            if payment.payment_provider == 'flutterwave':
+                error_status = payment_response.get('status')
+            else:  # Paystack
+                error_status = payment_response.get('data', {}).get('status')
+            
             return Response({
                 'message': 'Payment not successful',
-                'status': payment_response.get('data', {}).get('status')
+                'status': error_status
             }, status=status.HTTP_400_BAD_REQUEST)
             
     except Exception as e:

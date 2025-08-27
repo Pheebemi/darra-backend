@@ -69,12 +69,18 @@ class FlutterwaveService:
     def verify_payment(self, reference):
         """Verify payment with Flutterwave"""
         url = f"{self.base_url}/transactions/verify_by_reference?tx_ref={reference}"
+        print(f"DEBUG: Flutterwave verify_payment - URL: {url}")
+        print(f"DEBUG: Flutterwave verify_payment - Headers: {self._get_headers()}")
         
         try:
             response = requests.get(url, headers=self._get_headers())
+            print(f"DEBUG: Flutterwave verify_payment - Response status: {response.status_code}")
             response.raise_for_status()
-            return response.json()
+            response_data = response.json()
+            print(f"DEBUG: Flutterwave verify_payment - Response data: {response_data}")
+            return response_data
         except requests.exceptions.RequestException as e:
+            print(f"DEBUG: Flutterwave verify_payment - Error: {str(e)}")
             raise ValidationError(f"Flutterwave API error: {str(e)}")
 
     def calculate_seller_commission(self, product_price):
