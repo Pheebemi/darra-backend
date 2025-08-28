@@ -32,7 +32,7 @@ class ProductAdmin(admin.ModelAdmin):
     search_fields = ('title', 'owner__email', 'product_type', 'ticket_category__name')
     list_filter = ('product_type', 'ticket_category', 'created_at')
     filter_horizontal = ('ticket_tiers',)
-    readonly_fields = ('ticket_count', 'total_ticket_quantity')
+    readonly_fields = ('ticket_count', 'total_ticket_quantity', 'ticket_details_table')
     
     def ticket_count(self, obj):
         if obj.ticket_tiers.exists():
@@ -46,3 +46,40 @@ class ProductAdmin(admin.ModelAdmin):
             return f"{total} total"
         return "0"
     total_ticket_quantity.short_description = "Total Quantity"
+    
+    def ticket_details_table(self, obj):
+        if not obj.ticket_tiers.exists():
+            return "No tickets available"
+        
+        from django.utils.html import format_html
+        
+        rows = []
+        for tier in obj.ticket_tiers.all():
+            rows.append(f"""
+                <tr>
+                    <td style="border: 1px solid #ddd; padding: 8px;"><strong>{tier.category.name}</strong></td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">₦{tier.price:,}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">{tier.quantity_available}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px;">{tier.remaining_quantity}</td>
+                </tr>
+            """)
+        
+        html = f"""
+        <table style="width: 100%; border-collapse: collapse; margin: 10px 0; border: 1px solid #ddd;">
+            <thead>
+                <tr style="background-color: #f8f9fa;">
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-weight: bold;">Category</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-weight: bold;">Price</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-weight: bold;">Quantity</th>
+                    <th style="border: 1px solid #ddd; padding: 8px; text-align: left; font-weight: bold;">Remaining</th>
+                </tr>
+            </thead>
+            <tbody>
+                {''.join(rows)}
+            </tbody>
+        </table>
+        """
+        
+        return format_html(html)
+    
+    ticket_details_table.short_description = "Ticket Details"
