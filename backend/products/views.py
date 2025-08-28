@@ -2,7 +2,7 @@ from django.shortcuts import render
 from rest_framework import generics, permissions, status
 from .models import Product, TicketCategory, TicketTier
 from .serializers import (
-    ProductSerializer, ProductCreateSerializer, 
+    ProductSerializer, ProductCreateSerializer, ProductUpdateSerializer,
     TicketCategorySerializer, TicketTierSerializer
 )
 from rest_framework.views import APIView
@@ -58,11 +58,15 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
         serializer.save(owner=self.request.user)
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Product.objects.filter(owner=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method in ['PUT', 'PATCH']:
+            return ProductUpdateSerializer
+        return ProductSerializer
 
 class ProductListView(generics.ListAPIView):
     serializer_class = ProductSerializer

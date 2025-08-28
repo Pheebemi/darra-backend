@@ -100,3 +100,70 @@ class ProductCreateSerializer(serializers.ModelSerializer):
                 traceback.print_exc()
         
         return product
+
+class ProductUpdateSerializer(serializers.ModelSerializer):
+    ticket_types = serializers.JSONField(write_only=True, required=False)
+
+    class Meta:
+        model = Product
+        fields = [
+            'title', 'description', 'price', 'product_type',
+            'file', 'cover_image', 'event_date', 'ticket_quantity',
+            'ticket_types'
+        ]
+
+    def update(self, instance, validated_data):
+        ticket_types = validated_data.pop('ticket_types', None)
+        
+        # Update the product
+        product = super().update(instance, validated_data)
+        
+        # Handle ticket types update
+        if ticket_types is not None:
+            # Remove existing ticket tiers
+            product.ticket_tiers.all().delete()
+            
+            # Calculate total ticket quantity from ticket types
+            if ticket_types:
+                total_quantity = sum(ticket_type['quantity'] for ticket_type in ticket_types)
+                product.ticket_quantity = total_quantity
+                product.save()
+            
+            # Create new ticket tiers
+            if ticket_types:
+                try:
+                    created_tiers = []
+                    
+                    for ticket_type_data in ticket_types:
+                        try:
+                            category = TicketCategory.objects.get(id=ticket_type_data['category_id'])
+                            
+                            # Create a simple ticket tier with just the essential info
+                            ticket_tier = TicketTier.objects.create(
+                                category_id=ticket_type_data['category_id'],
+                                name=category.name,  # Just use category name (VIP, Regular, Early Bird)
+                                price=ticket_type_data['price'],
+                                quantity_available=ticket_type_data['quantity'],
+                                description=f"{category.name} tickets",  # Simple description
+                                benefits="Standard benefits",
+                                is_active=True
+                            )
+                            created_tiers.append(ticket_tier)
+                            
+                        except TicketCategory.DoesNotExist:
+                            print(f"DEBUG: Category {ticket_type_data['category_id']} not found")
+                            continue
+                    
+                    # Associate all created ticket tiers with the product
+                    if created_tiers:
+                        product.ticket_tiers.set(created_tiers)
+                        print(f"DEBUG: Updated with {len(created_tiers)} ticket categories")
+                        for tier in created_tiers:
+                            print(f"DEBUG: {tier.category.name} - Price: ₦{tier.price}, Quantity: {tier.quantity_available}")
+                        
+                except Exception as e:
+                    print(f"Error updating ticket categories: {e}")
+                    import traceback
+                    traceback.print_exc()
+        
+        return product
