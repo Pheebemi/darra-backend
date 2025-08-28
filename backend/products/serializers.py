@@ -9,6 +9,7 @@ class TicketCategorySerializer(serializers.ModelSerializer):
 class TicketTierSerializer(serializers.ModelSerializer):
     remaining_quantity = serializers.ReadOnlyField()
     is_sold_out = serializers.ReadOnlyField()
+    category = TicketCategorySerializer(read_only=True)
     
     class Meta:
         model = TicketTier

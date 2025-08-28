@@ -23,14 +23,31 @@ class SellerEventTicketsView(generics.ListAPIView):
 def get_ticket_details(request, ticket_id):
     """Get detailed information about a specific ticket"""
     try:
-        ticket = EventTicket.objects.get(ticket_id=ticket_id)
+        ticket = EventTicket.objects.select_related(
+            'buyer', 
+            'event', 
+            'purchase__payment',
+            'purchase__selected_ticket_tier',
+            'purchase__selected_ticket_tier__category'
+        ).get(ticket_id=ticket_id)
         
         # Check if seller owns this event
         if ticket.event.owner != request.user:
             return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
         
+        # Debug logging
+        print(f"DEBUG: Ticket found: {ticket.ticket_id}")
+        print(f"DEBUG: Purchase: {ticket.purchase}")
+        print(f"DEBUG: Purchase selected_ticket_tier: {ticket.purchase.selected_ticket_tier}")
+        if ticket.purchase.selected_ticket_tier:
+            print(f"DEBUG: Ticket tier category: {ticket.purchase.selected_ticket_tier.category}")
+        
         serializer = EventTicketDetailSerializer(ticket)
-        return Response(serializer.data)
+        serialized_data = serializer.data
+        print(f"DEBUG: Serialized data keys: {list(serialized_data.keys())}")
+        print(f"DEBUG: Ticket tier in response: {serialized_data.get('ticket_tier')}")
+        
+        return Response(serialized_data)
         
     except EventTicket.DoesNotExist:
         return Response({'error': 'Ticket not found'}, status=status.HTTP_404_NOT_FOUND)
