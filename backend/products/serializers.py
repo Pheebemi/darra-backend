@@ -63,30 +63,39 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         
         if ticket_types:
             try:
-                # Create ticket tiers for each ticket type
+                # Create simple ticket categories for each ticket type
                 created_tiers = []
+                
                 for ticket_type_data in ticket_types:
-                    # Get the category name for better naming
                     try:
                         category = TicketCategory.objects.get(id=ticket_type_data['category_id'])
-                        tier_name = f"{category.name} Ticket"
+                        
+                        # Create a simple ticket tier with just the essential info
+                        ticket_tier = TicketTier.objects.create(
+                            category_id=ticket_type_data['category_id'],
+                            name=category.name,  # Just use category name (VIP, Regular, Early Bird)
+                            price=ticket_type_data['price'],
+                            quantity_available=ticket_type_data['quantity'],
+                            description=f"{category.name} tickets",  # Simple description
+                            benefits="Standard benefits",
+                            is_active=True
+                        )
+                        created_tiers.append(ticket_tier)
+                        
                     except TicketCategory.DoesNotExist:
-                        tier_name = f"Category {ticket_type_data['category_id']} Ticket"
-                    
-                    ticket_tier = TicketTier.objects.create(
-                        category_id=ticket_type_data['category_id'],
-                        name=tier_name,
-                        price=ticket_type_data['price'],
-                        quantity_available=ticket_type_data['quantity'],
-                        description=f"Ticket for {tier_name}",
-                        benefits="Standard benefits",
-                        is_active=True
-                    )
-                    created_tiers.append(ticket_tier)
+                        print(f"DEBUG: Category {ticket_type_data['category_id']} not found")
+                        continue
                 
                 # Associate all created ticket tiers with the product
-                product.ticket_tiers.set(created_tiers)
+                if created_tiers:
+                    product.ticket_tiers.set(created_tiers)
+                    print(f"DEBUG: Created {len(created_tiers)} ticket categories")
+                    for tier in created_tiers:
+                        print(f"DEBUG: {tier.category.name} - Price: ₦{tier.price}, Quantity: {tier.quantity_available}")
+                    
             except Exception as e:
-                print(f"Error creating ticket tiers: {e}")
+                print(f"Error creating ticket categories: {e}")
+                import traceback
+                traceback.print_exc()
         
         return product

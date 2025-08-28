@@ -92,7 +92,7 @@ class Product(models.Model):
     
     @property
     def is_ticket_event(self):
-        return self.product_type == 'event' and self.ticket_category is not None
+        return self.product_type == 'event' and (self.ticket_category is not None or self.ticket_tiers.exists())
     
     @property
     def available_ticket_tiers(self):
