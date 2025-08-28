@@ -1,12 +1,14 @@
 from django.shortcuts import render
-from rest_framework import generics, permissions
-from .models import Product
-from .serializers import ProductSerializer
+from rest_framework import generics, permissions, status
+from .models import Product, TicketCategory, TicketTier
+from .serializers import (
+    ProductSerializer, ProductCreateSerializer, 
+    TicketCategorySerializer, TicketTierSerializer
+)
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.db.models import Sum, Count, Q
 from rest_framework.permissions import IsAuthenticated
-from rest_framework import status
 from django.utils import timezone
 from datetime import timedelta
 from apps.payments.models import Payment, Purchase
@@ -15,12 +17,42 @@ from apps.payments.serializers import PurchaseSerializer
 
 # Create your views here.
 
+class TicketCategoryListView(generics.ListAPIView):
+    """List all available ticket categories"""
+    serializer_class = TicketCategorySerializer
+    permission_classes = [permissions.AllowAny]
+    queryset = TicketCategory.objects.all()
+
+class TicketTierListView(generics.ListAPIView):
+    """List all ticket tiers for a specific category"""
+    serializer_class = TicketTierSerializer
+    permission_classes = [permissions.AllowAny]
+    
+    def get_queryset(self):
+        category_id = self.kwargs.get('category_id')
+        if category_id:
+            return TicketTier.objects.filter(category_id=category_id, is_active=True)
+        return TicketTier.objects.filter(is_active=True)
+
+class TicketTierCreateView(generics.CreateAPIView):
+    """Create a new ticket tier"""
+    serializer_class = TicketTierSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def perform_create(self, serializer):
+        serializer.save()
+
 class SellerProductListCreateView(generics.ListCreateAPIView):
     serializer_class = ProductSerializer
     permission_classes = [permissions.IsAuthenticated]
 
     def get_queryset(self):
         return Product.objects.filter(owner=self.request.user)
+
+    def get_serializer_class(self):
+        if self.request.method == 'POST':
+            return ProductCreateSerializer
+        return ProductSerializer
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -36,6 +68,18 @@ class ProductListView(generics.ListAPIView):
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
     queryset = Product.objects.all()
+
+    def get_queryset(self):
+        queryset = Product.objects.all()
+        product_type = self.request.query_params.get('product_type', None)
+        ticket_category = self.request.query_params.get('ticket_category', None)
+        
+        if product_type:
+            queryset = queryset.filter(product_type=product_type)
+        if ticket_category:
+            queryset = queryset.filter(ticket_category_id=ticket_category)
+            
+        return queryset
 
 class PublicProductDetailView(generics.RetrieveAPIView):
     serializer_class = ProductSerializer

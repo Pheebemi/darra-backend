@@ -43,6 +43,7 @@ class Purchase(models.Model):
     quantity = models.PositiveIntegerField(default=1)
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
+    selected_ticket_tier = models.ForeignKey('products.TicketTier', on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases')
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

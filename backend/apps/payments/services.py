@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import Payment, Purchase, UserLibrary, SellerCommission, SellerEarnings, PayoutRequest
 from products.models import Product
-from users.utils import send_purchase_receipt_email, send_seller_notification_email, send_event_ticket_email
+from users.utils import send_purchase_receipt_email, send_seller_notification_email
 
 class FlutterwaveService:
     def __init__(self):
@@ -417,12 +417,29 @@ class PaymentService:
                 try:
                     product = Product.objects.get(id=item['product_id'])
                     quantity = item['quantity']
-                    total_amount += product.price * quantity
+                    
+                    # Check if this is a ticket event with specific tier pricing
+                    item_price = product.price
+                    ticket_tier_id = item.get('ticket_tier_id')
+                    
+                    if ticket_tier_id and product.is_ticket_event and product.ticket_tiers:
+                        try:
+                            ticket_tier = product.ticket_tiers.get(id=ticket_tier_id)
+                            item_price = ticket_tier.price
+                            print(f"DEBUG: Using ticket tier price: ₦{item_price} for tier: {ticket_tier.name}")
+                        except Exception as e:
+                            print(f"DEBUG: Error getting ticket tier {ticket_tier_id}: {e}")
+                            # Fall back to product price
+                            item_price = product.price
+                    
+                    total_amount += item_price * quantity
                     processed_items.append({
                         'product': product,
-                        'quantity': quantity
+                        'quantity': quantity,
+                        'unit_price': item_price,
+                        'ticket_tier_id': ticket_tier_id
                     })
-                    print(f"DEBUG: Successfully processed product {product.id} with quantity {quantity}")
+                    print(f"DEBUG: Successfully processed product {product.id} with quantity {quantity} at price ₦{item_price}")
                 except Product.DoesNotExist:
                     raise ValidationError(f"Product with ID {item['product_id']} not found")
             elif 'product' in item:
@@ -432,7 +449,8 @@ class PaymentService:
                 total_amount += product.price * quantity
                 processed_items.append({
                     'product': product,
-                    'quantity': quantity
+                    'quantity': quantity,
+                    'unit_price': product.price
                 })
             else:
                 print(f"DEBUG: Item missing both product_id and product fields")
@@ -450,13 +468,24 @@ class PaymentService:
         
         # Create purchases
         for item in processed_items:
-            Purchase.objects.create(
+            purchase = Purchase.objects.create(
                 payment=payment,
                 product=item['product'],
                 quantity=item['quantity'],
-                unit_price=item['product'].price,
-                total_price=item['product'].price * item['quantity']
+                unit_price=item['unit_price'],
+                total_price=item['unit_price'] * item['quantity']
             )
+            
+            # Set ticket tier if specified
+            if item.get('ticket_tier_id'):
+                try:
+                    from products.models import TicketTier
+                    ticket_tier = TicketTier.objects.get(id=item['ticket_tier_id'])
+                    purchase.selected_ticket_tier = ticket_tier
+                    purchase.save()
+                    print(f"DEBUG: Set ticket tier {ticket_tier.name} for purchase {purchase.id}")
+                except Exception as e:
+                    print(f"DEBUG: Error setting ticket tier: {e}")
         
         return payment
 

@@ -100,3 +100,4 @@ def log_otp_attempt(email, success, ip_address=None):
     
     # In production, you might want to log to a proper logging system
     # logger.info(log_entry)
+

@@ -100,3 +100,4 @@ class Command(BaseCommand):
             self.stdout.write(f"  - Total Sales: ₦{total_revenue:,.2f} (instead of just ₦7,000)")
             self.stdout.write(f"  - Platform Fee: ₦{total_commission:,.2f}")
             self.stdout.write(f"  - Net Earnings: ₦{total_seller_payout:,.2f}")
+

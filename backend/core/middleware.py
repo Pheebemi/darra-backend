@@ -21,3 +21,4 @@ class CustomSecurityMiddleware:
             del response['Server']
         
         return response
+

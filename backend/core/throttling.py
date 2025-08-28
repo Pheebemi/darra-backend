@@ -54,3 +54,4 @@ class SustainedRateThrottle(UserRateThrottle):
     - 1000 requests per hour per user
     """
     rate = '1000/hour'
+

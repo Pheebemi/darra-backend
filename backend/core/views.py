@@ -49,3 +49,4 @@ def test_sustained_limit(request):
         'message': 'Sustained rate limiting test',
         'limit': '1000/hour'
     })
+

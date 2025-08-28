@@ -45,6 +45,7 @@ class CheckoutItemSerializer(serializers.Serializer):
     """Serializer for individual checkout items"""
     product_id = serializers.IntegerField(required=True)
     quantity = serializers.IntegerField(required=True, min_value=1)
+    ticket_tier_id = serializers.IntegerField(required=False, allow_null=True)  # For event products
 
 class CheckoutSerializer(serializers.Serializer):
     items = serializers.ListField(

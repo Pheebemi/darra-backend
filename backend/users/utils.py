@@ -2,7 +2,6 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from datetime import datetime
-from django.core.mail import EmailMultiAlternatives
 
 def send_otp_email(email: str, otp: str, is_verification: bool = True):
     subject = 'Verify your email' if is_verification else 'Login OTP'
@@ -92,7 +91,7 @@ def send_purchase_receipt_email(payment, purchases):
             html_message=html_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[payment.user.email],
-            fail_silently=True,  # Changed to True to prevent email errors from breaking payment
+            fail_silently=False,
         )
         
         print(f"Purchase receipt email sent to {payment.user.email}")
@@ -175,7 +174,7 @@ def send_seller_notification_email(payment, purchases):
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,
                 recipient_list=[seller.email],
-                fail_silently=True,  # Changed to True to prevent email errors from breaking payment
+                fail_silently=False,
             )
             
             print(f"Seller notification email sent to {seller.email}")
@@ -184,81 +183,4 @@ def send_seller_notification_email(payment, purchases):
         
     except Exception as e:
         print(f"Error sending seller notification email: {str(e)}")
-        return False 
-
-def send_event_ticket_email(purchase, tickets):
-    """Send event ticket email with QR codes to buyer"""
-    try:
-        event = purchase.product
-        buyer = purchase.payment.user
-        
-        # Format the event date
-        event_date = event.event_date.strftime('%B %d, %Y at %I:%M %p') if event.event_date else 'TBD'
-        
-        # Prepare context for the email template
-        context = {
-            'customer_name': buyer.full_name or buyer.email,
-            'event_title': event.title,
-            'event_date': event_date,
-            'event_location': getattr(event, 'event_location', 'TBD'),
-            'tickets': tickets,
-            'payment_reference': purchase.payment.reference,
-            'total_amount': purchase.total_price,
-            'quantity': purchase.quantity,
-        }
-        
-        # Render the HTML email
-        html_message = render_to_string('users/email/event_ticket.html', context)
-        
-        # Create plain text version
-        plain_message = f"""
-        Thank you for purchasing event tickets on Darra!
-        
-        Event: {event.title}
-        Date: {event_date}
-        Location: {getattr(event, 'event_location', 'TBD')}
-        Number of Tickets: {purchase.quantity}
-        Total Amount: ₦{purchase.total_price}
-        Payment Reference: {purchase.payment.reference}
-        
-        Your QR codes are attached to this email. Please present them at the event entrance.
-        
-        Important:
-        - Each ticket can only be used once
-        - Keep your tickets safe and don't share them
-        - Present the QR code at the event entrance
-        
-        If you have any questions, please contact the event organizer.
-        
-        Thank you for choosing Darra!
-        """
-        
-        # Create email with attachments
-        email = EmailMultiAlternatives(
-            subject=f'Your Event Tickets - {event.title}',
-            body=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            to=[buyer.email]
-        )
-        email.attach_alternative(html_message, "text/html")
-        
-        # Attach QR codes
-        for i, ticket in enumerate(tickets):
-            ticket.generate_qr_code()  # Ensure QR code is generated
-            if ticket.qr_code and ticket.qr_code.name:
-                try:
-                    with ticket.qr_code.open('rb') as qr_file:
-                        email.attach(f'ticket_{i+1}_{ticket.ticket_id}.png', qr_file.read(), 'image/png')
-                except Exception as e:
-                    print(f"Error attaching QR code for ticket {ticket.ticket_id}: {str(e)}")
-                    # Continue with other tickets even if one fails
-        
-        email.send(fail_silently=True)  # Added fail_silently=True to prevent email errors from breaking payment
-        
-        print(f"Event ticket email sent to {buyer.email}")
-        return True
-        
-    except Exception as e:
-        print(f"Error sending event ticket email: {str(e)}")
-        # Don't fail the payment process - just log the error
         return False 

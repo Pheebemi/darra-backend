@@ -11,11 +11,17 @@ class PaymentAdmin(admin.ModelAdmin):
 
 @admin.register(Purchase)
 class PurchaseAdmin(admin.ModelAdmin):
-    list_display = ['id', 'payment', 'product', 'quantity', 'unit_price', 'total_price', 'created_at']
+    list_display = ['id', 'payment', 'product', 'quantity', 'unit_price', 'total_price', 'ticket_tier_info', 'created_at']
     list_filter = ['created_at', 'product__product_type']
     search_fields = ['product__title', 'payment__user__email']
     readonly_fields = ['created_at']
     ordering = ['-created_at']
+    
+    def ticket_tier_info(self, obj):
+        if obj.selected_ticket_tier:
+            return f"{obj.selected_ticket_tier.category.name} - {obj.selected_ticket_tier.name}"
+        return "N/A"
+    ticket_tier_info.short_description = 'Ticket Tier'
 
 @admin.register(UserLibrary)
 class UserLibraryAdmin(admin.ModelAdmin):

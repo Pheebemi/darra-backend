@@ -117,3 +117,4 @@ class NotificationService:
             print(f"Error sending bulk promotional notifications: {str(e)}")
             return 0
 
+
