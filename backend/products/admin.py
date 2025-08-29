@@ -233,7 +233,7 @@ class ProductAdmin(admin.ModelAdmin):
         # First save the product
         super().save_model(request, obj, form, change)
         
-        # If this is an event product and ticket fields are filled, create a ticket tier
+        # Handle ticket creation from admin form
         if (obj.product_type == 'event' and 
             form.cleaned_data.get('ticket_category_id') and 
             form.cleaned_data.get('ticket_price') and 
@@ -273,6 +273,37 @@ class ProductAdmin(admin.ModelAdmin):
             except Exception as e:
                 from django.contrib import messages
                 messages.error(request, f'❌ Error creating ticket: {str(e)}')
+        
+        # Handle ticket updates from frontend (preserve existing tickets)
+        elif obj.product_type == 'event' and hasattr(obj, '_ticket_types_data'):
+            try:
+                # Clear existing tickets first
+                obj.ticket_tiers.clear()
+                
+                # Recreate tickets from frontend data
+                for ticket_data in obj._ticket_types_data:
+                    category = TicketCategory.objects.get(id=ticket_data['category_id'])
+                    
+                    ticket_tier = TicketTier.objects.create(
+                        category=category,
+                        name=f"{category.name}_{uuid.uuid4().hex[:8]}",
+                        price=ticket_data['price'],
+                        quantity_available=ticket_data['quantity'],
+                        description=f"{category.name} tickets",
+                        benefits="Standard benefits",
+                        is_active=True
+                    )
+                    
+                    obj.ticket_tiers.add(ticket_tier)
+                
+                # Update total ticket quantity
+                total_quantity = sum(tier.quantity_available for tier in obj.ticket_tiers.all())
+                obj.ticket_quantity = total_quantity
+                obj.save()
+                
+            except Exception as e:
+                from django.contrib import messages
+                messages.error(request, f'❌ Error updating tickets from frontend: {str(e)}')
     
     def get_form(self, request, obj=None, **kwargs):
         """Customize form to clear ticket fields after saving"""
@@ -283,8 +314,31 @@ class ProductAdmin(admin.ModelAdmin):
             form.base_fields['ticket_category_id'].initial = None
             form.base_fields['ticket_price'].initial = None
             form.base_fields['ticket_quantity'].initial = None
+        else:
+            # For editing, show existing ticket info in the form
+            if obj.product_type == 'event' and obj.ticket_tiers.exists():
+                from django.contrib import messages
+                messages.info(request, f'📋 This event has {obj.ticket_tiers.count()} ticket types. Use the fields below to add new ones, or edit existing ones in the table below.')
         
         return form
+    
+    def save_form(self, request, form, change):
+        """Intercept form data to handle frontend ticket types"""
+        obj = form.save(commit=False)
+        
+        # Check if this is a frontend update with ticket_types data
+        if (obj.product_type == 'event' and 
+            'ticket_types' in request.POST and 
+            request.POST['ticket_types'].strip()):
+            
+            try:
+                import json
+                ticket_types_data = json.loads(request.POST['ticket_types'])
+                obj._ticket_types_data = ticket_types_data
+            except (json.JSONDecodeError, KeyError):
+                pass
+        
+        return obj
     
     def response_add(self, request, obj, post_url_continue=None):
         """Clear ticket fields after adding a product with tickets"""

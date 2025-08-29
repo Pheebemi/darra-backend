@@ -81,9 +81,12 @@ class ProductCreateSerializer(serializers.ModelSerializer):
                         category = TicketCategory.objects.get(id=ticket_type_data['category_id'])
                         
                         # Create a simple ticket tier with just the essential info
+                        import uuid
+                        unique_name = f"{category.name}_{uuid.uuid4().hex[:8]}"
+                        
                         ticket_tier = TicketTier.objects.create(
                             category_id=ticket_type_data['category_id'],
-                            name=category.name,  # Just use category name (VIP, Regular, Early Bird)
+                            name=unique_name,  # Use unique name to avoid constraint violation
                             price=ticket_type_data['price'],
                             quantity_available=ticket_type_data['quantity'],
                             description=f"{category.name} tickets",  # Simple description
@@ -124,19 +127,28 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
     def update(self, instance, validated_data):
         ticket_types = validated_data.pop('ticket_types', None)
         
+        print(f"DEBUG: ProductUpdateSerializer.update called")
+        print(f"DEBUG: ticket_types received: {ticket_types}")
+        print(f"DEBUG: instance.product_type: {instance.product_type}")
+        
         # Update the product
         product = super().update(instance, validated_data)
         
         # Handle ticket types update
         if ticket_types is not None:
+            print(f"DEBUG: Processing ticket_types: {ticket_types}")
+            
             # Remove existing ticket tiers
+            existing_count = product.ticket_tiers.count()
             product.ticket_tiers.all().delete()
+            print(f"DEBUG: Removed {existing_count} existing ticket tiers")
             
             # Parse ticket_types if it's a string (from FormData)
             if isinstance(ticket_types, str):
                 import json
                 try:
                     ticket_types = json.loads(ticket_types)
+                    print(f"DEBUG: Parsed JSON ticket_types: {ticket_types}")
                 except json.JSONDecodeError:
                     print(f"Error parsing ticket_types JSON: {ticket_types}")
                     return product
@@ -149,35 +161,49 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
             
             # Create new ticket tiers
             if ticket_types:
+                print(f"DEBUG: Creating {len(ticket_types)} new ticket tiers")
                 try:
                     created_tiers = []
                     
-                    for ticket_type_data in ticket_types:
+                    for i, ticket_type_data in enumerate(ticket_types):
+                        print(f"DEBUG: Processing ticket {i+1}: {ticket_type_data}")
                         try:
                             category = TicketCategory.objects.get(id=ticket_type_data['category_id'])
+                            print(f"DEBUG: Found category: {category.name}")
                             
                             # Create a simple ticket tier with just the essential info
+                            import uuid
+                            unique_name = f"{category.name}_{uuid.uuid4().hex[:8]}"
+                            print(f"DEBUG: Creating tier with name: {unique_name}")
+                            
                             ticket_tier = TicketTier.objects.create(
                                 category_id=ticket_type_data['category_id'],
-                                name=category.name,  # Just use category name (VIP, Regular, Early Bird)
+                                name=unique_name,  # Use unique name to avoid constraint violation
                                 price=ticket_type_data['price'],
                                 quantity_available=ticket_type_data['quantity'],
                                 description=f"{category.name} tickets",  # Simple description
                                 benefits="Standard benefits",
                                 is_active=True
                             )
+                            print(f"DEBUG: Successfully created ticket tier: {ticket_tier.id}")
                             created_tiers.append(ticket_tier)
                             
                         except TicketCategory.DoesNotExist:
                             print(f"DEBUG: Category {ticket_type_data['category_id']} not found")
                             continue
+                        except Exception as e:
+                            print(f"DEBUG: Error creating ticket tier: {e}")
+                            continue
                     
                     # Associate all created ticket tiers with the product
                     if created_tiers:
+                        print(f"DEBUG: Associating {len(created_tiers)} ticket tiers with product")
                         product.ticket_tiers.set(created_tiers)
-                        print(f"DEBUG: Updated with {len(created_tiers)} ticket categories")
+                        print(f"DEBUG: Successfully updated with {len(created_tiers)} ticket categories")
                         for tier in created_tiers:
                             print(f"DEBUG: {tier.category.name} - Price: ₦{tier.price}, Quantity: {tier.quantity_available}")
+                    else:
+                        print(f"DEBUG: No ticket tiers were created successfully")
                         
                 except Exception as e:
                     print(f"Error updating ticket categories: {e}")
