@@ -47,7 +47,7 @@ class ProductAdmin(admin.ModelAdmin):
             'fields': ('file', 'cover_image')
         }),
         ('Event Details', {
-            'fields': ('event_date', 'ticket_quantity', 'ticket_category', 'ticket_tiers'),
+            'fields': ('event_date', 'ticket_quantity', 'ticket_category', 'ticket_tiers', 'ticket_details_table'),
             'classes': ('collapse',)
         }),
     )
