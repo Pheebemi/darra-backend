@@ -1,4 +1,5 @@
 from django.contrib import admin
+from django.db import models
 from .models import Product, TicketCategory, TicketTier
 
 @admin.register(TicketCategory)
@@ -33,6 +34,23 @@ class ProductAdmin(admin.ModelAdmin):
     list_filter = ('product_type', 'ticket_category', 'created_at')
     filter_horizontal = ('ticket_tiers',)
     readonly_fields = ('ticket_count', 'total_ticket_quantity', 'ticket_details_table')
+    
+    formfield_overrides = {
+        models.TextField: {'widget': admin.widgets.AdminTextareaWidget(attrs={'rows': 10, 'cols': 80})},
+    }
+    
+    fieldsets = (
+        ('Basic Information', {
+            'fields': ('title', 'description', 'description_html', 'price', 'product_type', 'owner')
+        }),
+        ('Media', {
+            'fields': ('file', 'cover_image')
+        }),
+        ('Event Details', {
+            'fields': ('event_date', 'ticket_quantity', 'ticket_category', 'ticket_tiers'),
+            'classes': ('collapse',)
+        }),
+    )
     
     def ticket_count(self, obj):
         if obj.ticket_tiers.exists():

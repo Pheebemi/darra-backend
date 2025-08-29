@@ -25,7 +25,7 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'title', 'description', 'price', 'product_type',
+            'id', 'title', 'description', 'description_html', 'price', 'product_type',
             'file', 'cover_image', 'created_at', 'event_date', 'ticket_quantity',
             'seller_name', 'seller_id', 'ticket_category', 'ticket_tiers', 'is_ticket_event'
         ]
@@ -38,7 +38,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'title', 'description', 'price', 'product_type',
+            'title', 'description', 'description_html', 'price', 'product_type',
             'file', 'cover_image', 'event_date', 'ticket_quantity',
             'ticket_category_id', 'ticket_types'
         ]
@@ -63,6 +63,15 @@ class ProductCreateSerializer(serializers.ModelSerializer):
                 pass
         
         if ticket_types:
+            # Parse ticket_types if it's a string (from FormData)
+            if isinstance(ticket_types, str):
+                import json
+                try:
+                    ticket_types = json.loads(ticket_types)
+                except json.JSONDecodeError:
+                    print(f"Error parsing ticket_types JSON: {ticket_types}")
+                    return product
+            
             try:
                 # Create simple ticket categories for each ticket type
                 created_tiers = []
@@ -107,7 +116,7 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'title', 'description', 'price', 'product_type',
+            'title', 'description', 'description_html', 'price', 'product_type',
             'file', 'cover_image', 'event_date', 'ticket_quantity',
             'ticket_types'
         ]
@@ -122,6 +131,15 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         if ticket_types is not None:
             # Remove existing ticket tiers
             product.ticket_tiers.all().delete()
+            
+            # Parse ticket_types if it's a string (from FormData)
+            if isinstance(ticket_types, str):
+                import json
+                try:
+                    ticket_types = json.loads(ticket_types)
+                except json.JSONDecodeError:
+                    print(f"Error parsing ticket_types JSON: {ticket_types}")
+                    return product
             
             # Calculate total ticket quantity from ticket types
             if ticket_types:
