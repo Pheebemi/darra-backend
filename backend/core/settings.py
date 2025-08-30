@@ -54,6 +54,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'csp',  # Content Security Policy
+    'cloudinary_storage',  # Cloudinary storage backend
     
     # Local apps
     'users',
@@ -152,6 +153,24 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 # Media files (User uploads)
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
+
+# Cloudinary Configuration
+CLOUDINARY_STORAGE = {
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', 'your_cloud_name'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY', 'your_api_key'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', 'your_api_secret'),
+}
+
+# Use Cloudinary for media files
+DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
+
+# Cloudinary settings for different file types
+CLOUDINARY = {
+    'cloud_name': os.getenv('CLOUDINARY_CLOUD_NAME', 'your_cloud_name'),
+    'api_key': os.getenv('CLOUDINARY_API_KEY', 'your_api_key'),
+    'api_secret': os.getenv('CLOUDINARY_API_SECRET', 'your_api_secret'),
+    'secure': True,  # Use HTTPS
+}
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field

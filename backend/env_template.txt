@@ -1,0 +1,30 @@
+# Django settings
+DEBUG=True
+SECRET_KEY=your_secret_key_here
+
+# Database
+DATABASE_URL=sqlite:///db.sqlite3
+
+# Email settings
+EMAIL_HOST_USER=your_email@gmail.com
+EMAIL_HOST_PASSWORD=your_app_password
+DEFAULT_FROM_EMAIL=your_email@gmail.com
+
+# Payment settings
+PAYSTACK_SECRET_KEY=sk_test_your_test_secret_key_here
+PAYSTACK_PUBLIC_KEY=pk_test_your_test_public_key_here
+
+FLUTTERWAVE_SECRET_KEY=FLWSECK_TEST_your_test_secret_key_here
+FLUTTERWAVE_PUBLIC_KEY=FLWPUBK_TEST_your_test_public_key_here
+FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TEST_your_test_encryption_key_here
+
+# Payment provider (paystack or flutterwave)
+PAYMENT_PROVIDER=paystack
+
+# Base URL
+BASE_URL=http://localhost:8000
+
+# Cloudinary settings
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret

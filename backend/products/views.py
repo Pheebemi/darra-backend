@@ -14,6 +14,7 @@ from datetime import timedelta
 from apps.payments.models import Payment, Purchase
 from django.db.models.functions import TruncDate
 from apps.payments.serializers import PurchaseSerializer
+from .cloudinary_service import cloudinary_service
 
 # Create your views here.
 
@@ -55,7 +56,36 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
         return ProductSerializer
 
     def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+        # Save the product first to get the ID
+        product = serializer.save(owner=self.request.user)
+        
+        # Handle Cloudinary uploads if files are provided
+        try:
+            # Upload cover image if provided
+            if 'cover_image' in self.request.FILES:
+                cover_image = self.request.FILES['cover_image']
+                cloudinary_result = cloudinary_service.upload_cover_image(cover_image, product.id)
+                if cloudinary_result:
+                    product.cover_image = cloudinary_result['secure_url']
+                    product.save()
+                    print(f"✅ Cover image uploaded to Cloudinary: {cloudinary_result['public_id']}")
+            
+            # Upload product file if provided
+            if 'file' in self.request.FILES:
+                product_file = self.request.FILES['file']
+                cloudinary_result = cloudinary_service.upload_product_file(
+                    product_file, 
+                    product.product_type, 
+                    product.id
+                )
+                if cloudinary_result:
+                    product.file = cloudinary_result['secure_url']
+                    product.save()
+                    print(f"✅ Product file uploaded to Cloudinary: {cloudinary_result['public_id']}")
+                    
+        except Exception as e:
+            print(f"❌ Error uploading files to Cloudinary: {str(e)}")
+            # Don't fail the product creation if file upload fails
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]

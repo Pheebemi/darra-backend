@@ -1,5 +1,6 @@
 from django.db import models
 from users.models import User
+from cloudinary_storage.storage import MediaCloudinaryStorage
 
 class TicketCategory(models.Model):
     """Different types of tickets (VIP, Regular, Premium, etc.)"""
@@ -58,8 +59,8 @@ class Product(models.Model):
     description_html = models.TextField(blank=True)  # Rich text HTML content
     price = models.DecimalField(max_digits=10, decimal_places=2)
     product_type = models.CharField(max_length=10, choices=ProductType.choices)
-    file = models.FileField(upload_to='products/files/', blank=True, null=True)
-    cover_image = models.ImageField(upload_to='products/covers/', blank=True, null=True)
+    file = models.FileField(upload_to='products/files/', blank=True, null=True, storage=MediaCloudinaryStorage())
+    cover_image = models.ImageField(upload_to='products/covers/', blank=True, null=True, storage=MediaCloudinaryStorage())
     created_at = models.DateTimeField(auto_now_add=True)
 
     # For events/tickets
