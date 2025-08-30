@@ -56,23 +56,47 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
         return ProductSerializer
 
     def perform_create(self, serializer):
+        # Check if this is a duplicate request by looking for similar products
+        title = serializer.validated_data.get('title')
+        product_type = serializer.validated_data.get('product_type')
+        
+        # Look for recent duplicate products (within last 5 minutes)
+        recent_duplicate = Product.objects.filter(
+            owner=self.request.user,
+            title=title,
+            product_type=product_type,
+            created_at__gte=timezone.now() - timedelta(minutes=5)
+        ).first()
+        
+        if recent_duplicate:
+            print(f"⚠️ Duplicate product creation detected: {title}")
+            # Return the existing product instead of creating a new one
+            return recent_duplicate
+        
         # Save the product first to get the ID
         product = serializer.save(owner=self.request.user)
+        print(f"✅ Product created: {product.id} - {product.title}")
         
         # Handle Cloudinary uploads if files are provided
+        upload_success = True
         try:
             # Upload cover image if provided
             if 'cover_image' in self.request.FILES:
                 cover_image = self.request.FILES['cover_image']
+                print(f"🔄 Uploading cover image to Cloudinary...")
                 cloudinary_result = cloudinary_service.upload_cover_image(cover_image, product.id)
                 if cloudinary_result:
                     product.cover_image = cloudinary_result['secure_url']
                     product.save()
                     print(f"✅ Cover image uploaded to Cloudinary: {cloudinary_result['public_id']}")
+                else:
+                    upload_success = False
+                    print(f"❌ Cover image upload failed")
             
             # Upload product file if provided
             if 'file' in self.request.FILES:
                 product_file = self.request.FILES['file']
+                print(f"🔄 Uploading product file to Cloudinary...")
                 cloudinary_result = cloudinary_service.upload_product_file(
                     product_file, 
                     product.product_type, 
@@ -82,10 +106,22 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
                     product.file = cloudinary_result['secure_url']
                     product.save()
                     print(f"✅ Product file uploaded to Cloudinary: {cloudinary_result['public_id']}")
+                else:
+                    upload_success = False
+                    print(f"❌ Product file upload failed")
                     
         except Exception as e:
+            upload_success = False
             print(f"❌ Error uploading files to Cloudinary: {str(e)}")
-            # Don't fail the product creation if file upload fails
+            # If Cloudinary fails, we still have the product but mark it as incomplete
+        
+        # Log the final result
+        if upload_success:
+            print(f"🎉 Product {product.id} created successfully with all files uploaded to Cloudinary")
+        else:
+            print(f"⚠️ Product {product.id} created but some files failed to upload to Cloudinary")
+        
+        return product
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]
