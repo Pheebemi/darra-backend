@@ -78,6 +78,54 @@ class FlutterwaveService:
         except requests.exceptions.RequestException as e:
             raise ValidationError(f"Flutterwave API error: {str(e)}")
 
+    def process_seller_payout(self, payout_request):
+        """Process seller payout using Flutterwave Transfer API"""
+        try:
+            # Get seller's bank details
+            bank_details = payout_request.bank_details
+            
+            # Flutterwave transfer payload
+            transfer_data = {
+                'account_bank': bank_details.bank_code,
+                'account_number': bank_details.account_number,
+                'amount': float(payout_request.amount),
+                'narration': f'Payout for {payout_request.seller.brand_name or payout_request.seller.email}',
+                'currency': 'NGN',
+                'reference': f"DARRA_PAYOUT_{payout_request.id}",
+                'beneficiary_name': bank_details.account_name
+            }
+            
+            url = f"{self.base_url}/transfers"
+            response = requests.post(url, json=transfer_data, headers=self._get_headers())
+            response.raise_for_status()
+            
+            data = response.json()
+            
+            # Update payout request
+            payout_request.status = 'completed'
+            payout_request.flutterwave_transfer_id = data['data']['id']
+            payout_request.processed_at = timezone.now()
+            payout_request.save()
+            
+            # Update seller earnings
+            try:
+                earnings = payout_request.seller.earnings
+                earnings.total_payouts += payout_request.amount
+                earnings.calculate_available_balance()
+                earnings.save()
+            except Exception as e:
+                print(f"DEBUG: Warning - Could not update earnings: {str(e)}")
+            
+            print(f"DEBUG: Flutterwave payout successful for {payout_request.seller.email}: ₦{payout_request.amount}")
+            return True
+            
+        except Exception as e:
+            payout_request.status = 'failed'
+            payout_request.failure_reason = str(e)
+            payout_request.save()
+            print(f"DEBUG: Flutterwave payout failed: {str(e)}")
+            return False
+
     def calculate_seller_commission(self, product_price):
         """Calculate 4% commission and seller payout"""
         commission = product_price * Decimal('0.04')
@@ -625,131 +673,14 @@ class PaymentService:
         return payment
 
 class PayoutService:
-    """Handle seller payouts using Paystack Transfer API"""
+    """Handle seller payouts using Flutterwave Transfer API"""
     
     def __init__(self):
-        self.secret_key = settings.PAYSTACK_SECRET_KEY
-        self.base_url = "https://api.paystack.co"
-    
-    def _get_headers(self):
-        return {
-            'Authorization': f'Bearer {self.secret_key}',
-            'Content-Type': 'application/json'
-        }
+        self.flutterwave_service = FlutterwaveService()
     
     def process_payout(self, payout_request):
-        """Process payout using Paystack Transfer API"""
-        try:
-            # Get seller's bank details
-            bank_details = payout_request.bank_details
-            
-            # Always use the actual bank code from the user's bank details
-            # Paystack will handle test mode validation on their end
-            recipient_data = {
-                'type': 'nuban',
-                'name': bank_details.account_name,
-                'account_number': bank_details.account_number,
-                'bank_code': bank_details.bank_code,  # Use actual bank code from user's details
-                'currency': 'NGN'
-            }
-            
-            print(f"DEBUG: Creating recipient with data: {recipient_data}")
-            
-            # Create recipient on Paystack
-            recipient_response = requests.post(
-                f'{self.base_url}/transferrecipient',
-                headers=self._get_headers(),
-                json=recipient_data
-            )
-            
-            print(f"DEBUG: Recipient response status: {recipient_response.status_code}")
-            print(f"DEBUG: Recipient response: {recipient_response.text}")
-            
-            # Check if recipient creation was successful
-            if recipient_response.status_code in [200, 201]:  # Accept both 200 and 201 as success
-                recipient_data = recipient_response.json()
-                
-                # Double-check the response status from Paystack
-                if recipient_data.get('status') == True:
-                    recipient_code = recipient_data['data']['recipient_code']
-                    print(f"DEBUG: Recipient created successfully with code: {recipient_code}")
-                else:
-                    # Paystack returned success but with false status
-                    payout_request.status = 'failed'
-                    payout_request.failure_reason = f"Paystack rejected recipient creation: {recipient_response.text}"
-                    payout_request.save()
-                    print(f"DEBUG: Paystack rejected recipient creation: {recipient_response.text}")
-                    return False
-            else:
-                # HTTP error
-                payout_request.status = 'failed'
-                payout_request.failure_reason = f"HTTP error creating recipient: {recipient_response.status_code} - {recipient_response.text}"
-                payout_request.save()
-                print(f"DEBUG: HTTP error creating recipient: {recipient_response.status_code} - {recipient_response.text}")
-                return False
-            
-            # Generate transfer reference (required by Paystack)
-            import uuid
-            transfer_reference = f"payout_{uuid.uuid4().hex[:16]}"
-            
-            # Now initiate the transfer
-            transfer_data = {
-                'source': 'balance',  # From your Paystack balance
-                'amount': int(payout_request.amount * 100),  # Convert to kobo
-                'recipient': recipient_code,  # Use the recipient code from Paystack
-                'reference': transfer_reference,  # Required by Paystack
-                'reason': f'Payout for {payout_request.seller.brand_name or payout_request.seller.email}'
-            }
-            
-            print(f"DEBUG: Initiating transfer with data: {transfer_data}")
-            
-            # Call Paystack Transfer API
-            response = requests.post(
-                f'{self.base_url}/transfer',
-                headers=self._get_headers(),
-                json=transfer_data
-            )
-            
-            print(f"DEBUG: Transfer response status: {response.status_code}")
-            print(f"DEBUG: Transfer response: {response.text}")
-            
-            if response.status_code == 200:
-                data = response.json()
-                
-                # Update payout request
-                payout_request.status = 'completed'
-                payout_request.paystack_transfer_id = data['data']['id']
-                payout_request.transfer_reference = transfer_reference
-                payout_request.processed_at = timezone.now()
-                payout_request.save()
-                
-                # Update seller earnings
-                try:
-                    earnings = payout_request.seller.earnings
-                    earnings.total_payouts += payout_request.amount
-                    earnings.calculate_available_balance()
-                    earnings.save()
-                except Exception as e:
-                    print(f"DEBUG: Warning - Could not update earnings: {str(e)}")
-                
-                print(f"DEBUG: Payout successful for {payout_request.seller.email}: ₦{payout_request.amount}")
-                return True
-            else:
-                # Transfer failed
-                payout_request.status = 'failed'
-                payout_request.failure_reason = response.text
-                payout_request.save()
-                
-                print(f"DEBUG: Payout failed for {payout_request.seller.email}: {response.text}")
-                return False
-                
-        except Exception as e:
-            payout_request.status = 'failed'
-            payout_request.failure_reason = str(e)
-            payout_request.save()
-            
-            print(f"DEBUG: Error processing payout: {str(e)}")
-            return False
+        """Process payout using Flutterwave Transfer API"""
+        return self.flutterwave_service.process_seller_payout(payout_request)
 
 
 class PaymentProviderFactory:
