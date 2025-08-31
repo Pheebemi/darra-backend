@@ -27,18 +27,33 @@ class UserLibrarySerializer(serializers.ModelSerializer):
     
     def get_event_tickets(self, obj):
         """Get event ticket details including QR codes for event products"""
+        print(f"DEBUG: Processing product {obj.product.id} with type: {obj.product.product_type}")
+        
         if obj.product.product_type == 'event':
-            from apps.events.models import EventTicket
-            from django.conf import settings
-            
-            tickets = EventTicket.objects.filter(purchase=obj.purchase)
-            return [{
-                'id': ticket.id,
-                'ticket_id': str(ticket.ticket_id),
-                'qr_code_url': f"{settings.BASE_URL}{ticket.qr_code.url}" if ticket.qr_code else None,
-                'is_used': ticket.is_used,
-                'created_at': ticket.created_at
-            } for ticket in tickets]
+            try:
+                from apps.events.models import EventTicket
+                print(f"DEBUG: Importing EventTicket model")
+                
+                tickets = EventTicket.objects.filter(purchase=obj.purchase)
+                print(f"DEBUG: Found {tickets.count()} tickets for purchase {obj.purchase.id}")
+                
+                result = [{
+                    'id': ticket.id,
+                    'ticket_id': str(ticket.ticket_id),
+                    'qr_code_url': ticket.qr_code.url if ticket.qr_code else None,
+                    'is_used': ticket.is_used,
+                    'created_at': ticket.created_at
+                } for ticket in tickets]
+                
+                print(f"DEBUG: Serialized tickets: {result}")
+                return result
+            except Exception as e:
+                print(f"ERROR: Error getting event tickets: {e}")
+                import traceback
+                traceback.print_exc()
+                return []
+        else:
+            print(f"DEBUG: Product {obj.product.id} is not an event (type: {obj.product.product_type})")
         return []
 
 class CheckoutItemSerializer(serializers.Serializer):

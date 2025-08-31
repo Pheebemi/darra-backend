@@ -185,10 +185,23 @@ def verify_payment(request, reference):
 def get_user_library(request):
     """Get user's purchased products"""
     try:
+        print(f"DEBUG: Getting library for user: {request.user.email}")
+        
         library_items = UserLibrary.objects.filter(user=request.user).select_related('product', 'purchase')
+        print(f"DEBUG: Found {library_items.count()} library items")
+        
+        # Debug: Print first few items
+        for i, item in enumerate(library_items[:3]):
+            print(f"DEBUG: Item {i}: Product ID {item.product.id}, Type: {item.product.product_type}")
+        
         serializer = UserLibrarySerializer(library_items, many=True)
+        print(f"DEBUG: Serialization completed successfully")
+        
         return Response(serializer.data)
     except Exception as e:
+        print(f"ERROR: Library fetch error: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return Response({
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
