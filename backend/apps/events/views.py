@@ -86,6 +86,40 @@ def verify_ticket(request, ticket_id):
     except EventTicket.DoesNotExist:
         return Response({'error': 'Ticket not found'}, status=status.HTTP_404_NOT_FOUND)
 
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def regenerate_ticket(request, ticket_id):
+    """Regenerate ticket files (QR code and PDF) and upload to Cloudinary"""
+    try:
+        ticket = EventTicket.objects.get(ticket_id=ticket_id)
+        
+        # Check if seller owns this event
+        if ticket.event.owner != request.user:
+            return Response({'error': 'Unauthorized'}, status=status.HTTP_403_FORBIDDEN)
+        
+        # Regenerate QR code
+        qr_code = ticket.generate_qr_code()
+        
+        # Generate PDF ticket
+        pdf_ticket = ticket.generate_pdf_ticket()
+        
+        # Save the updated ticket
+        ticket.save()
+        
+        return Response({
+            'message': 'Ticket regenerated successfully',
+            'ticket': EventTicketDetailSerializer(ticket).data,
+            'qr_code_url': ticket.get_qr_code_url(),
+            'pdf_ticket_url': ticket.get_pdf_ticket_url()
+        })
+        
+    except EventTicket.DoesNotExist:
+        return Response({'error': 'Ticket not found'}, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        return Response({
+            'error': f'Failed to regenerate ticket: {str(e)}'
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def seller_event_stats(request):

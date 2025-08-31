@@ -7,6 +7,7 @@ urlpatterns = [
     path('seller-tickets/', views.SellerEventTicketsView.as_view(), name='seller_tickets'),
     path('ticket/<str:ticket_id>/', views.get_ticket_details, name='ticket_details'),
     path('verify/<str:ticket_id>/', views.verify_ticket, name='verify_ticket'),
+    path('regenerate/<str:ticket_id>/', views.regenerate_ticket, name='regenerate_ticket'),
     path('seller-stats/', views.seller_event_stats, name='seller_stats'),
 ]
 
