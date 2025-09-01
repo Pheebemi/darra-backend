@@ -372,6 +372,18 @@ class PaystackService:
             # Check if any purchases are events
             has_events = any(p.product.product_type == 'event' for p in purchases)
             
+            # Send purchase receipt email once with all purchases
+            try:
+                send_purchase_receipt_email(payment, purchases)
+            except Exception as email_error:
+                print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
+            
+            # Send seller notification email once with all purchases
+            try:
+                send_seller_notification_email(payment, purchases)
+            except Exception as email_error:
+                print(f"DEBUG: Error sending seller notification email: {str(email_error)}")
+
             if has_events:
                 # Handle event tickets
                 for purchase in purchases:
@@ -400,40 +412,25 @@ class PaystackService:
                             NotificationService.send_event_ticket_notification(payment.user, purchase.product, tickets)
                         except Exception as notif_error:
                             print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
-                    else:
-                        # Send regular purchase receipt email
-                        try:
-                            send_purchase_receipt_email(payment.user, purchase)
-                        except Exception as email_error:
-                            print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
-                        
-                        # Send payment notification to buyer
-                        try:
-                            NotificationService.send_payment_notification(payment, payment.user)
-                        except Exception as notif_error:
-                            print(f"DEBUG: Error sending payment notification: {str(notif_error)}")
-                        
-                        # Send order notification to seller
-                        try:
-                            NotificationService.send_order_notification(purchase, purchase.product.owner)
-                        except Exception as notif_error:
-                            print(f"DEBUG: Error sending order notification: {str(notif_error)}")
-            else:
-                # Handle digital products
-                for purchase in purchases:
-                    # Send purchase receipt email
-                    try:
-                        send_purchase_receipt_email(payment.user, purchase)
-                    except Exception as email_error:
-                        print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
                     
-                    # Send payment notification to buyer
+                    # Send individual notifications for each purchase
                     try:
                         NotificationService.send_payment_notification(payment, payment.user)
                     except Exception as notif_error:
                         print(f"DEBUG: Error sending payment notification: {str(notif_error)}")
                     
-                    # Send order notification to seller
+                    try:
+                        NotificationService.send_order_notification(purchase, purchase.product.owner)
+                    except Exception as notif_error:
+                        print(f"DEBUG: Error sending order notification: {str(notif_error)}")
+            else:
+                # Handle digital products - send notifications for each purchase
+                for purchase in purchases:
+                    try:
+                        NotificationService.send_payment_notification(payment, payment.user)
+                    except Exception as notif_error:
+                        print(f"DEBUG: Error sending payment notification: {str(notif_error)}")
+                    
                     try:
                         NotificationService.send_order_notification(purchase, purchase.product.owner)
                     except Exception as notif_error:
@@ -607,6 +604,18 @@ class PaymentService:
         try:
             # Import notification service
             from apps.notifications.services import NotificationService
+            
+            # Send purchase receipt email once with all purchases
+            try:
+                send_purchase_receipt_email(payment, purchases)
+            except Exception as email_error:
+                print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
+            
+            # Send seller notification email once with all purchases
+            try:
+                send_seller_notification_email(payment, purchases)
+            except Exception as email_error:
+                print(f"DEBUG: Error sending seller notification email: {str(email_error)}")
                    
             # Check if any purchases are events
             has_events = any(p.product.product_type == 'event' for p in purchases)
@@ -639,28 +648,15 @@ class PaymentService:
                             NotificationService.send_event_ticket_notification(payment.user, purchase.product, tickets)
                         except Exception as notif_error:
                             print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
-                    else:
-                        # Send regular purchase receipt email
-                        try:
-                            send_purchase_receipt_email(payment.user, purchase)
-                        except Exception as email_error:
-                            print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
-                        
-                        # Send notification
-                        try:
-                            NotificationService.send_new_order_notification(purchase, purchase.product.owner)
-                        except Exception as notif_error:
-                            print(f"DEBUG: Error sending order notification: {str(notif_error)}")
-            else:
-                # Handle digital products
-                for purchase in purchases:
-                    # Send purchase receipt email
-                    try:
-                        send_purchase_receipt_email(payment.user, purchase)
-                    except Exception as email_error:
-                        print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
                     
-                    # Send notification
+                    # Send individual notifications for each purchase
+                    try:
+                        NotificationService.send_new_order_notification(purchase, purchase.product.owner)
+                    except Exception as notif_error:
+                        print(f"DEBUG: Error sending order notification: {str(notif_error)}")
+            else:
+                # Handle digital products - send notifications for each purchase
+                for purchase in purchases:
                     try:
                         NotificationService.send_new_order_notification(purchase, purchase.product.owner)
                     except Exception as notif_error:

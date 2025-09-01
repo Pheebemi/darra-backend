@@ -2,6 +2,9 @@ from django.core.mail import send_mail
 from django.template.loader import render_to_string
 from django.conf import settings
 from datetime import datetime
+from django.template import RequestContext
+from django.contrib.auth.models import AnonymousUser
+from django.test import RequestFactory
 
 def send_otp_email(email: str, otp: str, is_verification: bool = True):
     subject = 'Verify your email' if is_verification else 'Login OTP'
@@ -9,7 +12,12 @@ def send_otp_email(email: str, otp: str, is_verification: bool = True):
         'otp': otp,
         'is_verification': is_verification
     }
-    html_message = render_to_string('users/email/otp_email.html', context)
+    # Create a request with anonymous user to avoid context processor conflicts
+    request_factory = RequestFactory()
+    request = request_factory.get('/')
+    request.user = AnonymousUser()
+    
+    html_message = render_to_string('users/email/otp_email.html', context, request=request)
     plain_message = f'Your OTP is: {otp}'
     
     send_mail(
@@ -26,7 +34,12 @@ def send_password_reset_email(email: str, reset_url: str):
     context = {
         'reset_url': reset_url
     }
-    html_message = render_to_string('users/email/password_reset.html', context)
+    # Create a request with anonymous user to avoid context processor conflicts
+    request_factory = RequestFactory()
+    request = request_factory.get('/')
+    request.user = AnonymousUser()
+    
+    html_message = render_to_string('users/email/password_reset.html', context, request=request)
     plain_message = f'Reset your password using this link: {reset_url}'
     
     send_mail(
@@ -52,10 +65,23 @@ def send_purchase_receipt_email(payment, purchases):
             'payment_status': payment.status,
             'purchases': purchases,
             'total_amount': payment.amount,
+            'customer': payment.user,  # Add explicit customer variable
+            'buyer': payment.user,  # Add explicit buyer variable
         }
         
-        # Render the HTML email
-        html_message = render_to_string('users/email/purchase_receipt.html', context)
+
+        
+
+        
+        # Create a request with anonymous user to avoid context processor conflicts
+        request_factory = RequestFactory()
+        request = request_factory.get('/')
+        request.user = AnonymousUser()
+        
+
+        
+        # Render the HTML email with RequestContext
+        html_message = render_to_string('users/email/purchase_receipt.html', context, request=request)
         
         # Create plain text version
         plain_message = f"""
@@ -132,8 +158,15 @@ def send_seller_notification_email(payment, purchases):
                 'total_earnings': total_earnings,
             }
             
-            # Render the HTML email
-            html_message = render_to_string('users/email/seller_notification.html', context)
+
+            
+            # Create a request with anonymous user to avoid context processor conflicts
+            request_factory = RequestFactory()
+            request = request_factory.get('/')
+            request.user = AnonymousUser()
+            
+            # Render the HTML email with RequestContext
+            html_message = render_to_string('users/email/seller_notification.html', context, request=request)
             
             # Create plain text version
             plain_message = f"""

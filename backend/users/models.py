@@ -1,6 +1,7 @@
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.utils import timezone
 
 class CustomUserManager(BaseUserManager):
     def create_user(self, email, password=None, **extra_fields):
@@ -47,6 +48,7 @@ class User(AbstractUser):
     open_time = models.CharField(max_length=10, blank=True, null=True, default='09:00')
     close_time = models.CharField(max_length=10, blank=True, null=True, default='18:00')
     store_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(default=timezone.now)
 
     objects = CustomUserManager()
 
