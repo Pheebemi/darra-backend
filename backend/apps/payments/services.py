@@ -6,7 +6,7 @@ from django.core.exceptions import ValidationError
 from django.utils import timezone
 from .models import Payment, Purchase, UserLibrary, SellerCommission, SellerEarnings, PayoutRequest
 from products.models import Product
-from users.utils import send_purchase_receipt_email, send_seller_notification_email
+from users.utils import send_purchase_receipt_email, send_seller_notification_email, send_event_ticket_email
 from apps.notifications.services import NotificationService
 
 class FlutterwaveService:
