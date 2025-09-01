@@ -385,7 +385,10 @@ class PaystackService:
                 print(f"DEBUG: Error sending seller notification email: {str(email_error)}")
 
             if has_events:
-                # Handle event tickets
+                # Collect all event tickets first
+                all_event_tickets = []
+                event_products = {}
+                
                 for purchase in purchases:
                     if purchase.product.product_type == 'event':
                         # Import here to avoid circular imports
@@ -401,19 +404,31 @@ class PaystackService:
                             )
                             tickets.append(ticket)
                         
-                        # Send event ticket email
-                        try:
-                            send_event_ticket_email(payment.user, purchase.product, tickets)
-                        except Exception as email_error:
-                            print(f"DEBUG: Error sending event ticket email: {str(email_error)}")
-                        
-                        # Send notification
-                        try:
-                            NotificationService.send_event_ticket_notification(payment.user, purchase.product, tickets)
-                        except Exception as notif_error:
-                            print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
+                        # Group tickets by event product
+                        if purchase.product.id not in event_products:
+                            event_products[purchase.product.id] = {
+                                'product': purchase.product,
+                                'tickets': [],
+                                'purchase': purchase
+                            }
+                        event_products[purchase.product.id]['tickets'].extend(tickets)
+                        all_event_tickets.extend(tickets)
+                
+                # Send one event ticket email with all tickets grouped by event
+                for product_id, event_data in event_products.items():
+                    try:
+                        send_event_ticket_email(payment.user, event_data['product'], event_data['tickets'])
+                    except Exception as email_error:
+                        print(f"DEBUG: Error sending event ticket email: {str(email_error)}")
                     
-                    # Send individual notifications for each purchase
+                    # Send notification
+                    try:
+                        NotificationService.send_event_ticket_notification(payment.user, event_data['product'], event_data['tickets'])
+                    except Exception as notif_error:
+                        print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
+                
+                # Send individual notifications for each purchase
+                for purchase in purchases:
                     try:
                         NotificationService.send_payment_notification(payment, payment.user)
                     except Exception as notif_error:
@@ -621,7 +636,10 @@ class PaymentService:
             has_events = any(p.product.product_type == 'event' for p in purchases)
             
             if has_events:
-                # Handle event tickets
+                # Collect all event tickets first
+                all_event_tickets = []
+                event_products = {}
+                
                 for purchase in purchases:
                     if purchase.product.product_type == 'event':
                         # Import here to avoid circular imports
@@ -637,19 +655,31 @@ class PaymentService:
                             )
                             tickets.append(ticket)
                         
-                        # Send event ticket email
-                        try:
-                            send_event_ticket_email(payment.user, purchase.product, tickets)
-                        except Exception as email_error:
-                            print(f"DEBUG: Error sending event ticket email: {str(email_error)}")
-                        
-                        # Send notification
-                        try:
-                            NotificationService.send_event_ticket_notification(payment.user, purchase.product, tickets)
-                        except Exception as notif_error:
-                            print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
+                        # Group tickets by event product
+                        if purchase.product.id not in event_products:
+                            event_products[purchase.product.id] = {
+                                'product': purchase.product,
+                                'tickets': [],
+                                'purchase': purchase
+                            }
+                        event_products[purchase.product.id]['tickets'].extend(tickets)
+                        all_event_tickets.extend(tickets)
+                
+                # Send one event ticket email with all tickets grouped by event
+                for product_id, event_data in event_products.items():
+                    try:
+                        send_event_ticket_email(payment.user, event_data['product'], event_data['tickets'])
+                    except Exception as email_error:
+                        print(f"DEBUG: Error sending event ticket email: {str(email_error)}")
                     
-                    # Send individual notifications for each purchase
+                    # Send notification
+                    try:
+                        NotificationService.send_event_ticket_notification(payment.user, event_data['product'], event_data['tickets'])
+                    except Exception as notif_error:
+                        print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
+                
+                # Send individual notifications for each purchase
+                for purchase in purchases:
                     try:
                         NotificationService.send_new_order_notification(purchase, purchase.product.owner)
                     except Exception as notif_error:

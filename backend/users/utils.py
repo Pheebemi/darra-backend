@@ -149,6 +149,7 @@ def send_event_ticket_email(user, product, tickets):
             'quantity': len(tickets),
             'total_amount': sum(ticket.purchase.unit_price for ticket in tickets),
             'payment_reference': tickets[0].purchase.payment.reference if tickets else 'N/A',
+            'ticket_ids': [str(ticket.ticket_id) for ticket in tickets],
         }
         
         # Render the HTML email with RequestContext
