@@ -157,10 +157,22 @@ def verify_payment(request, reference):
                 })
             except Exception as process_error:
                 print(f"DEBUG: Error processing payment: {str(process_error)}")
-                return Response({
-                    'message': 'Payment verification failed',
-                    'error': str(process_error)
-                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                # Even if ticket creation fails, payment was successful
+                # Don't fail the entire payment verification
+                print(f"DEBUG: Payment was successful, but processing had issues. Payment status: {payment.status}")
+                
+                # Check if payment status was updated to success
+                if payment.status == Payment.PaymentStatus.SUCCESS:
+                    return Response({
+                        'message': 'Payment verified successfully',
+                        'payment': PaymentSerializer(payment).data,
+                        'warning': 'Some post-processing may still be in progress'
+                    })
+                else:
+                    return Response({
+                        'message': 'Payment verification failed',
+                        'error': str(process_error)
+                    }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
         else:
             print(f"DEBUG: Payment not successful: {payment_response}")
             # Return the correct status based on provider
@@ -183,12 +195,22 @@ def verify_payment(request, reference):
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_user_library(request):
-    """Get user's purchased products"""
+    """Get user's purchased products with pagination"""
     try:
         print(f"DEBUG: Getting library for user: {request.user.email}")
         
-        library_items = UserLibrary.objects.filter(user=request.user).select_related('product', 'purchase')
-        print(f"DEBUG: Found {library_items.count()} library items")
+        # Get pagination parameters
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 20))
+        offset = (page - 1) * page_size
+        
+        # Get total count
+        total_items = UserLibrary.objects.filter(user=request.user).count()
+        print(f"DEBUG: Total library items: {total_items}")
+        
+        # Get paginated items
+        library_items = UserLibrary.objects.filter(user=request.user).select_related('product', 'purchase').order_by('-added_at')[offset:offset + page_size]
+        print(f"DEBUG: Returning {library_items.count()} items for page {page}")
         
         # Debug: Print first few items
         for i, item in enumerate(library_items[:3]):
@@ -197,7 +219,24 @@ def get_user_library(request):
         serializer = UserLibrarySerializer(library_items, many=True)
         print(f"DEBUG: Serialization completed successfully")
         
-        return Response(serializer.data)
+        # Calculate pagination info
+        total_pages = (total_items + page_size - 1) // page_size
+        has_next = page < total_pages
+        has_previous = page > 1
+        
+        return Response({
+            'results': serializer.data,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total_items': total_items,
+                'total_pages': total_pages,
+                'has_next': has_next,
+                'has_previous': has_previous,
+                'next_page': page + 1 if has_next else None,
+                'previous_page': page - 1 if has_previous else None
+            }
+        })
     except Exception as e:
         print(f"ERROR: Library fetch error: {str(e)}")
         import traceback
@@ -214,9 +253,20 @@ class PaymentHistoryView(generics.ListAPIView):
         return Payment.objects.filter(user=self.request.user).prefetch_related('purchases__product').order_by('-created_at')
     
     def list(self, request, *args, **kwargs):
-        """Custom list method to add debugging"""
+        """Custom list method with pagination and debugging"""
+        # Get pagination parameters
+        page = int(request.GET.get('page', 1))
+        page_size = int(request.GET.get('page_size', 20))
+        offset = (page - 1) * page_size
+        
+        # Get total count
         queryset = self.filter_queryset(self.get_queryset())
-        serializer = self.get_serializer(queryset, many=True)
+        total_items = queryset.count()
+        print(f"DEBUG: PaymentHistoryView - Total transactions: {total_items}")
+        
+        # Get paginated items
+        paginated_queryset = queryset[offset:offset + page_size]
+        serializer = self.get_serializer(paginated_queryset, many=True)
         data = serializer.data
         
         # Debug: Log the first few payment amounts
@@ -224,7 +274,24 @@ class PaymentHistoryView(generics.ListAPIView):
             print(f"DEBUG: PaymentHistoryView - First payment amount: {data[0].get('amount')}, Type: {type(data[0].get('amount'))}")
             print(f"DEBUG: PaymentHistoryView - First payment currency: {data[0].get('currency')}")
         
-        return Response(data)
+        # Calculate pagination info
+        total_pages = (total_items + page_size - 1) // page_size
+        has_next = page < total_pages
+        has_previous = page > 1
+        
+        return Response({
+            'results': data,
+            'pagination': {
+                'page': page,
+                'page_size': page_size,
+                'total_items': total_items,
+                'total_pages': total_pages,
+                'has_next': has_next,
+                'has_previous': has_previous,
+                'next_page': page + 1 if has_next else None,
+                'previous_page': page - 1 if has_previous else None
+            }
+        })
 
 @api_view(['GET'])
 def payment_status(request, reference):
@@ -547,3 +614,67 @@ def test_flutterwave_connection(request):
             'message': str(e),
             'timestamp': timezone.now().isoformat()
         }, status=500)
+
+@api_view(['GET'])
+def check_payment_status(request, reference):
+    """Check payment status and ticket creation progress"""
+    try:
+        payment = Payment.objects.get(reference=reference)
+        
+        # Get payment status
+        payment_status = {
+            'reference': payment.reference,
+            'status': payment.status,
+            'amount': payment.amount,
+            'created_at': payment.created_at,
+        }
+        
+        # Check if payment has event tickets
+        purchases = payment.purchases.all()
+        has_event_tickets = any(purchase.product.product_type == 'event' for purchase in purchases)
+        
+        ticket_status = {
+            'has_event_tickets': has_event_tickets,
+            'tickets_created': 0,
+            'tickets_with_qr_codes': 0,
+            'total_tickets_expected': 0,
+        }
+        
+        if has_event_tickets:
+            # Count tickets for this payment
+            from apps.events.models import EventTicket
+            tickets = EventTicket.objects.filter(purchase__payment=payment)
+            
+            ticket_status['tickets_created'] = tickets.count()
+            ticket_status['tickets_with_qr_codes'] = tickets.filter(qr_code__isnull=False).count()
+            
+            # Calculate expected tickets
+            for purchase in purchases:
+                if purchase.product.product_type == 'event':
+                    ticket_status['total_tickets_expected'] += purchase.quantity
+        
+        # Determine overall status
+        is_complete = True
+        if has_event_tickets:
+            is_complete = (
+                ticket_status['tickets_created'] == ticket_status['total_tickets_expected'] and
+                ticket_status['tickets_with_qr_codes'] == ticket_status['total_tickets_expected']
+            )
+        
+        return Response({
+            'payment': payment_status,
+            'tickets': ticket_status,
+            'is_complete': is_complete,
+            'message': 'Complete' if is_complete else 'Processing tickets...'
+        })
+        
+    except Payment.DoesNotExist:
+        return Response({
+            'message': 'Payment not found'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"DEBUG: Error checking payment status: {str(e)}")
+        return Response({
+            'message': 'Error checking payment status',
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

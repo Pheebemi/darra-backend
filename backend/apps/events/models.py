@@ -43,12 +43,22 @@ class EventTicket(models.Model):
                 self.event.title
             )
             
+            # Check if QR generation was successful
+            if qr_buffer is None:
+                print(f"⚠️ QR code generation failed for ticket {self.ticket_id}, using fallback")
+                return self._generate_local_qr_code()
+            
             # Upload to Cloudinary
             cloudinary_result = ticket_service.upload_qr_code_to_cloudinary(
                 qr_buffer, 
                 str(self.ticket_id), 
                 self.event.id
             )
+            
+            # Check if upload was successful
+            if cloudinary_result is None:
+                print(f"⚠️ Cloudinary upload failed for ticket {self.ticket_id}, using fallback")
+                return self._generate_local_qr_code()
             
             # Save Cloudinary ID
             self.qr_code_cloudinary_id = cloudinary_result['public_id']
@@ -60,7 +70,11 @@ class EventTicket(models.Model):
             return self.qr_code
             
         except Exception as e:
-            print(f"❌ Error generating QR code: {str(e)}")
+            # Only log if it's not the "Empty file" error (which is harmless)
+            if "Empty file" not in str(e):
+                print(f"❌ Error generating QR code: {str(e)}")
+            else:
+                print(f"ℹ️ QR code generation warning (harmless): {str(e)}")
             # Fallback to local generation
             return self._generate_local_qr_code()
     
@@ -102,12 +116,22 @@ class EventTicket(models.Model):
             # Generate PDF using the service
             pdf_buffer = ticket_service.generate_pdf_ticket(ticket_data)
             
+            # Check if PDF generation was successful
+            if pdf_buffer is None:
+                print(f"⚠️ PDF generation failed for ticket {self.ticket_id}")
+                return None
+            
             # Upload to Cloudinary
             cloudinary_result = ticket_service.upload_pdf_ticket_to_cloudinary(
                 pdf_buffer, 
                 str(self.ticket_id), 
                 self.event.id
             )
+            
+            # Check if upload was successful
+            if cloudinary_result is None:
+                print(f"⚠️ PDF upload failed for ticket {self.ticket_id}")
+                return None
             
             # Save Cloudinary ID
             self.pdf_ticket_cloudinary_id = cloudinary_result['public_id']
@@ -140,8 +164,14 @@ class EventTicket(models.Model):
         super().save(*args, **kwargs)
         
         if is_new and not self.qr_code:
-            self.generate_qr_code()
-            super().save(update_fields=['qr_code', 'qr_code_cloudinary_id'])
+            try:
+                self.generate_qr_code()
+                super().save(update_fields=['qr_code', 'qr_code_cloudinary_id'])
+            except Exception as e:
+                # Don't let QR code generation errors break the ticket creation
+                print(f"⚠️ QR code generation failed during save, but ticket created successfully: {str(e)}")
+                # Ticket is still created, just without QR code initially
+                # QR code can be generated later if needed
     
     def delete(self, *args, **kwargs):
         """Override delete to clean up Cloudinary files"""

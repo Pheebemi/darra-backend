@@ -384,6 +384,7 @@ class PaystackService:
             except Exception as email_error:
                 print(f"DEBUG: Error sending seller notification email: {str(email_error)}")
 
+            # FIRST FUNCTION - Create event tickets with better error handling
             if has_events:
                 # Collect all event tickets first
                 all_event_tickets = []
@@ -391,18 +392,26 @@ class PaystackService:
                 
                 for purchase in purchases:
                     if purchase.product.product_type == 'event':
+                        print(f"DEBUG: Creating {purchase.quantity} tickets for event: {purchase.product.title}")
+                        
                         # Import here to avoid circular imports
                         from apps.events.models import EventTicket
                         
-                        # Create tickets based on quantity
+                        # Create tickets based on quantity with error handling
                         tickets = []
-                        for _ in range(purchase.quantity):
-                            ticket = EventTicket.objects.create(
-                                purchase=purchase,
-                                buyer=payment.user,
-                                event=purchase.product
-                            )
-                            tickets.append(ticket)
+                        for ticket_num in range(purchase.quantity):
+                            try:
+                                ticket = EventTicket.objects.create(
+                                    purchase=purchase,
+                                    buyer=payment.user,
+                                    event=purchase.product
+                                )
+                                tickets.append(ticket)
+                                print(f"DEBUG: ✅ Created ticket {ticket.ticket_id} for event {purchase.product.title}")
+                            except Exception as ticket_error:
+                                print(f"DEBUG: ❌ Error creating ticket {ticket_num + 1}: {str(ticket_error)}")
+                                # Continue with other tickets even if one fails
+                                continue
                         
                         # Group tickets by event product
                         if purchase.product.id not in event_products:
@@ -413,6 +422,8 @@ class PaystackService:
                             }
                         event_products[purchase.product.id]['tickets'].extend(tickets)
                         all_event_tickets.extend(tickets)
+                
+                print(f"DEBUG: Successfully created {len(all_event_tickets)} event tickets")
                 
                 # Send one event ticket email with all tickets grouped by event
                 for product_id, event_data in event_products.items():
@@ -559,142 +570,160 @@ class PaymentService:
         """Process successful payment and add products to user library"""
         print(f"DEBUG: Processing successful payment for user: {payment.user.email}")
         
-        # Update payment status
+        # Update payment status FIRST - this is critical for payment success
         payment.status = Payment.PaymentStatus.SUCCESS
         payment.save()
         print(f"DEBUG: Payment status updated to: {payment.status}")
         
-        # Add products to user library
-        purchases = payment.purchases.all()
-        print(f"DEBUG: Found {purchases.count()} purchases to add to library")
-        
-        for purchase in purchases:
-            try:
-                # Create commission record for seller
-                commission = None
-                if payment.payment_provider == 'flutterwave':
-                    from .services import FlutterwaveService
-                    flutterwave_service = FlutterwaveService()
-                    commission = flutterwave_service.create_seller_commission(purchase)
-                else:
-                    from .services import PaystackService
-                    paystack_service = PaystackService()
-                    commission = paystack_service.create_seller_commission(purchase)
-                
-                if purchase.product.product_type == 'event':
-                    # For event tickets, create separate library entries for each ticket
-                    for ticket_number in range(purchase.quantity):
+        # Now process everything else - if this fails, payment is still successful
+        try:
+            # Add products to user library
+            purchases = payment.purchases.all()
+            print(f"DEBUG: Found {purchases.count()} purchases to add to library")
+            
+            for purchase in purchases:
+                try:
+                    # Create commission record for seller
+                    commission = None
+                    if payment.payment_provider == 'flutterwave':
+                        from .services import FlutterwaveService
+                        flutterwave_service = FlutterwaveService()
+                        commission = flutterwave_service.create_seller_commission(purchase)
+                    else:
+                        from .services import PaystackService
+                        paystack_service = PaystackService()
+                        commission = paystack_service.create_seller_commission(purchase)
+                    
+                    if purchase.product.product_type == 'event':
+                        # For event tickets, create separate library entries for each ticket
+                        for ticket_number in range(purchase.quantity):
+                            UserLibrary.objects.create(
+                                user=payment.user,
+                                product=purchase.product,
+                                purchase=purchase,
+                                quantity=1
+                            )
+                        print(f"DEBUG: Created {purchase.quantity} library entries for event: {purchase.product.title}")
+                    else:
+                        # For digital products, create one library entry with the full quantity
                         UserLibrary.objects.create(
                             user=payment.user,
                             product=purchase.product,
                             purchase=purchase,
-                            quantity=1
+                            quantity=purchase.quantity
                         )
-                    print(f"DEBUG: Created {purchase.quantity} library entries for event: {purchase.product.title}")
-                else:
-                    # For digital products, create one library entry with the full quantity
-                    UserLibrary.objects.create(
-                        user=payment.user,
-                        product=purchase.product,
-                        purchase=purchase,
-                        quantity=purchase.quantity
-                    )
-                    print(f"DEBUG: Created library entry for digital product: {purchase.product.title} x{purchase.quantity}")
+                        print(f"DEBUG: Created library entry for digital product: {purchase.product.title} x{purchase.quantity}")
+                    
+                    # Update seller earnings
+                    if commission:
+                        if payment.payment_provider == 'flutterwave':
+                            flutterwave_service.update_seller_earnings(purchase.product.owner)
+                        else:
+                            paystack_service.update_seller_earnings(purchase.product.owner)
+                        
+                except Exception as e:
+                    print(f"DEBUG: Error adding product to library: {str(e)}")
+                    # Continue with other products even if one fails
+                    continue
+            
+            print(f"DEBUG: Successfully processed payment and added items to library")
+            
+            # Send emails and notifications after successful payment processing (non-blocking)
+            try:
+                # Import notification service
+                from apps.notifications.services import NotificationService
                 
-                # Update seller earnings
-                if commission:
-                    if payment.payment_provider == 'flutterwave':
-                        flutterwave_service.update_seller_earnings(purchase.product.owner)
-                    else:
-                        paystack_service.update_seller_earnings(purchase.product.owner)
+                # Send purchase receipt email once with all purchases
+                try:
+                    send_purchase_receipt_email(payment, purchases)
+                except Exception as email_error:
+                    print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
+                
+                # Send seller notification email once with all purchases
+                try:
+                    send_seller_notification_email(payment, purchases)
+                except Exception as email_error:
+                    print(f"DEBUG: Error sending seller notification email: {str(email_error)}")
+                   
+                # Check if any purchases are events
+                has_events = any(p.product.product_type == 'event' for p in purchases)
+                
+                # SECOND FUNCTION - Create event tickets with better error handling
+                if has_events:
+                    # Collect all event tickets first
+                    all_event_tickets = []
+                    event_products = {}
+                    
+                    for purchase in purchases:
+                        if purchase.product.product_type == 'event':
+                            print(f"DEBUG: Creating {purchase.quantity} tickets for event: {purchase.product.title}")
+                            
+                            # Import here to avoid circular imports
+                            from apps.events.models import EventTicket
+                            
+                            # Create tickets based on quantity with error handling
+                            tickets = []
+                            for ticket_num in range(purchase.quantity):
+                                try:
+                                    ticket = EventTicket.objects.create(
+                                        purchase=purchase,
+                                        buyer=payment.user,
+                                        event=purchase.product
+                                    )
+                                    tickets.append(ticket)
+                                    print(f"DEBUG: ✅ Created ticket {ticket.ticket_id} for event {purchase.product.title}")
+                                except Exception as ticket_error:
+                                    print(f"DEBUG: ❌ Error creating ticket {ticket_num + 1}: {str(ticket_error)}")
+                                    # Continue with other tickets even if one fails
+                                    continue
+                            
+                            # Group tickets by event product
+                            if purchase.product.id not in event_products:
+                                event_products[purchase.product.id] = {
+                                    'product': purchase.product,
+                                    'tickets': [],
+                                    'purchase': purchase
+                                }
+                            event_products[purchase.product.id]['tickets'].extend(tickets)
+                            all_event_tickets.extend(tickets)
+                    
+                    print(f"DEBUG: Successfully created {len(all_event_tickets)} event tickets")
+                    
+                    # Send one event ticket email with all tickets grouped by event
+                    for product_id, event_data in event_products.items():
+                        try:
+                            send_event_ticket_email(payment.user, event_data['product'], event_data['tickets'])
+                        except Exception as email_error:
+                            print(f"DEBUG: Error sending event ticket email: {str(email_error)}")
+                        
+                        # Send notification
+                        try:
+                            NotificationService.send_event_ticket_notification(payment.user, event_data['product'], event_data['tickets'])
+                        except Exception as notif_error:
+                            print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
+                    
+                    # Send individual notifications for each purchase
+                    for purchase in purchases:
+                        try:
+                            NotificationService.send_new_order_notification(purchase, purchase.product.owner)
+                        except Exception as notif_error:
+                            print(f"DEBUG: Error sending order notification: {str(notif_error)}")
+                else:
+                    # Handle digital products - send notifications for each purchase
+                    for purchase in purchases:
+                        try:
+                            NotificationService.send_new_order_notification(purchase, purchase.product.owner)
+                        except Exception as notif_error:
+                            print(f"DEBUG: Error sending order notification: {str(notif_error)}")
                         
             except Exception as e:
-                print(f"DEBUG: Error adding product to library: {str(e)}")
-                # Continue with other products even if one fails
-                continue
+                print(f"DEBUG: Error sending emails/notifications: {str(e)}")
+                # Don't fail the payment if emails/notifications fail
         
-        print(f"DEBUG: Successfully processed payment and added items to library")
-        
-        # Send emails and notifications after successful payment processing (non-blocking)
-        try:
-            # Import notification service
-            from apps.notifications.services import NotificationService
-            
-            # Send purchase receipt email once with all purchases
-            try:
-                send_purchase_receipt_email(payment, purchases)
-            except Exception as email_error:
-                print(f"DEBUG: Error sending purchase receipt email: {str(email_error)}")
-            
-            # Send seller notification email once with all purchases
-            try:
-                send_seller_notification_email(payment, purchases)
-            except Exception as email_error:
-                print(f"DEBUG: Error sending seller notification email: {str(email_error)}")
-                   
-            # Check if any purchases are events
-            has_events = any(p.product.product_type == 'event' for p in purchases)
-            
-            if has_events:
-                # Collect all event tickets first
-                all_event_tickets = []
-                event_products = {}
-                
-                for purchase in purchases:
-                    if purchase.product.product_type == 'event':
-                        # Import here to avoid circular imports
-                        from apps.events.models import EventTicket
-                        
-                        # Create tickets based on quantity
-                        tickets = []
-                        for _ in range(purchase.quantity):
-                            ticket = EventTicket.objects.create(
-                                purchase=purchase,
-                                buyer=payment.user,
-                                event=purchase.product
-                            )
-                            tickets.append(ticket)
-                        
-                        # Group tickets by event product
-                        if purchase.product.id not in event_products:
-                            event_products[purchase.product.id] = {
-                                'product': purchase.product,
-                                'tickets': [],
-                                'purchase': purchase
-                            }
-                        event_products[purchase.product.id]['tickets'].extend(tickets)
-                        all_event_tickets.extend(tickets)
-                
-                # Send one event ticket email with all tickets grouped by event
-                for product_id, event_data in event_products.items():
-                    try:
-                        send_event_ticket_email(payment.user, event_data['product'], event_data['tickets'])
-                    except Exception as email_error:
-                        print(f"DEBUG: Error sending event ticket email: {str(email_error)}")
-                    
-                    # Send notification
-                    try:
-                        NotificationService.send_event_ticket_notification(payment.user, event_data['product'], event_data['tickets'])
-                    except Exception as notif_error:
-                        print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
-                
-                # Send individual notifications for each purchase
-                for purchase in purchases:
-                    try:
-                        NotificationService.send_new_order_notification(purchase, purchase.product.owner)
-                    except Exception as notif_error:
-                        print(f"DEBUG: Error sending order notification: {str(notif_error)}")
-            else:
-                # Handle digital products - send notifications for each purchase
-                for purchase in purchases:
-                    try:
-                        NotificationService.send_new_order_notification(purchase, purchase.product.owner)
-                    except Exception as notif_error:
-                        print(f"DEBUG: Error sending order notification: {str(notif_error)}")
-                        
-        except Exception as e:
-            print(f"DEBUG: Error sending emails/notifications: {str(e)}")
-            # Don't fail the payment if emails/notifications fail
+        except Exception as processing_error:
+            print(f"DEBUG: Error in post-payment processing: {str(processing_error)}")
+            print(f"DEBUG: Payment is still successful, but some processing failed")
+            # Payment status is already set to SUCCESS, so we're good
         
         return payment
 

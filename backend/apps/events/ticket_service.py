@@ -97,7 +97,9 @@ class TicketService:
             
         except Exception as e:
             print(f"❌ Error uploading QR code to Cloudinary: {str(e)}")
-            raise e
+            # Don't re-raise the exception - let the calling code handle it
+            # This prevents the error from bubbling up and breaking ticket creation
+            return None
     
     def generate_pdf_ticket(self, ticket_data: Dict[str, Any]) -> BytesIO:
         """
@@ -181,7 +183,8 @@ class TicketService:
             
         except Exception as e:
             print(f"❌ Error uploading PDF ticket to Cloudinary: {str(e)}")
-            raise e
+            # Don't re-raise the exception - let the calling code handle it
+            return None
     
     def delete_ticket_from_cloudinary(self, public_id: str) -> bool:
         """

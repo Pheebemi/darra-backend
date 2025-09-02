@@ -13,7 +13,8 @@ from .views import (
     seller_commissions,
     seller_payouts,
     request_payout,
-    seller_analytics
+    seller_analytics,
+    check_payment_status
 )
 
 urlpatterns = [
@@ -22,6 +23,7 @@ urlpatterns = [
     path('test-connection/', test_connection, name='test_connection'),
     path('test-flutterwave/', test_flutterwave_connection, name='test_flutterwave_connection'),
     path('verify/<str:reference>/', verify_payment, name='verify_payment'),
+    path('check-status/<str:reference>/', check_payment_status, name='check_payment_status'),
     path('library/', get_user_library, name='user_library'),
     path('history/', PaymentHistoryView.as_view(), name='payment_history'),
     path('status/<str:reference>/', payment_status, name='payment_status'),
