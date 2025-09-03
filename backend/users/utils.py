@@ -356,12 +356,14 @@ def send_digital_product_email(user, product, file_url):
         )
         email.content_subtype = "html"  # Main content is now text/html
         
-        # Add headers to avoid spam/virus detection
+        # Add headers to avoid spam/virus detection (same as event tickets)
         email.extra_headers = {
             'X-Mailer': 'Darra App',
             'X-Priority': '3',
             'X-MSMail-Priority': 'Normal',
             'Importance': 'Normal',
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'DENY',
         }
         
         # Download and attach the product file
@@ -377,23 +379,53 @@ def send_digital_product_email(user, product, file_url):
             if response.status_code != 200 and 'cloudinary.com' in file_url:
                 print(f"DEBUG: Original URL failed, trying alternative formats...")
                 
-                # Try adding .pdf extension
-                if not file_url.endswith('.pdf'):
-                    pdf_url = f"{file_url}.pdf"
-                    print(f"DEBUG: Trying with .pdf extension: {pdf_url}")
-                    response = requests.get(pdf_url, timeout=30)
-                    print(f"DEBUG: PDF URL response status: {response.status_code}")
-                    if response.status_code == 200:
-                        file_url = pdf_url
+                # Try common image extensions first (since images are more common)
+                image_extensions = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']
+                for ext in image_extensions:
+                    image_url = f"{file_url}.{ext}"
+                    print(f"DEBUG: Trying with .{ext} extension: {image_url}")
+                    try:
+                        response = requests.get(image_url, timeout=30)
+                        print(f"DEBUG: {ext.upper()} URL response status: {response.status_code}")
+                        if response.status_code == 200:
+                            file_url = image_url
+                            print(f"✅ Successfully accessed image with URL: {file_url}")
+                            break
+                    except Exception as e:
+                        print(f"DEBUG: Failed to access {image_url}: {str(e)}")
+                        continue
                 
-                # If still failing, try adding format parameter
-                if response.status_code != 200 and 'f_' not in file_url:
-                    format_url = f"{file_url}/f_pdf"
-                    print(f"DEBUG: Trying with format parameter: {format_url}")
-                    response = requests.get(format_url, timeout=30)
-                    print(f"DEBUG: Format URL response status: {response.status_code}")
-                    if response.status_code == 200:
-                        file_url = format_url
+                # If still failing, try PDF extensions
+                if response.status_code != 200:
+                    pdf_attempts = []
+                    
+                    # Try adding .pdf extension
+                    if not file_url.endswith('.pdf'):
+                        pdf_url = f"{file_url}.pdf"
+                        pdf_attempts.append(pdf_url)
+                    
+                    # Try adding format parameter
+                    if 'f_' not in file_url:
+                        format_url = f"{file_url}/f_pdf"
+                        pdf_attempts.append(format_url)
+                    
+                    # Try with explicit PDF format
+                    explicit_pdf_url = f"{file_url}/f_pdf,q_auto"
+                    pdf_attempts.append(explicit_pdf_url)
+                    
+                    # Try each PDF URL format
+                    for attempt_url in pdf_attempts:
+                        print(f"DEBUG: Trying PDF URL: {attempt_url}")
+                        try:
+                            response = requests.get(attempt_url, timeout=30)
+                            print(f"DEBUG: PDF URL response status: {response.status_code}")
+                            if response.status_code == 200:
+                                file_url = attempt_url
+                                print(f"✅ Successfully accessed PDF with URL: {file_url}")
+                                break
+                        except Exception as e:
+                            print(f"DEBUG: Failed to access {attempt_url}: {str(e)}")
+                            continue
             
             if response.status_code == 200:
                 # Get file extension from URL or content type
@@ -410,74 +442,34 @@ def send_digital_product_email(user, product, file_url):
                     file_extension = 'pdf'
                     print(f"DEBUG: Detected PDF from content-type header")
                 
-                # Check if it's an image file that should be converted to PDF
-                if file_extension in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']:
-                    try:
-                        # Convert image to PDF
-                        image = Image.open(BytesIO(response.content))
-                        pdf_buffer = BytesIO()
-                        
-                        # Convert image to RGB if necessary (for PNG with transparency)
-                        if image.mode in ('RGBA', 'LA', 'P'):
-                            # Create a white background
-                            background = Image.new('RGB', image.size, (255, 255, 255))
-                            if image.mode == 'P':
-                                image = image.convert('RGBA')
-                            background.paste(image, mask=image.split()[-1] if image.mode == 'RGBA' else None)
-                            image = background
-                        elif image.mode != 'RGB':
-                            image = image.convert('RGB')
-                        
-                        # Save as PDF with specific options to avoid virus detection
-                        image.save(pdf_buffer, format='PDF', quality=95, optimize=True)
-                        pdf_buffer.seek(0)
-                        
-                        # Create clean PDF filename
-                        clean_title = "".join(c for c in product.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                        filename = f"{clean_title.replace(' ', '_')}.pdf"
-                        content_type = 'application/pdf'
-                        
-                        # Attach the PDF
-                        email.attach(filename, pdf_buffer.getvalue(), content_type)
-                        print(f"✅ Converted image to PDF and attached: {filename}")
-                        
-                    except Exception as e:
-                        print(f"❌ Error converting image to PDF: {str(e)}")
-                        # Fallback: attach original image
-                        clean_title = "".join(c for c in product.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                        filename = f"{clean_title.replace(' ', '_')}.{file_extension}"
-                        content_type = f'image/{file_extension}'
-                        email.attach(filename, response.content, content_type)
-                        print(f"✅ Attached original image as fallback: {filename}")
-                        
-                        # Also try to send a simple PDF version using img2pdf as backup
-                        try:
-                            import img2pdf
-                            pdf_data = img2pdf.convert(response.content)
-                            pdf_filename = f"{clean_title.replace(' ', '_')}_simple.pdf"
-                            email.attach(pdf_filename, pdf_data, 'application/pdf')
-                            print(f"✅ Also attached simple PDF version: {pdf_filename}")
-                        except Exception as pdf_error:
-                            print(f"❌ Could not create simple PDF: {str(pdf_error)}")
-                else:
-                    # For non-image files, attach as-is
-                    clean_title = "".join(c for c in product.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                    filename = f"{clean_title.replace(' ', '_')}.{file_extension}"
-                    
-                    # Determine content type
-                    content_type = 'application/octet-stream'  # Default
-                    if file_extension in ['pdf']:
-                        content_type = 'application/pdf'
-                    elif file_extension in ['zip', 'rar']:
-                        content_type = f'application/{file_extension}'
-                    elif file_extension in ['doc', 'docx']:
-                        content_type = 'application/msword'
-                    elif file_extension in ['xls', 'xlsx']:
-                        content_type = 'application/vnd.ms-excel'
-                    
-                    # Attach the file
-                    email.attach(filename, response.content, content_type)
-                    print(f"✅ Attached digital product: {filename}")
+                # Create clean filename (same approach as event tickets)
+                clean_title = "".join(c for c in product.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+                
+                # Attach all files in their original format (no conversion)
+                filename = f"{clean_title.replace(' ', '_')}.{file_extension}"
+                
+                # Determine content type based on file extension
+                content_type = 'application/octet-stream'  # Default
+                if file_extension in ['pdf']:
+                    content_type = 'application/pdf'
+                elif file_extension in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']:
+                    content_type = f'image/{file_extension}'
+                elif file_extension in ['zip', 'rar']:
+                    content_type = f'application/{file_extension}'
+                elif file_extension in ['doc', 'docx']:
+                    content_type = 'application/msword'
+                elif file_extension in ['xls', 'xlsx']:
+                    content_type = 'application/vnd.ms-excel'
+                elif file_extension in ['txt']:
+                    content_type = 'text/plain'
+                elif file_extension in ['mp4', 'avi', 'mov']:
+                    content_type = f'video/{file_extension}'
+                elif file_extension in ['mp3', 'wav', 'flac']:
+                    content_type = f'audio/{file_extension}'
+                
+                # Attach the file in its original format
+                email.attach(filename, response.content, content_type)
+                print(f"✅ Attached digital product in original format: {filename} ({content_type})")
             else:
                 print(f"❌ Failed to download product file: {file_url}")
                 print(f"❌ Status code: {response.status_code}")
