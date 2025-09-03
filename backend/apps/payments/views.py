@@ -26,6 +26,7 @@ from .serializers import (
 from .services import PaystackService, PaymentService, PayoutService
 from .services import PaymentProviderFactory  # Import the factory
 from core.throttling import PaymentRateThrottle, WebhookRateThrottle  # Import rate limiting
+from users.utils import send_digital_product_email
 
 class CheckoutView(generics.CreateAPIView):
     serializer_class = CheckoutSerializer
@@ -676,5 +677,52 @@ def check_payment_status(request, reference):
         print(f"DEBUG: Error checking payment status: {str(e)}")
         return Response({
             'message': 'Error checking payment status',
+            'error': str(e)
+        }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def send_digital_product_to_email(request, library_item_id):
+    """Send digital product file via email to user"""
+    try:
+        # Get the library item
+        library_item = get_object_or_404(UserLibrary, id=library_item_id, user=request.user)
+        
+        # Check if it's a digital product (not event)
+        if library_item.product.product_type == 'event':
+            return Response({
+                'message': 'Event tickets are handled separately'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Check if product has a file
+        if not library_item.product.file_url:
+            return Response({
+                'message': 'No file available for this product'
+            }, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Send email with product file
+        success = send_digital_product_email(
+            user=request.user,
+            product=library_item.product,
+            file_url=library_item.product.file_url
+        )
+        
+        if success:
+            return Response({
+                'message': 'Product sent to your email successfully!'
+            }, status=status.HTTP_200_OK)
+        else:
+            return Response({
+                'message': 'Failed to send product to email. Please try again.'
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            
+    except UserLibrary.DoesNotExist:
+        return Response({
+            'message': 'Product not found in your library'
+        }, status=status.HTTP_404_NOT_FOUND)
+    except Exception as e:
+        print(f"DEBUG: Error sending digital product to email: {str(e)}")
+        return Response({
+            'message': 'Error sending product to email',
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)

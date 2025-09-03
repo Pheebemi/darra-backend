@@ -14,7 +14,8 @@ from .views import (
     seller_payouts,
     request_payout,
     seller_analytics,
-    check_payment_status
+    check_payment_status,
+    send_digital_product_to_email
 )
 
 urlpatterns = [
@@ -25,6 +26,7 @@ urlpatterns = [
     path('verify/<str:reference>/', verify_payment, name='verify_payment'),
     path('check-status/<str:reference>/', check_payment_status, name='check_payment_status'),
     path('library/', get_user_library, name='user_library'),
+    path('library/<int:library_item_id>/send-email/', send_digital_product_to_email, name='send_digital_product_email'),
     path('history/', PaymentHistoryView.as_view(), name='payment_history'),
     path('status/<str:reference>/', payment_status, name='payment_status'),
     path('webhook/', payment_webhook, name='payment_webhook'),

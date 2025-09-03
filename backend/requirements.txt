@@ -13,7 +13,8 @@ python-dotenv>=1.0.0
 requests>=2.31.0
 
 # Additional utilities
-Pillow>=10.0.0  # For image handling if needed
+Pillow>=10.0.0  # For image handling
+img2pdf>=0.5.1  # For converting images to PDF
 
 # Cloudinary integration
 cloudinary>=1.40.0

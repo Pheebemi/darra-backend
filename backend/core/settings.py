@@ -159,6 +159,9 @@ CLOUDINARY_STORAGE = {
     'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', 'your_cloud_name'),
     'API_KEY': os.getenv('CLOUDINARY_API_KEY', 'your_api_key'),
     'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', 'your_api_secret'),
+    'ALLOWED_EXTENSIONS': ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'pdf', 'doc', 'docx', 'zip', 'rar'],
+    'EXCLUDE_DELETE_ORPHANED_MEDIA': True,
+    'SECURE': True,  # Use HTTPS
 }
 
 # Use Cloudinary for media files
@@ -170,6 +173,7 @@ CLOUDINARY = {
     'api_key': os.getenv('CLOUDINARY_API_KEY', 'your_api_key'),
     'api_secret': os.getenv('CLOUDINARY_API_SECRET', 'your_api_secret'),
     'secure': True,  # Use HTTPS
+    'allowed_extensions': ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'pdf', 'doc', 'docx', 'zip', 'rar'],
 }
 
 # Default primary key field type
