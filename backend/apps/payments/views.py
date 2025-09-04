@@ -713,8 +713,8 @@ def send_digital_product_to_email(request, library_item_id):
             }, status=status.HTTP_200_OK)
         else:
             return Response({
-                'message': 'Failed to send product to email. Please try again.'
-            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                'message': 'This product was created with the old system and needs to be re-uploaded by the seller to work with email delivery.'
+            }, status=status.HTTP_400_BAD_REQUEST)
             
     except UserLibrary.DoesNotExist:
         return Response({

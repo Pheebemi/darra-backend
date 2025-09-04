@@ -370,6 +370,13 @@ def send_digital_product_email(user, product, file_url):
         try:
             print(f"DEBUG: Attempting to download file from: {file_url}")
             
+            # Check if this is a local file path (old format) or Cloudinary URL (new format)
+            if not file_url.startswith('http'):
+                # This is a local file path from the old system
+                print(f"DEBUG: Detected local file path from old system: {file_url}")
+                print(f"DEBUG: This product needs to be re-uploaded to work with the new system")
+                return False
+            
             # Try the original URL first
             response = requests.get(file_url, timeout=30)
             print(f"DEBUG: Response status code: {response.status_code}")
