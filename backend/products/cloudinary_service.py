@@ -18,7 +18,7 @@ class CloudinaryService:
             secure=settings.CLOUDINARY['secure']
         )
     
-    def upload_file(self, file, folder: str = "products", public_id: Optional[str] = None) -> Dict[str, Any]:
+    def upload_file(self, file, folder: str = "products", public_id: Optional[str] = None, resource_type: str = 'auto') -> Dict[str, Any]:
         """
         Upload a file to Cloudinary
         
@@ -26,6 +26,7 @@ class CloudinaryService:
             file: File object to upload
             folder: Cloudinary folder to store the file
             public_id: Custom public ID for the file
+            resource_type: Cloudinary resource type ('auto', 'image', 'video', 'raw')
             
         Returns:
             Dict containing upload response from Cloudinary
@@ -34,13 +35,16 @@ class CloudinaryService:
             # Prepare upload options
             upload_options = {
                 'folder': folder,
-                'resource_type': 'auto',  # Auto-detect file type
+                'resource_type': resource_type,
                 'use_filename': True,
                 'unique_filename': True,
             }
             
             if public_id:
                 upload_options['public_id'] = public_id
+            
+            print(f"🔍 DEBUG: Cloudinary upload options: {upload_options}")
+            print(f"🔍 DEBUG: File info - name: {getattr(file, 'name', 'unknown')}, size: {getattr(file, 'size', 'unknown')}")
             
             # Upload file
             result = cloudinary.uploader.upload(
@@ -52,7 +56,10 @@ class CloudinaryService:
             return result
             
         except Exception as e:
-            print(f"❌ Error uploading file to Cloudinary: {str(e)}")
+            print(f"❌ DEBUG: Cloudinary upload error: {str(e)}")
+            print(f"❌ DEBUG: Cloudinary error type: {type(e).__name__}")
+            import traceback
+            print(f"❌ DEBUG: Cloudinary traceback: {traceback.format_exc()}")
             raise e
     
     def upload_product_file(self, file, product_type: str, product_id: int) -> Dict[str, Any]:
@@ -70,7 +77,17 @@ class CloudinaryService:
         folder = f"products/{product_type}/{product_id}"
         public_id = f"product_{product_id}_{product_type}"
         
-        return self.upload_file(file, folder=folder, public_id=public_id)
+        # Determine resource type based on product type
+        if product_type in ['zip', 'rar', 'docx', 'doc', 'pdf', 'mp3', 'wav', 'flac', 'm4a', 'aac', 'ogg']:
+            resource_type = 'raw'
+        elif product_type in ['mp4', 'avi', 'mov', 'video']:
+            resource_type = 'video'
+        elif product_type in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']:
+            resource_type = 'image'
+        else:
+            resource_type = 'auto'
+        
+        return self.upload_file(file, folder=folder, public_id=public_id, resource_type=resource_type)
     
     def upload_cover_image(self, file, product_id: int) -> Dict[str, Any]:
         """
@@ -86,7 +103,7 @@ class CloudinaryService:
         folder = f"products/covers/{product_id}"
         public_id = f"cover_{product_id}"
         
-        return self.upload_file(file, folder=folder, public_id=public_id)
+        return self.upload_file(file, folder=folder, public_id=public_id, resource_type='image')
     
     def delete_file(self, public_id: str) -> bool:
         """

@@ -59,8 +59,8 @@ class Product(models.Model):
     description_html = models.TextField(blank=True)  # Rich text HTML content
     price = models.DecimalField(max_digits=10, decimal_places=2)
     product_type = models.CharField(max_length=10, choices=ProductType.choices)
-    file = models.FileField(upload_to='products/files/', blank=True, null=True, storage=MediaCloudinaryStorage())
-    cover_image = models.ImageField(upload_to='products/covers/', blank=True, null=True, storage=MediaCloudinaryStorage())
+    file = models.URLField(blank=True, null=True)  # Store Cloudinary URL instead of file
+    cover_image = models.URLField(blank=True, null=True)  # Store Cloudinary URL instead of file
     created_at = models.DateTimeField(auto_now_add=True)
 
     # For events/tickets
@@ -78,7 +78,7 @@ class Product(models.Model):
     def cover_image_url(self):
         if self.cover_image:
             try:
-                return self.cover_image.url
+                return self.cover_image
             except ValueError:
                 return None
         return None
@@ -87,7 +87,7 @@ class Product(models.Model):
     def file_url(self):
         if self.file:
             try:
-                return self.file.url
+                return self.file
             except ValueError:
                 return None
         return None

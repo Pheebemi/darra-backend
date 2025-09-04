@@ -44,10 +44,10 @@ class ProductSerializer(serializers.ModelSerializer):
                 # Return optimized URL for different file types
                 if obj.product_type in ['png', 'video']:
                     # For images and videos, return optimized version
-                    return obj.file.url.replace('/upload/', '/upload/q_auto,f_auto/')
+                    return obj.file.replace('/upload/', '/upload/q_auto,f_auto/')
                 else:
                     # For other files, return original URL
-                    return obj.file.url
+                    return obj.file
             except:
                 return None
         return None
@@ -57,7 +57,7 @@ class ProductSerializer(serializers.ModelSerializer):
         if obj.cover_image:
             try:
                 # Return optimized image URL
-                return obj.cover_image.url.replace('/upload/', '/upload/q_auto,f_auto/')
+                return obj.cover_image.replace('/upload/', '/upload/q_auto,f_auto/')
             except:
                 return None
         return None
@@ -67,7 +67,7 @@ class ProductSerializer(serializers.ModelSerializer):
         if obj.cover_image:
             try:
                 # Return thumbnail version
-                return obj.cover_image.url.replace('/upload/', '/upload/w_300,h_300,c_fill,q_auto/')
+                return obj.cover_image.replace('/upload/', '/upload/w_300,h_300,c_fill,q_auto/')
             except:
                 return None
         return None
@@ -80,7 +80,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'title', 'description', 'description_html', 'price', 'product_type',
-            'file', 'cover_image', 'event_date', 'ticket_quantity',
+            'event_date', 'ticket_quantity',
             'ticket_category_id', 'ticket_types'
         ]
 
@@ -158,7 +158,7 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'title', 'description', 'description_html', 'price', 'product_type',
-            'file', 'cover_image', 'event_date', 'ticket_quantity',
+            'event_date', 'ticket_quantity',
             'ticket_category_id', 'ticket_types'
         ]
 

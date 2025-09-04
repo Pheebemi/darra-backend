@@ -54,11 +54,22 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
         if self.request.method == 'POST':
             return ProductCreateSerializer
         return ProductSerializer
+    
+    def post(self, request, *args, **kwargs):
+        print(f"🔍 DEBUG: POST request received to /products/my-products/")
+        print(f"🔍 DEBUG: Request method: {request.method}")
+        print(f"🔍 DEBUG: Request user: {request.user}")
+        print(f"🔍 DEBUG: Request files: {list(request.FILES.keys())}")
+        print(f"🔍 DEBUG: Request data keys: {list(request.data.keys())}")
+        return super().post(request, *args, **kwargs)
 
     def perform_create(self, serializer):
         # Check if this is a duplicate request by looking for similar products
         title = serializer.validated_data.get('title')
         product_type = serializer.validated_data.get('product_type')
+        
+        print(f"🔍 DEBUG: Starting product creation for {title} (type: {product_type})")
+        print(f"🔍 DEBUG: Request files: {list(self.request.FILES.keys())}")
         
         # Look for recent duplicate products (within last 5 minutes)
         recent_duplicate = Product.objects.filter(
@@ -74,8 +85,15 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
             return recent_duplicate
         
         # Save the product first to get the ID
-        product = serializer.save(owner=self.request.user)
-        print(f"✅ Product created: {product.id} - {product.title}")
+        try:
+            product = serializer.save(owner=self.request.user)
+            print(f"✅ Product created: {product.id} - {product.title}")
+        except Exception as e:
+            print(f"❌ DEBUG: Error creating product: {str(e)}")
+            print(f"❌ DEBUG: Error type: {type(e).__name__}")
+            import traceback
+            print(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
+            raise e
         
         # Handle Cloudinary uploads if files are provided
         upload_success = True
@@ -83,36 +101,56 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
             # Upload cover image if provided
             if 'cover_image' in self.request.FILES:
                 cover_image = self.request.FILES['cover_image']
+                print(f"🔍 DEBUG: Cover image file: {cover_image.name}, size: {cover_image.size}, type: {cover_image.content_type}")
                 print(f"🔄 Uploading cover image to Cloudinary...")
-                cloudinary_result = cloudinary_service.upload_cover_image(cover_image, product.id)
-                if cloudinary_result:
-                    product.cover_image = cloudinary_result['secure_url']
-                    product.save()
-                    print(f"✅ Cover image uploaded to Cloudinary: {cloudinary_result['public_id']}")
-                else:
+                try:
+                    cloudinary_result = cloudinary_service.upload_cover_image(cover_image, product.id)
+                    if cloudinary_result:
+                        product.cover_image = cloudinary_result['secure_url']
+                        product.save()
+                        print(f"✅ Cover image uploaded to Cloudinary: {cloudinary_result['public_id']}")
+                    else:
+                        upload_success = False
+                        print(f"❌ Cover image upload failed")
+                except Exception as e:
+                    print(f"❌ DEBUG: Cover image upload error: {str(e)}")
+                    print(f"❌ DEBUG: Cover image error type: {type(e).__name__}")
+                    import traceback
+                    print(f"❌ DEBUG: Cover image traceback: {traceback.format_exc()}")
                     upload_success = False
-                    print(f"❌ Cover image upload failed")
             
             # Upload product file if provided
             if 'file' in self.request.FILES:
                 product_file = self.request.FILES['file']
+                print(f"🔍 DEBUG: Product file: {product_file.name}, size: {product_file.size}, type: {product_file.content_type}")
+                print(f"🔍 DEBUG: Product type: {product.product_type}")
                 print(f"🔄 Uploading product file to Cloudinary...")
-                cloudinary_result = cloudinary_service.upload_product_file(
-                    product_file, 
-                    product.product_type, 
-                    product.id
-                )
-                if cloudinary_result:
-                    product.file = cloudinary_result['secure_url']
-                    product.save()
-                    print(f"✅ Product file uploaded to Cloudinary: {cloudinary_result['public_id']}")
-                else:
+                try:
+                    cloudinary_result = cloudinary_service.upload_product_file(
+                        product_file, 
+                        product.product_type, 
+                        product.id
+                    )
+                    if cloudinary_result:
+                        product.file = cloudinary_result['secure_url']
+                        product.save()
+                        print(f"✅ Product file uploaded to Cloudinary: {cloudinary_result['public_id']}")
+                    else:
+                        upload_success = False
+                        print(f"❌ Product file upload failed")
+                except Exception as e:
+                    print(f"❌ DEBUG: Product file upload error: {str(e)}")
+                    print(f"❌ DEBUG: Product file error type: {type(e).__name__}")
+                    import traceback
+                    print(f"❌ DEBUG: Product file traceback: {traceback.format_exc()}")
                     upload_success = False
-                    print(f"❌ Product file upload failed")
                     
         except Exception as e:
             upload_success = False
-            print(f"❌ Error uploading files to Cloudinary: {str(e)}")
+            print(f"❌ DEBUG: General upload error: {str(e)}")
+            print(f"❌ DEBUG: General error type: {type(e).__name__}")
+            import traceback
+            print(f"❌ DEBUG: General traceback: {traceback.format_exc()}")
             # If Cloudinary fails, we still have the product but mark it as incomplete
         
         # Log the final result
