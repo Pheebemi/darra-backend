@@ -163,15 +163,18 @@ class EventTicket(models.Model):
         is_new = self.pk is None
         super().save(*args, **kwargs)
         
+        # Generate QR code immediately for new tickets
         if is_new and not self.qr_code:
             try:
+                print(f"DEBUG: Generating QR code for new ticket {self.ticket_id}")
                 self.generate_qr_code()
+                # Save the QR code fields
                 super().save(update_fields=['qr_code', 'qr_code_cloudinary_id'])
+                print(f"DEBUG: ✅ QR code generated and saved for ticket {self.ticket_id}")
             except Exception as e:
-                # Don't let QR code generation errors break the ticket creation
-                print(f"⚠️ QR code generation failed during save, but ticket created successfully: {str(e)}")
-                # Ticket is still created, just without QR code initially
-                # QR code can be generated later if needed
+                print(f"⚠️ QR code generation failed for ticket {self.ticket_id}: {str(e)}")
+                # Don't fail the ticket creation - QR code can be generated later
+                # The ticket is still created successfully
     
     def delete(self, *args, **kwargs):
         """Override delete to clean up Cloudinary files"""

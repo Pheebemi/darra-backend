@@ -379,30 +379,49 @@ def send_digital_product_email(user, product, file_url):
             if response.status_code != 200 and 'cloudinary.com' in file_url:
                 print(f"DEBUG: Original URL failed, trying alternative formats...")
                 
-                # Try common image extensions first (since images are more common)
-                image_extensions = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']
-                for ext in image_extensions:
-                    image_url = f"{file_url}.{ext}"
-                    print(f"DEBUG: Trying with .{ext} extension: {image_url}")
+                # For PDFs, try removing the .pdf extension and adding it back
+                if file_url.endswith('.pdf'):
+                    # Try without .pdf extension first
+                    base_url = file_url[:-4]  # Remove .pdf
+                    print(f"DEBUG: Trying base URL without .pdf: {base_url}")
                     try:
-                        response = requests.get(image_url, timeout=30)
-                        print(f"DEBUG: {ext.upper()} URL response status: {response.status_code}")
+                        response = requests.get(base_url, timeout=30)
+                        print(f"DEBUG: Base URL response status: {response.status_code}")
                         if response.status_code == 200:
-                            file_url = image_url
-                            print(f"✅ Successfully accessed image with URL: {file_url}")
-                            break
+                            file_url = base_url
+                            print(f"✅ Successfully accessed file with base URL: {file_url}")
+                        else:
+                            # Try adding .pdf back
+                            pdf_url = f"{base_url}.pdf"
+                            print(f"DEBUG: Trying with .pdf extension: {pdf_url}")
+                            response = requests.get(pdf_url, timeout=30)
+                            print(f"DEBUG: PDF URL response status: {response.status_code}")
+                            if response.status_code == 200:
+                                file_url = pdf_url
+                                print(f"✅ Successfully accessed PDF with URL: {file_url}")
                     except Exception as e:
-                        print(f"DEBUG: Failed to access {image_url}: {str(e)}")
-                        continue
+                        print(f"DEBUG: Failed to access base URL: {str(e)}")
                 
-                # If still failing, try PDF extensions
+                # If still failing, try common image extensions
+                if response.status_code != 200:
+                    image_extensions = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']
+                    for ext in image_extensions:
+                        image_url = f"{file_url}.{ext}"
+                        print(f"DEBUG: Trying with .{ext} extension: {image_url}")
+                        try:
+                            response = requests.get(image_url, timeout=30)
+                            print(f"DEBUG: {ext.upper()} URL response status: {response.status_code}")
+                            if response.status_code == 200:
+                                file_url = image_url
+                                print(f"✅ Successfully accessed image with URL: {file_url}")
+                                break
+                        except Exception as e:
+                            print(f"DEBUG: Failed to access {image_url}: {str(e)}")
+                            continue
+                
+                # If still failing, try PDF format parameters
                 if response.status_code != 200:
                     pdf_attempts = []
-                    
-                    # Try adding .pdf extension
-                    if not file_url.endswith('.pdf'):
-                        pdf_url = f"{file_url}.pdf"
-                        pdf_attempts.append(pdf_url)
                     
                     # Try adding format parameter
                     if 'f_' not in file_url:
