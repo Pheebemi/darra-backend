@@ -76,7 +76,21 @@ class RegisterView(APIView):
                 "message": "Registration successful. Please verify your email.",
                 "email": user.email
             }, status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Return more detailed error messages
+        error_messages = []
+        for field, errors in serializer.errors.items():
+            if isinstance(errors, list):
+                for error in errors:
+                    error_messages.append(f"{field}: {error}")
+            else:
+                error_messages.append(f"{field}: {errors}")
+        
+        return Response({
+            "message": "Invalid signup details",
+            "errors": error_messages,
+            "details": serializer.errors
+        }, status=status.HTTP_400_BAD_REQUEST)
 
 class VerifyOTPView(APIView):
     permission_classes = [AllowAny]

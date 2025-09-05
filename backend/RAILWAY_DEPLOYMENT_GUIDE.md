@@ -147,3 +147,5 @@ Railway's free tier includes:
 ---
 
 🎉 **Congratulations!** Your Django backend is now deployed for FREE on Railway!
+
+

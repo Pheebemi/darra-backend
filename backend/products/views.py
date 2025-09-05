@@ -14,7 +14,7 @@ from datetime import timedelta
 from apps.payments.models import Payment, Purchase
 from django.db.models.functions import TruncDate
 from apps.payments.serializers import PurchaseSerializer
-from .cloudinary_service import cloudinary_service
+# Removed Cloudinary dependency - using local storage
 
 # Create your views here.
 
@@ -95,69 +95,48 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
             print(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
             raise e
         
-        # Handle Cloudinary uploads if files are provided
-        upload_success = True
+        # Handle local file uploads if files are provided
         try:
             # Upload cover image if provided
             if 'cover_image' in self.request.FILES:
                 cover_image = self.request.FILES['cover_image']
                 print(f"🔍 DEBUG: Cover image file: {cover_image.name}, size: {cover_image.size}, type: {cover_image.content_type}")
-                print(f"🔄 Uploading cover image to Cloudinary...")
+                print(f"🔄 Saving cover image to local storage...")
                 try:
-                    cloudinary_result = cloudinary_service.upload_cover_image(cover_image, product.id)
-                    if cloudinary_result:
-                        product.cover_image = cloudinary_result['secure_url']
-                        product.save()
-                        print(f"✅ Cover image uploaded to Cloudinary: {cloudinary_result['public_id']}")
-                    else:
-                        upload_success = False
-                        print(f"❌ Cover image upload failed")
+                    product.cover_image = cover_image
+                    product.save()
+                    print(f"✅ Cover image saved to local storage: {product.cover_image.name}")
                 except Exception as e:
-                    print(f"❌ DEBUG: Cover image upload error: {str(e)}")
+                    print(f"❌ DEBUG: Cover image save error: {str(e)}")
                     print(f"❌ DEBUG: Cover image error type: {type(e).__name__}")
                     import traceback
                     print(f"❌ DEBUG: Cover image traceback: {traceback.format_exc()}")
-                    upload_success = False
             
             # Upload product file if provided
             if 'file' in self.request.FILES:
                 product_file = self.request.FILES['file']
                 print(f"🔍 DEBUG: Product file: {product_file.name}, size: {product_file.size}, type: {product_file.content_type}")
                 print(f"🔍 DEBUG: Product type: {product.product_type}")
-                print(f"🔄 Uploading product file to Cloudinary...")
+                print(f"🔄 Saving product file to local storage...")
                 try:
-                    cloudinary_result = cloudinary_service.upload_product_file(
-                        product_file, 
-                        product.product_type, 
-                        product.id
-                    )
-                    if cloudinary_result:
-                        product.file = cloudinary_result['secure_url']
-                        product.save()
-                        print(f"✅ Product file uploaded to Cloudinary: {cloudinary_result['public_id']}")
-                    else:
-                        upload_success = False
-                        print(f"❌ Product file upload failed")
+                    product.file = product_file
+                    product.save()
+                    print(f"✅ Product file saved to local storage: {product.file.name}")
                 except Exception as e:
-                    print(f"❌ DEBUG: Product file upload error: {str(e)}")
+                    print(f"❌ DEBUG: Product file save error: {str(e)}")
                     print(f"❌ DEBUG: Product file error type: {type(e).__name__}")
                     import traceback
                     print(f"❌ DEBUG: Product file traceback: {traceback.format_exc()}")
-                    upload_success = False
                     
         except Exception as e:
-            upload_success = False
-            print(f"❌ DEBUG: General upload error: {str(e)}")
+            print(f"❌ DEBUG: General file save error: {str(e)}")
             print(f"❌ DEBUG: General error type: {type(e).__name__}")
             import traceback
             print(f"❌ DEBUG: General traceback: {traceback.format_exc()}")
-            # If Cloudinary fails, we still have the product but mark it as incomplete
+            # If file save fails, we still have the product but without files
         
         # Log the final result
-        if upload_success:
-            print(f"🎉 Product {product.id} created successfully with all files uploaded to Cloudinary")
-        else:
-            print(f"⚠️ Product {product.id} created but some files failed to upload to Cloudinary")
+        print(f"🎉 Product {product.id} created successfully with local file storage")
         
         return product
 

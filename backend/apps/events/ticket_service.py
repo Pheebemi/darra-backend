@@ -1,8 +1,6 @@
-import cloudinary
-import cloudinary.uploader
-import cloudinary.api
 from django.conf import settings
 from django.core.files.base import ContentFile
+from django.core.files.storage import default_storage
 from io import BytesIO
 import qrcode
 from PIL import Image
@@ -11,16 +9,11 @@ from typing import Dict, Any, Optional
 import json
 
 class TicketService:
-    """Service for handling ticket generation and Cloudinary storage"""
+    """Service for handling ticket generation and local storage"""
     
     def __init__(self):
-        # Configure Cloudinary
-        cloudinary.config(
-            cloud_name=settings.CLOUDINARY['cloud_name'],
-            api_key=settings.CLOUDINARY['api_key'],
-            api_secret=settings.CLOUDINARY['api_secret'],
-            secure=settings.CLOUDINARY['secure']
-        )
+        # No configuration needed for local storage
+        pass
     
     def generate_qr_code(self, ticket_id: str, event_title: str) -> BytesIO:
         """
@@ -61,9 +54,9 @@ class TicketService:
         
         return buffer
     
-    def upload_qr_code_to_cloudinary(self, qr_code_buffer: BytesIO, ticket_id: str, event_id: int) -> Dict[str, Any]:
+    def upload_qr_code_to_local_storage(self, qr_code_buffer: BytesIO, ticket_id: str, event_id: int) -> Dict[str, Any]:
         """
-        Upload QR code to Cloudinary
+        Upload QR code to local storage
         
         Args:
             qr_code_buffer: BytesIO buffer containing QR code image
@@ -71,34 +64,34 @@ class TicketService:
             event_id: ID of the event
             
         Returns:
-            Dict containing Cloudinary upload response
+            Dict containing local storage upload response
         """
         try:
-            # Prepare upload options
-            upload_options = {
-                'folder': f'tickets/qr_codes/{event_id}',
-                'public_id': f'ticket_{ticket_id}',
-                'resource_type': 'image',
+            # Create file path
+            file_path = f'qr_codes/events/{event_id}/qr_{ticket_id}.png'
+            
+            # Reset buffer position
+            qr_code_buffer.seek(0)
+            
+            # Save to local storage
+            saved_path = default_storage.save(file_path, ContentFile(qr_code_buffer.read()))
+            
+            # Get the full URL
+            file_url = default_storage.url(saved_path)
+            
+            result = {
+                'public_id': saved_path,
+                'secure_url': file_url,
+                'url': file_url,
                 'format': 'png',
-                'transformation': [
-                    {'width': 300, 'height': 300, 'crop': 'fill'},
-                    {'quality': 'auto'}
-                ]
+                'resource_type': 'image'
             }
             
-            # Upload to Cloudinary
-            result = cloudinary.uploader.upload(
-                qr_code_buffer,
-                **upload_options
-            )
-            
-            print(f"✅ QR code uploaded to Cloudinary: {result['public_id']}")
+            print(f"✅ QR code saved to local storage: {saved_path}")
             return result
             
         except Exception as e:
-            print(f"❌ Error uploading QR code to Cloudinary: {str(e)}")
-            # Don't re-raise the exception - let the calling code handle it
-            # This prevents the error from bubbling up and breaking ticket creation
+            print(f"❌ Error saving QR code to local storage: {str(e)}")
             return None
     
     def generate_pdf_ticket(self, ticket_data: Dict[str, Any]) -> BytesIO:
@@ -151,9 +144,9 @@ class TicketService:
             buffer.seek(0)
             return buffer
     
-    def upload_pdf_ticket_to_cloudinary(self, pdf_buffer: BytesIO, ticket_id: str, event_id: int) -> Dict[str, Any]:
+    def upload_pdf_ticket_to_local_storage(self, pdf_buffer: BytesIO, ticket_id: str, event_id: int) -> Dict[str, Any]:
         """
-        Upload PDF ticket to Cloudinary
+        Upload PDF ticket to local storage
         
         Args:
             pdf_buffer: BytesIO buffer containing PDF ticket
@@ -161,69 +154,71 @@ class TicketService:
             event_id: ID of the event
             
         Returns:
-            Dict containing Cloudinary upload response
+            Dict containing local storage upload response
         """
         try:
-            # Prepare upload options
-            upload_options = {
-                'folder': f'tickets/pdf/{event_id}',
-                'public_id': f'ticket_{ticket_id}',
-                'resource_type': 'raw',
-                'format': 'pdf'
+            # Create file path
+            file_path = f'tickets/pdf/{event_id}/ticket_{ticket_id}.pdf'
+            
+            # Reset buffer position
+            pdf_buffer.seek(0)
+            
+            # Save to local storage
+            saved_path = default_storage.save(file_path, ContentFile(pdf_buffer.read()))
+            
+            # Get the full URL
+            file_url = default_storage.url(saved_path)
+            
+            result = {
+                'public_id': saved_path,
+                'secure_url': file_url,
+                'url': file_url,
+                'format': 'pdf',
+                'resource_type': 'raw'
             }
             
-            # Upload to Cloudinary
-            result = cloudinary.uploader.upload(
-                pdf_buffer,
-                **upload_options
-            )
-            
-            print(f"✅ PDF ticket uploaded to Cloudinary: {result['public_id']}")
+            print(f"✅ PDF ticket saved to local storage: {saved_path}")
             return result
             
         except Exception as e:
-            print(f"❌ Error uploading PDF ticket to Cloudinary: {str(e)}")
-            # Don't re-raise the exception - let the calling code handle it
+            print(f"❌ Error saving PDF ticket to local storage: {str(e)}")
             return None
     
-    def delete_ticket_from_cloudinary(self, public_id: str) -> bool:
+    def delete_ticket_from_local_storage(self, file_path: str) -> bool:
         """
-        Delete a ticket file from Cloudinary
+        Delete a ticket file from local storage
         
         Args:
-            public_id: Public ID of the file to delete
+            file_path: Path of the file to delete
             
         Returns:
             True if deletion was successful, False otherwise
         """
         try:
-            result = cloudinary.uploader.destroy(public_id)
-            if result.get('result') == 'ok':
-                print(f"✅ Ticket deleted from Cloudinary: {public_id}")
+            if default_storage.exists(file_path):
+                default_storage.delete(file_path)
+                print(f"✅ Ticket deleted from local storage: {file_path}")
                 return True
             else:
-                print(f"⚠️ Ticket deletion failed: {result}")
+                print(f"⚠️ File not found: {file_path}")
                 return False
                 
         except Exception as e:
-            print(f"❌ Error deleting ticket from Cloudinary: {str(e)}")
+            print(f"❌ Error deleting ticket from local storage: {str(e)}")
             return False
     
-    def get_ticket_url(self, public_id: str, transformation: Optional[str] = None) -> str:
+    def get_ticket_url(self, file_path: str, transformation: Optional[str] = None) -> str:
         """
-        Get the URL for a ticket stored in Cloudinary
+        Get the URL for a ticket stored in local storage
         
         Args:
-            public_id: Public ID of the ticket
-            transformation: Optional transformation string
+            file_path: Path of the ticket file
+            transformation: Optional transformation string (ignored for local storage)
             
         Returns:
             URL of the ticket
         """
-        if transformation:
-            return cloudinary.CloudinaryImage(public_id).build_url(transformation=transformation)
-        else:
-            return cloudinary.CloudinaryImage(public_id).build_url()
+        return default_storage.url(file_path)
 
 # Create a global instance
 ticket_service = TicketService()

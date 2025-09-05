@@ -33,7 +33,8 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
-    '172.20.10.3', 
+    '172.20.10.3',
+    '192.168.0.181', 
     '.onrender.com',  # Render deployment
     # Add your custom domain here when you have one
 ]
@@ -162,27 +163,8 @@ STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Cloudinary Configuration
-CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', 'your_cloud_name'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY', 'your_api_key'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', 'your_api_secret'),
-    'ALLOWED_EXTENSIONS': ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'pdf', 'doc', 'docx', 'zip', 'rar', 'mp3', 'mp4', 'avi', 'mov', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
-    'EXCLUDE_DELETE_ORPHANED_MEDIA': True,
-    'SECURE': True,  # Use HTTPS
-}
-
-# Use Cloudinary for media files
-DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
-
-# Cloudinary settings for different file types
-CLOUDINARY = {
-    'cloud_name': os.getenv('CLOUDINARY_CLOUD_NAME', 'your_cloud_name'),
-    'api_key': os.getenv('CLOUDINARY_API_KEY', 'your_api_key'),
-    'api_secret': os.getenv('CLOUDINARY_API_SECRET', 'your_api_secret'),
-    'secure': True,  # Use HTTPS
-    'allowed_extensions': ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp', 'pdf', 'doc', 'docx', 'zip', 'rar', 'mp3', 'mp4', 'avi', 'mov', 'wav', 'flac', 'm4a', 'aac', 'ogg'],
-}
+# Local file storage configuration
+# No additional configuration needed - Django will use local storage by default
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
@@ -303,6 +285,11 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 # Additional Security Headers
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = 'require-corp'
+
+# File Upload Settings
+FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
+FILE_UPLOAD_PERMISSIONS = 0o644
 
 # Content Security Policy (CSP) - New format for django-csp 4.0+
 CONTENT_SECURITY_POLICY = {

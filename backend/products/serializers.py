@@ -38,26 +38,21 @@ class ProductSerializer(serializers.ModelSerializer):
         read_only_fields = ['owner', 'created_at']
     
     def get_file_url(self, obj):
-        """Get optimized file URL from Cloudinary"""
+        """Get file URL from local storage"""
         if obj.file:
             try:
-                # Return optimized URL for different file types
-                if obj.product_type in ['png', 'video']:
-                    # For images and videos, return optimized version
-                    return obj.file.replace('/upload/', '/upload/q_auto,f_auto/')
-                else:
-                    # For other files, return original URL
-                    return obj.file
+                from django.conf import settings
+                return f"{settings.MEDIA_URL}{obj.file.name}"
             except:
                 return None
         return None
     
     def get_cover_image_url(self, obj):
-        """Get optimized cover image URL from Cloudinary"""
+        """Get cover image URL from local storage"""
         if obj.cover_image:
             try:
-                # Return optimized image URL
-                return obj.cover_image.replace('/upload/', '/upload/q_auto,f_auto/')
+                from django.conf import settings
+                return f"{settings.MEDIA_URL}{obj.cover_image.name}"
             except:
                 return None
         return None
@@ -66,8 +61,10 @@ class ProductSerializer(serializers.ModelSerializer):
         """Get thumbnail URL for cover image"""
         if obj.cover_image:
             try:
-                # Return thumbnail version
-                return obj.cover_image.replace('/upload/', '/upload/w_300,h_300,c_fill,q_auto/')
+                from django.conf import settings
+                # For now, return the same URL as cover image
+                # In production, you might want to generate thumbnails
+                return f"{settings.MEDIA_URL}{obj.cover_image.name}"
             except:
                 return None
         return None
