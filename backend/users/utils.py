@@ -375,137 +375,57 @@ def send_digital_product_email(user, product, file_url):
         try:
             print(f"DEBUG: Attempting to download file from: {file_url}")
             
-            # Check if this is a local file path (old format) or Cloudinary URL (new format)
-            if not file_url.startswith('http'):
-                # This is a local file path from the old system
-                print(f"DEBUG: Detected local file path from old system: {file_url}")
+            # Check if this is a local file path or URL
+            if file_url.startswith('http'):
+                # This is a URL from the old Cloudinary system
+                print(f"DEBUG: Detected URL from old system: {file_url}")
                 print(f"DEBUG: This product needs to be re-uploaded to work with the new system")
                 return False
             
-            # Try the original URL first
-            response = requests.get(file_url, timeout=30)
-            print(f"DEBUG: Response status code: {response.status_code}")
-            print(f"DEBUG: Response headers: {dict(response.headers)}")
-            
-            # If the original URL fails, try different Cloudinary URL formats
-            if response.status_code != 200 and 'cloudinary.com' in file_url:
-                print(f"DEBUG: Original URL failed, trying alternative formats...")
-                
-                # For PDFs, try removing the .pdf extension and adding it back
-                if file_url.endswith('.pdf'):
-                    # Try without .pdf extension first
-                    base_url = file_url[:-4]  # Remove .pdf
-                    print(f"DEBUG: Trying base URL without .pdf: {base_url}")
-                    try:
-                        response = requests.get(base_url, timeout=30)
-                        print(f"DEBUG: Base URL response status: {response.status_code}")
-                        if response.status_code == 200:
-                            file_url = base_url
-                            print(f"✅ Successfully accessed file with base URL: {file_url}")
-                        else:
-                            # Try adding .pdf back
-                            pdf_url = f"{base_url}.pdf"
-                            print(f"DEBUG: Trying with .pdf extension: {pdf_url}")
-                            response = requests.get(pdf_url, timeout=30)
-                            print(f"DEBUG: PDF URL response status: {response.status_code}")
-                            if response.status_code == 200:
-                                file_url = pdf_url
-                                print(f"✅ Successfully accessed PDF with URL: {file_url}")
-                    except Exception as e:
-                        print(f"DEBUG: Failed to access base URL: {str(e)}")
-                
-                # If still failing, try common image extensions
-                if response.status_code != 200:
-                    image_extensions = ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']
-                    for ext in image_extensions:
-                        image_url = f"{file_url}.{ext}"
-                        print(f"DEBUG: Trying with .{ext} extension: {image_url}")
-                        try:
-                            response = requests.get(image_url, timeout=30)
-                            print(f"DEBUG: {ext.upper()} URL response status: {response.status_code}")
-                            if response.status_code == 200:
-                                file_url = image_url
-                                print(f"✅ Successfully accessed image with URL: {file_url}")
-                                break
-                        except Exception as e:
-                            print(f"DEBUG: Failed to access {image_url}: {str(e)}")
-                            continue
-                
-                # If still failing, try PDF format parameters
-                if response.status_code != 200:
-                    pdf_attempts = []
-                    
-                    # Try adding format parameter
-                    if 'f_' not in file_url:
-                        format_url = f"{file_url}/f_pdf"
-                        pdf_attempts.append(format_url)
-                    
-                    # Try with explicit PDF format
-                    explicit_pdf_url = f"{file_url}/f_pdf,q_auto"
-                    pdf_attempts.append(explicit_pdf_url)
-                    
-                    # Try each PDF URL format
-                    for attempt_url in pdf_attempts:
-                        print(f"DEBUG: Trying PDF URL: {attempt_url}")
-                        try:
-                            response = requests.get(attempt_url, timeout=30)
-                            print(f"DEBUG: PDF URL response status: {response.status_code}")
-                            if response.status_code == 200:
-                                file_url = attempt_url
-                                print(f"✅ Successfully accessed PDF with URL: {file_url}")
-                                break
-                        except Exception as e:
-                            print(f"DEBUG: Failed to access {attempt_url}: {str(e)}")
-                            continue
-            
-            if response.status_code == 200:
-                # Get file extension from URL or content type
-                file_extension = file_url.split('.')[-1].lower() if '.' in file_url else 'file'
-                if '?' in file_extension:
-                    file_extension = file_extension.split('?')[0]
-                
-                # Check content type from response headers
-                content_type_header = response.headers.get('content-type', '').lower()
-                print(f"DEBUG: Content-Type header: {content_type_header}")
-                
-                # If content type indicates PDF, override file extension
-                if 'application/pdf' in content_type_header:
-                    file_extension = 'pdf'
-                    print(f"DEBUG: Detected PDF from content-type header")
-                
-                # Create clean filename (same approach as event tickets)
-                clean_title = "".join(c for c in product.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
-                
-                # Attach all files in their original format (no conversion)
-                filename = f"{clean_title.replace(' ', '_')}.{file_extension}"
-                
-                # Determine content type based on file extension
-                content_type = 'application/octet-stream'  # Default
-                if file_extension in ['pdf']:
-                    content_type = 'application/pdf'
-                elif file_extension in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']:
-                    content_type = f'image/{file_extension}'
-                elif file_extension in ['zip', 'rar']:
-                    content_type = f'application/{file_extension}'
-                elif file_extension in ['doc', 'docx']:
-                    content_type = 'application/msword'
-                elif file_extension in ['xls', 'xlsx']:
-                    content_type = 'application/vnd.ms-excel'
-                elif file_extension in ['txt']:
-                    content_type = 'text/plain'
-                elif file_extension in ['mp4', 'avi', 'mov']:
-                    content_type = f'video/{file_extension}'
-                elif file_extension in ['mp3', 'wav', 'flac']:
-                    content_type = f'audio/{file_extension}'
-                
-                # Attach the file in its original format
-                email.attach(filename, response.content, content_type)
-                print(f"✅ Attached digital product in original format: {filename} ({content_type})")
-            else:
-                print(f"❌ Failed to download product file: {file_url}")
-                print(f"❌ Status code: {response.status_code}")
-                print(f"❌ Response text: {response.text[:500]}")  # First 500 chars
+            # This is a local file path - read it directly
+            if not product.file:
+                print(f"DEBUG: No file field found for product")
                 return False
+                
+            # Read the file from local storage
+            if hasattr(product.file, 'read'):
+                # If it's a file object, read it
+                product.file.seek(0)
+                file_content = product.file.read()
+            else:
+                # If it's a file path, read from filesystem
+                with open(product.file.path, 'rb') as f:
+                    file_content = f.read()
+            
+            # Get file extension from the file name
+            file_extension = product.file.name.split('.')[-1].lower() if '.' in product.file.name else 'file'
+            
+            # Create clean filename
+            clean_title = "".join(c for c in product.title if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            filename = f"{clean_title.replace(' ', '_')}.{file_extension}"
+            
+            # Determine content type based on file extension
+            content_type = 'application/octet-stream'  # Default
+            if file_extension in ['pdf']:
+                content_type = 'application/pdf'
+            elif file_extension in ['png', 'jpg', 'jpeg', 'gif', 'bmp', 'tiff', 'webp']:
+                content_type = f'image/{file_extension}'
+            elif file_extension in ['zip', 'rar']:
+                content_type = f'application/{file_extension}'
+            elif file_extension in ['doc', 'docx']:
+                content_type = 'application/msword'
+            elif file_extension in ['xls', 'xlsx']:
+                content_type = 'application/vnd.ms-excel'
+            elif file_extension in ['txt']:
+                content_type = 'text/plain'
+            elif file_extension in ['mp4', 'avi', 'mov']:
+                content_type = f'video/{file_extension}'
+            elif file_extension in ['mp3', 'wav', 'flac']:
+                content_type = f'audio/{file_extension}'
+            
+            # Attach the file
+            email.attach(filename, file_content, content_type)
+            print(f"✅ Attached digital product from local storage: {filename} ({content_type})")
         except Exception as e:
             print(f"❌ Error downloading product file: {str(e)}")
             return False
