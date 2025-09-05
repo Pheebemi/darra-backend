@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: darra-app
+    env: python
+    plan: starter  # Change to standard/pro for more resources
+    buildCommand: |
+      pip install -r requirements.txt
+      python manage.py migrate
+      python manage.py collectstatic --noinput
+    startCommand: gunicorn core.wsgi:application
+    envVars:
+      - key: DJANGO_SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: False
+      - key: ALLOWED_HOSTS
+        value: darra-app.onrender.com
+      - key: DATABASE_URL
+        fromDatabase:
+          name: darra-db
+          property: connectionString
+      - key: PAYSTACK_SECRET_KEY
+        sync: false  # Set this in Render dashboard
+      - key: PAYSTACK_PUBLIC_KEY
+        sync: false  # Set this in Render dashboard
+      - key: EMAIL_HOST_USER
+        sync: false  # Set this in Render dashboard
+      - key: EMAIL_HOST_PASSWORD
+        sync: false  # Set this in Render dashboard
+
+  - type: pserv
+    name: darra-db
+    env: postgresql
+    plan: starter  # Free tier: 1GB storage, 1GB RAM
+    # plan: standard  # $7/month: 1GB storage, 1GB RAM
+    # plan: pro       # $25/month: 1GB storage, 1GB RAM

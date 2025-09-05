@@ -16,6 +16,7 @@ requests>=2.31.0
 # Additional utilities
 Pillow>=10.0.0  # For image handling
 img2pdf>=0.5.1  # For converting images to PDF
+python-magic>=0.4.27  # For file type detection
 
 # Cloudinary integration
 cloudinary>=1.40.0
