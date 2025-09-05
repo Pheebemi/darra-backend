@@ -189,20 +189,25 @@ def send_event_ticket_email(user, product, tickets):
         # Attach QR codes for each ticket
         for i, ticket in enumerate(tickets):
             try:
-                # Get QR code URL from Cloudinary
-                qr_url = ticket.get_qr_code_url()
-                if qr_url:
-                    # Download QR code image
-                    response = requests.get(qr_url)
-                    if response.status_code == 200:
-                        # Create attachment
-                        qr_filename = f"ticket_{ticket.ticket_id}.png"
-                        email.attach(qr_filename, response.content, 'image/png')
-                        print(f"✅ Attached QR code: {qr_filename}")
+                # Generate QR code if not already generated
+                qr_code_file = ticket.generate_qr_code()
+                if qr_code_file:
+                    # Read the QR code file from local storage
+                    if hasattr(qr_code_file, 'read'):
+                        # If it's a file object, read it
+                        qr_code_file.seek(0)
+                        qr_content = qr_code_file.read()
                     else:
-                        print(f"❌ Failed to download QR code for ticket {ticket.ticket_id}")
+                        # If it's a file path, read from filesystem
+                        with open(qr_code_file.path, 'rb') as f:
+                            qr_content = f.read()
+                    
+                    # Create attachment
+                    qr_filename = f"ticket_{ticket.ticket_id}.png"
+                    email.attach(qr_filename, qr_content, 'image/png')
+                    print(f"✅ Attached QR code: {qr_filename}")
                 else:
-                    print(f"❌ No QR code URL for ticket {ticket.ticket_id}")
+                    print(f"❌ No QR code file for ticket {ticket.ticket_id}")
             except Exception as e:
                 print(f"❌ Error attaching QR code for ticket {ticket.ticket_id}: {str(e)}")
         
