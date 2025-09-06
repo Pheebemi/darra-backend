@@ -40,14 +40,26 @@ class FastTicketService:
                 font_medium = ImageFont.load_default()
                 font_small = ImageFont.load_default()
             
-            # Generate QR code
+            # Generate QR code with unique data
             qr = qrcode.QRCode(
                 version=1,
                 error_correction=qrcode.constants.ERROR_CORRECT_L,
                 box_size=8,
                 border=2,
             )
-            qr.add_data(ticket_data['ticket_id'])
+            
+            # Create unique QR data that includes ticket_id, event_id, and timestamp
+            qr_data = {
+                'ticket_id': ticket_data['ticket_id'],
+                'event_id': ticket_data.get('event_id', ''),
+                'timestamp': ticket_data.get('timestamp', ''),
+                'type': 'fast_ticket'
+            }
+            
+            # Convert to JSON string for QR code
+            import json
+            qr_data_string = json.dumps(qr_data)
+            qr.add_data(qr_data_string)
             qr.make(fit=True)
             
             qr_img = qr.make_image(fill_color="black", back_color="white")
@@ -107,7 +119,7 @@ class FastTicketService:
             print(f"Error generating fast ticket PNG: {str(e)}")
             return None
     
-    def generate_qr_code_only(self, ticket_id, event_title):
+    def generate_qr_code_only(self, ticket_id, event_title, event_id=None):
         """
         Generate just the QR code (fastest option)
         """
@@ -118,7 +130,20 @@ class FastTicketService:
                 box_size=10,
                 border=4,
             )
-            qr.add_data(ticket_id)
+            
+            # Create unique QR data
+            import json
+            from datetime import datetime
+            
+            qr_data = {
+                'ticket_id': ticket_id,
+                'event_id': event_id or '',
+                'timestamp': datetime.now().isoformat(),
+                'type': 'fast_ticket'
+            }
+            
+            qr_data_string = json.dumps(qr_data)
+            qr.add_data(qr_data_string)
             qr.make(fit=True)
             
             qr_img = qr.make_image(fill_color="black", back_color="white")

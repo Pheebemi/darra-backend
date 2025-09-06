@@ -1,5 +1,6 @@
 from django.contrib import admin
 from .models import EventTicket
+from .fast_models import FastEventTicket
 
 @admin.register(EventTicket)
 class EventTicketAdmin(admin.ModelAdmin):
@@ -76,3 +77,65 @@ class EventTicketAdmin(admin.ModelAdmin):
         return "No QR code generated"
     qr_code_display.allow_tags = True
     qr_code_display.short_description = "QR Code Preview"
+
+@admin.register(FastEventTicket)
+class FastEventTicketAdmin(admin.ModelAdmin):
+    list_display = [
+        'ticket_id', 
+        'event', 
+        'buyer', 
+        'quantity', 
+        'is_used', 
+        'created_at'
+    ]
+    list_filter = [
+        'is_used', 
+        'event', 
+        'created_at', 
+        'verified_by'
+    ]
+    search_fields = [
+        'ticket_id', 
+        'event__title', 
+        'buyer__email', 
+        'buyer__full_name'
+    ]
+    readonly_fields = [
+        'ticket_id', 
+        'created_at', 
+        'ticket_png',
+        'ticket_png_display'
+    ]
+    ordering = ['-created_at']
+    
+    fieldsets = (
+        ('Ticket Information', {
+            'fields': ('ticket_id', 'event', 'buyer', 'quantity', 'ticket_png')
+        }),
+        ('Status', {
+            'fields': ('is_used', 'used_at', 'verified_by', 'verified_at')
+        }),
+        ('Purchase Details', {
+            'fields': ('purchase', 'created_at')
+        }),
+    )
+    
+    def has_add_permission(self, request):
+        # Only allow viewing existing tickets, not creating new ones manually
+        return False
+    
+    actions = ['mark_as_unused']
+    
+    def mark_as_unused(self, request, queryset):
+        """Mark selected tickets as unused (for testing)"""
+        count = queryset.update(is_used=False, used_at=None, verified_by=None, verified_at=None)
+        self.message_user(request, f"Marked {count} fast tickets as unused.")
+    mark_as_unused.short_description = "Mark fast tickets as unused (for testing)"
+    
+    def ticket_png_display(self, obj):
+        """Display PNG ticket image in admin"""
+        if obj.ticket_png:
+            return f'<img src="{obj.ticket_png.url}" width="200" height="150" />'
+        return "No PNG ticket generated"
+    ticket_png_display.allow_tags = True
+    ticket_png_display.short_description = "PNG Ticket Preview"

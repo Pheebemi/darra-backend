@@ -5,6 +5,7 @@ from rest_framework.response import Response
 from django.shortcuts import get_object_or_404
 from django.utils import timezone
 from .models import EventTicket
+from .fast_models import FastEventTicket
 from .serializers import EventTicketSerializer, EventTicketDetailSerializer
 
 class SellerEventTicketsView(generics.ListAPIView):
@@ -13,23 +14,95 @@ class SellerEventTicketsView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     
     def get_queryset(self):
-        # Only return tickets for events owned by the seller
-        return EventTicket.objects.filter(
+        # Get both old and fast tickets for events owned by the seller
+        from django.db import models
+        
+        # Combine both querysets
+        old_tickets = EventTicket.objects.filter(
             event__owner=self.request.user
-        ).select_related('buyer', 'event', 'purchase__payment').order_by('-created_at')
+        ).select_related('buyer', 'event', 'purchase__payment')
+        
+        fast_tickets = FastEventTicket.objects.filter(
+            event__owner=self.request.user
+        ).select_related('buyer', 'event', 'purchase__payment')
+        
+        # Combine and order by created_at
+        all_tickets = list(old_tickets) + list(fast_tickets)
+        all_tickets.sort(key=lambda x: x.created_at, reverse=True)
+        
+        return all_tickets
+    
+    def list(self, request, *args, **kwargs):
+        """Override list to handle mixed ticket types"""
+        queryset = self.get_queryset()
+        
+        # Serialize each ticket individually to handle different types
+        serialized_tickets = []
+        for ticket in queryset:
+            try:
+                if hasattr(ticket, 'ticket_png'):
+                    # Fast ticket - create a custom representation
+                    ticket_data = {
+                        'ticket_id': str(ticket.ticket_id),
+                        'buyer': {
+                            'full_name': ticket.buyer.full_name,
+                            'email': ticket.buyer.email,
+                        },
+                        'event': {
+                            'title': ticket.event.title,
+                            'event_date': ticket.event.event_date,
+                            'description': ticket.event.description,
+                        },
+                        'verified_by': {
+                            'full_name': ticket.verified_by.full_name,
+                        } if ticket.verified_by else None,
+                        'quantity': ticket.quantity,
+                        'is_used': ticket.is_used,
+                        'used_at': ticket.used_at,
+                        'verified_at': ticket.verified_at,
+                        'created_at': ticket.created_at,
+                        'purchase_reference': ticket.purchase.payment.reference if ticket.purchase and ticket.purchase.payment else 'N/A',
+                        'payment_amount': str(ticket.purchase.total_price) if ticket.purchase else '0.00',
+                        'ticket_tier': {
+                            'name': ticket.purchase.selected_ticket_tier.name,
+                            'price': str(ticket.purchase.selected_ticket_tier.price),
+                            'category': {
+                                'name': ticket.purchase.selected_ticket_tier.category.name,
+                                'color': ticket.purchase.selected_ticket_tier.category.color,
+                            }
+                        } if ticket.purchase and ticket.purchase.selected_ticket_tier else None,
+                        'qr_code_url': ticket.ticket_png.url if ticket.ticket_png else None,
+                        'pdf_ticket_url': None,
+                        'ticket_png_url': ticket.ticket_png.url if ticket.ticket_png else None,
+                    }
+                else:
+                    # Old ticket - use regular serializer
+                    serializer = self.get_serializer(ticket)
+                    ticket_data = serializer.data
+                
+                serialized_tickets.append(ticket_data)
+            except Exception as e:
+                print(f"Error serializing ticket {ticket.ticket_id}: {str(e)}")
+                continue
+        
+        return Response(serialized_tickets)
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
 def get_ticket_details(request, ticket_id):
-    """Get detailed information about a specific ticket"""
+    """Get detailed information about a specific ticket - FAST TICKETS ONLY"""
     try:
-        ticket = EventTicket.objects.select_related(
+        # Only look for fast tickets
+        from .fast_models import FastEventTicket
+        
+        ticket = FastEventTicket.objects.select_related(
             'buyer', 
             'event', 
             'purchase__payment',
             'purchase__selected_ticket_tier',
             'purchase__selected_ticket_tier__category'
         ).get(ticket_id=ticket_id)
+        print(f"DEBUG: Found fast ticket: {ticket.ticket_id}")
         
         # Check if seller owns this event
         if ticket.event.owner != request.user:
@@ -42,22 +115,57 @@ def get_ticket_details(request, ticket_id):
         if ticket.purchase.selected_ticket_tier:
             print(f"DEBUG: Ticket tier category: {ticket.purchase.selected_ticket_tier.category}")
         
-        serializer = EventTicketDetailSerializer(ticket)
-        serialized_data = serializer.data
-        print(f"DEBUG: Serialized data keys: {list(serialized_data.keys())}")
-        print(f"DEBUG: Ticket tier in response: {serialized_data.get('ticket_tier')}")
+        # Create fast ticket response
+        ticket_data = {
+            'ticket_id': str(ticket.ticket_id),
+            'purchase': ticket.purchase.id,
+            'buyer': {
+                'full_name': ticket.buyer.full_name,
+                'email': ticket.buyer.email,
+            },
+            'event': {
+                'title': ticket.event.title,
+                'event_date': ticket.event.event_date,
+                'description': ticket.event.description,
+            },
+            'verified_by': {
+                'full_name': ticket.verified_by.full_name,
+            } if ticket.verified_by else None,
+            'quantity': ticket.quantity,
+            'is_used': ticket.is_used,
+            'used_at': ticket.used_at,
+            'verified_at': ticket.verified_at,
+            'created_at': ticket.created_at,
+            'purchase_reference': ticket.purchase.payment.reference if ticket.purchase and ticket.purchase.payment else 'N/A',
+            'payment_amount': str(ticket.purchase.total_price) if ticket.purchase else '0.00',
+            'ticket_tier': {
+                'name': ticket.purchase.selected_ticket_tier.name,
+                'price': str(ticket.purchase.selected_ticket_tier.price),
+                'category': {
+                    'name': ticket.purchase.selected_ticket_tier.category.name,
+                    'color': ticket.purchase.selected_ticket_tier.category.color,
+                }
+            } if ticket.purchase and ticket.purchase.selected_ticket_tier else None,
+            'qr_code_url': ticket.ticket_png.url if ticket.ticket_png else None,
+            'pdf_ticket_url': None,
+            'ticket_png_url': ticket.ticket_png.url if ticket.ticket_png else None,
+        }
+        print(f"DEBUG: Fast ticket data created successfully")
+        return Response(ticket_data)
         
-        return Response(serialized_data)
-        
-    except EventTicket.DoesNotExist:
-        return Response({'error': 'Ticket not found'}, status=status.HTTP_404_NOT_FOUND)
+    except FastEventTicket.DoesNotExist:
+        return Response({'error': 'Fast ticket not found'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
 def verify_ticket(request, ticket_id):
-    """Verify an event ticket"""
+    """Verify an event ticket - FAST TICKETS ONLY"""
     try:
-        ticket = EventTicket.objects.get(ticket_id=ticket_id)
+        # Only look for fast tickets
+        from .fast_models import FastEventTicket
+        
+        ticket = FastEventTicket.objects.get(ticket_id=ticket_id)
+        print(f"DEBUG: Verifying fast ticket: {ticket.ticket_id}")
         
         # Check if seller owns this event
         if ticket.event.owner != request.user:
@@ -78,13 +186,49 @@ def verify_ticket(request, ticket_id):
         ticket.verified_at = timezone.now()
         ticket.save()
         
+        # Create fast ticket response for verification (same format as get_ticket_details)
+        ticket_data = {
+            'ticket_id': str(ticket.ticket_id),
+            'purchase': ticket.purchase.id,
+            'buyer': {
+                'full_name': ticket.buyer.full_name,
+                'email': ticket.buyer.email,
+            },
+            'event': {
+                'title': ticket.event.title,
+                'event_date': ticket.event.event_date,
+                'description': ticket.event.description,
+            },
+            'verified_by': {
+                'full_name': ticket.verified_by.full_name,
+            } if ticket.verified_by else None,
+            'quantity': ticket.quantity,
+            'is_used': ticket.is_used,
+            'used_at': ticket.used_at,
+            'verified_at': ticket.verified_at,
+            'created_at': ticket.created_at,
+            'purchase_reference': ticket.purchase.payment.reference if ticket.purchase and ticket.purchase.payment else 'N/A',
+            'payment_amount': str(ticket.purchase.total_price) if ticket.purchase else '0.00',
+            'ticket_tier': {
+                'name': ticket.purchase.selected_ticket_tier.name,
+                'price': str(ticket.purchase.selected_ticket_tier.price),
+                'category': {
+                    'name': ticket.purchase.selected_ticket_tier.category.name,
+                    'color': ticket.purchase.selected_ticket_tier.category.color,
+                }
+            } if ticket.purchase and ticket.purchase.selected_ticket_tier else None,
+            'qr_code_url': ticket.ticket_png.url if ticket.ticket_png else None,
+            'pdf_ticket_url': None,
+            'ticket_png_url': ticket.ticket_png.url if ticket.ticket_png else None,
+        }
+        
         return Response({
-            'message': 'Ticket verified successfully',
-            'ticket': EventTicketDetailSerializer(ticket).data
+            'message': 'Fast ticket verified successfully',
+            'ticket': ticket_data
         })
         
-    except EventTicket.DoesNotExist:
-        return Response({'error': 'Ticket not found'}, status=status.HTTP_404_NOT_FOUND)
+    except FastEventTicket.DoesNotExist:
+        return Response({'error': 'Fast ticket not found'}, status=status.HTTP_404_NOT_FOUND)
 
 @api_view(['POST'])
 @permission_classes([IsAuthenticated])
@@ -125,16 +269,20 @@ def regenerate_ticket(request, ticket_id):
 def seller_event_stats(request):
     """Get statistics for seller's events"""
     try:
-        # Get all tickets for seller's events
-        tickets = EventTicket.objects.filter(event__owner=request.user)
+        # Get all tickets for seller's events (both old and fast)
+        old_tickets = EventTicket.objects.filter(event__owner=request.user)
+        fast_tickets = FastEventTicket.objects.filter(event__owner=request.user)
         
-        total_tickets = tickets.count()
-        used_tickets = tickets.filter(is_used=True).count()
+        # Combine both ticket types
+        all_tickets = list(old_tickets) + list(fast_tickets)
+        
+        total_tickets = len(all_tickets)
+        used_tickets = len([t for t in all_tickets if t.is_used])
         valid_tickets = total_tickets - used_tickets
         
         # Get events with ticket counts
         events = {}
-        for ticket in tickets:
+        for ticket in all_tickets:
             event_title = ticket.event.title
             if event_title not in events:
                 events[event_title] = {

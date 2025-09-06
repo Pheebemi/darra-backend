@@ -46,12 +46,15 @@ class FastEventTicket(models.Model):
         """
         try:
             # Prepare ticket data
+            from datetime import datetime
             ticket_data = {
                 'ticket_id': str(self.ticket_id),
+                'event_id': str(self.event.id),
                 'event_title': self.event.title,
                 'event_date': self.event.event_date.strftime('%Y-%m-%d %H:%M') if self.event.event_date else 'TBD',
                 'buyer_name': f"{self.buyer.first_name} {self.buyer.last_name}".strip() or self.buyer.email,
-                'quantity': self.quantity
+                'quantity': self.quantity,
+                'timestamp': datetime.now().isoformat()
             }
             
             # Generate PNG ticket
@@ -87,7 +90,8 @@ class FastEventTicket(models.Model):
         try:
             qr_buffer = fast_ticket_service.generate_qr_code_only(
                 str(self.ticket_id), 
-                self.event.title
+                self.event.title,
+                str(self.event.id)
             )
             
             if qr_buffer:

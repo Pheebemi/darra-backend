@@ -1,5 +1,6 @@
 from rest_framework import serializers
 from .models import EventTicket
+from .fast_models import FastEventTicket
 from users.serializers import UserProfileSerializer
 from products.serializers import ProductSerializer, TicketTierSerializer
 
