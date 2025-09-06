@@ -41,8 +41,19 @@ urlpatterns = [
     path('api/test/sustained-limit/', test_sustained_limit, name='test_sustained_limit'),
 ]
 
-# Serve media files
-urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
-
-# Serve static files (for development and when DEBUG=False)
-urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+# Serve media files (both development and production)
+if settings.DEBUG:
+    # Development: Django serves media files directly
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+    urlpatterns += static(settings.STATIC_URL, document_root=settings.STATIC_ROOT)
+else:
+    # Production: Serve media files through Django (for deployment platforms like Render)
+    from django.views.static import serve
+    from django.urls import re_path
+    
+    # Serve media files in production
+    urlpatterns += [
+        re_path(r'^media/(?P<path>.*)$', serve, {'document_root': settings.MEDIA_ROOT}),
+    ]
+    
+    # Static files are handled by WhiteNoise in production

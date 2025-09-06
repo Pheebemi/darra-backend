@@ -166,6 +166,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 # Local file storage configuration
 # No additional configuration needed - Django will use local storage by default
 
+# Production media file serving
+if not DEBUG:
+    # In production, we need to serve media files through the web server
+    # This is handled by the URL configuration in urls.py
+    pass
+
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.2/ref/settings/#default-auto-field
 
