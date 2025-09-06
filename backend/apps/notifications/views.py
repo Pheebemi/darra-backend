@@ -17,8 +17,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def send_promotional(self, request):
         """Send promotional notification to all users (admin only)"""
         try:
-            title = request.data.get('title', 'New Update Available!')
-            body = request.data.get('body', 'Check out our latest products and deals!')
+            title = request.data.get('title', '📢 New Update Available!')
+            body = request.data.get('body', '🎉 Check out our latest products and deals!')
             data = request.data.get('data', {})
             
             count = NotificationService.send_bulk_promotional_notifications(
@@ -40,8 +40,8 @@ class NotificationViewSet(viewsets.ModelViewSet):
     def test_notification(self, request):
         """Test notification creation (for debugging)"""
         try:
-            title = request.data.get('title', 'Test Notification')
-            body = request.data.get('body', 'This is a test notification')
+            title = request.data.get('title', '🧪 Test Notification')
+            body = request.data.get('body', 'This is a test notification 📱')
             notification_type = request.data.get('type', 'general')
             
             notification = NotificationService.create_notification(

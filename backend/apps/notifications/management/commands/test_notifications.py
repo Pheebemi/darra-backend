@@ -97,8 +97,8 @@ class Command(BaseCommand):
         else:  # general
             notification = NotificationService.create_notification(
                 user=user,
-                title='Test Notification',
-                body='This is a test notification',
+                title='🧪 Test Notification',
+                body='This is a test notification 📱',
                 notification_type='general',
                 data={'test': True}
             )

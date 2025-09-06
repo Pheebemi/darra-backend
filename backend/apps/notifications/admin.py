@@ -39,8 +39,8 @@ class NotificationAdmin(admin.ModelAdmin):
     def send_promotional(self, request, queryset):
         """Send promotional notification to all users"""
         try:
-            title = "New Update Available!"
-            body = "Check out our latest products and deals!"
+            title = "📢 New Update Available!"
+            body = "🎉 Check out our latest products and deals!"
             
             count = NotificationService.send_bulk_promotional_notifications(
                 title=title,

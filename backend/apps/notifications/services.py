@@ -28,8 +28,8 @@ class NotificationService:
             print(f"DEBUG: Creating payment notification for user {user.email}")
             print(f"DEBUG: Payment amount: {payment.amount}, Reference: {payment.reference}")
             
-            title = "Payment Successful!"
-            body = f"Your payment of ₦{payment.amount} has been processed successfully. Reference: {payment.reference}"
+            title = "💳 Payment Successful!"
+            body = f"✅ Your payment of ₦{payment.amount} has been processed successfully. Reference: {payment.reference}"
             
             notification = NotificationService.create_notification(
                 user=user,
@@ -60,8 +60,8 @@ class NotificationService:
     def send_order_notification(purchase, seller):
         """Send order notification to seller"""
         try:
-            title = "New Order Received!"
-            body = f"You have received a new order for {purchase.product.title} from {purchase.payment.user.full_name or purchase.payment.user.email}"
+            title = "🛍️ New Order Received!"
+            body = f"🎉 You have received a new order for {purchase.product.title} from {purchase.payment.user.full_name or purchase.payment.user.email}"
             
             notification = NotificationService.create_notification(
                 user=seller,
@@ -95,8 +95,8 @@ class NotificationService:
     def send_event_ticket_notification(user, product, tickets):
         """Send event ticket notification to buyer"""
         try:
-            title = "Event Tickets Generated!"
-            body = f"Your tickets for {product.title} have been generated and sent to your email. Check your email for the QR codes."
+            title = "🎫 Event Tickets Generated!"
+            body = f"🎉 Your tickets for {product.title} have been generated and sent to your email. Check your email for the QR codes! 🎟️"
             
             notification = NotificationService.create_notification(
                 user=user,
