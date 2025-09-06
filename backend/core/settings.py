@@ -34,7 +34,7 @@ ALLOWED_HOSTS = [
     'localhost',
     '127.0.0.1',
     '172.20.10.3',
-    '192.168.0.181', 
+    '172.20.10.3', 
     '.onrender.com',  # Render deployment
     # Add your custom domain here when you have one
 ]

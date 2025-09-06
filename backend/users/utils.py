@@ -189,23 +189,33 @@ def send_event_ticket_email(user, product, tickets):
         # Attach QR codes for each ticket
         for i, ticket in enumerate(tickets):
             try:
-                # Generate QR code if not already generated
-                qr_code_file = ticket.generate_qr_code()
-                if qr_code_file:
-                    # Read the QR code file from local storage
-                    if hasattr(qr_code_file, 'read'):
-                        # If it's a file object, read it
-                        qr_code_file.seek(0)
-                        qr_content = qr_code_file.read()
-                    else:
-                        # If it's a file path, read from filesystem
-                        with open(qr_code_file.path, 'rb') as f:
-                            qr_content = f.read()
-                    
-                    # Create attachment
+                # Check if this is a fast ticket or old ticket
+                if hasattr(ticket, 'ticket_png') and ticket.ticket_png:
+                    # Fast ticket - use PNG file
+                    qr_content = ticket.ticket_png.read()
                     qr_filename = f"ticket_{ticket.ticket_id}.png"
                     email.attach(qr_filename, qr_content, 'image/png')
-                    print(f"✅ Attached QR code: {qr_filename}")
+                    print(f"✅ Attached fast ticket PNG: {qr_filename}")
+                elif hasattr(ticket, 'generate_qr_code'):
+                    # Old ticket - generate QR code
+                    qr_code_file = ticket.generate_qr_code()
+                    if qr_code_file:
+                        # Read the QR code file from local storage
+                        if hasattr(qr_code_file, 'read'):
+                            # If it's a file object, read it
+                            qr_code_file.seek(0)
+                            qr_content = qr_code_file.read()
+                        else:
+                            # If it's a file path, read from filesystem
+                            with open(qr_code_file.path, 'rb') as f:
+                                qr_content = f.read()
+                        
+                        # Create attachment
+                        qr_filename = f"ticket_{ticket.ticket_id}.png"
+                        email.attach(qr_filename, qr_content, 'image/png')
+                        print(f"✅ Attached QR code: {qr_filename}")
+                    else:
+                        print(f"❌ No QR code file for ticket {ticket.ticket_id}")
                 else:
                     print(f"❌ No QR code file for ticket {ticket.ticket_id}")
             except Exception as e:

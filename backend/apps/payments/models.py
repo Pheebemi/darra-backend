@@ -65,10 +65,10 @@ class UserLibrary(models.Model):
         return f"{self.user.email} - {self.product.title}"
 
     def get_event_tickets(self):
-        """Get the actual EventTicket objects for event products"""
+        """Get the actual FastEventTicket objects for event products"""
         if self.product.product_type == 'event':
-            from apps.events.models import EventTicket
-            return EventTicket.objects.filter(purchase=self.purchase)
+            from apps.events.fast_models import FastEventTicket
+            return FastEventTicket.objects.filter(purchase=self.purchase)
         return []
 
 class SellerCommission(models.Model):

@@ -395,35 +395,23 @@ class PaystackService:
                         print(f"DEBUG: Creating {purchase.quantity} tickets for event: {purchase.product.title}")
                         
                         # Import here to avoid circular imports
-                        from apps.events.models import EventTicket
+                        from apps.events.fast_models import FastEventTicket
                         
-                        # Create tickets based on quantity with error handling
+                        # Create fast PNG tickets based on quantity with error handling
                         tickets = []
-                        ticket_ids = []
                         for ticket_num in range(purchase.quantity):
                             try:
-                                ticket = EventTicket.objects.create(
+                                ticket = FastEventTicket.objects.create(
                                     purchase=purchase,
                                     buyer=payment.user,
                                     event=purchase.product
                                 )
                                 tickets.append(ticket)
-                                ticket_ids.append(ticket.id)
-                                print(f"DEBUG: ✅ Created ticket {ticket.ticket_id} for event {purchase.product.title}")
+                                print(f"DEBUG: ✅ Created fast ticket {ticket.ticket_id} for event {purchase.product.title}")
                             except Exception as ticket_error:
-                                print(f"DEBUG: ❌ Error creating ticket {ticket_num + 1}: {str(ticket_error)}")
+                                print(f"DEBUG: ❌ Error creating fast ticket {ticket_num + 1}: {str(ticket_error)}")
                                 # Continue with other tickets even if one fails
                                 continue
-                        
-                        # Start async asset generation for all tickets
-                        if ticket_ids:
-                            try:
-                                from apps.events.tasks import generate_multiple_ticket_assets
-                                task = generate_multiple_ticket_assets.delay(ticket_ids)
-                                print(f"DEBUG: 🚀 Started async asset generation for {len(ticket_ids)} tickets (Task ID: {task.id})")
-                            except Exception as e:
-                                print(f"DEBUG: ⚠️ Failed to start async asset generation: {str(e)}")
-                                # Don't fail the payment - tickets are created, assets can be generated later
                         
                         # Group tickets by event product
                         if purchase.product.id not in event_products:
@@ -677,16 +665,16 @@ class PaymentService:
                             print(f"DEBUG: Creating {purchase.quantity} tickets for event: {purchase.product.title}")
                             
                             # Import here to avoid circular imports
-                            from apps.events.models import EventTicket
+                            from apps.events.fast_models import FastEventTicket
                             
-                            # Create tickets based on quantity with error handling
+                            # Create fast tickets based on quantity with error handling
                             tickets = []
                             for ticket_num in range(purchase.quantity):
                                 try:
-                                    print(f"DEBUG: Creating ticket {ticket_num + 1} for event {purchase.product.title}")
+                                    print(f"DEBUG: Creating fast ticket {ticket_num + 1} for event {purchase.product.title}")
                                     
-                                    # Create ticket without triggering QR code generation initially
-                                    ticket = EventTicket(
+                                    # Create fast ticket (PNG generation happens automatically)
+                                    ticket = FastEventTicket(
                                         purchase=purchase,
                                         buyer=payment.user,
                                         event=purchase.product
