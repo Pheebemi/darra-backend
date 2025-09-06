@@ -76,46 +76,45 @@ class NotificationService:
 
     @staticmethod
     def send_promotional_notification(user, title, body, data=None):
-        """Send promotional notification to user"""
+        """Send promotional notification to user - DISABLED to prevent spam"""
+        # Promotional notifications are now handled by the frontend only
+        # to prevent spam and ensure proper frequency control
+        print(f"Promotional notification blocked for user {user.email} - handled by frontend")
+        return None
+
+    @staticmethod
+    def send_event_ticket_notification(user, product, tickets):
+        """Send event ticket notification to buyer"""
         try:
+            title = "Event Tickets Generated!"
+            body = f"Your tickets for {product.title} have been generated and sent to your email. Check your email for the QR codes."
+            
             notification = NotificationService.create_notification(
                 user=user,
                 title=title,
                 body=body,
-                notification_type='promotional',
-                data=data or {}
+                notification_type='event_ticket',
+                data={
+                    'product_id': product.id,
+                    'product_title': product.title,
+                    'ticket_count': len(tickets),
+                    'event_date': product.event_date.isoformat() if product.event_date else None
+                }
             )
             
-            print(f"Promotional notification created for user {user.email}")
+            print(f"Event ticket notification created for user {user.email}")
             return notification
         except Exception as e:
-            print(f"Error sending promotional notification: {str(e)}")
+            print(f"Error sending event ticket notification: {str(e)}")
             return None
 
     @staticmethod
     def send_bulk_promotional_notifications(title, body, data=None, user_filter=None):
-        """Send promotional notification to multiple users"""
-        try:
-            users = User.objects.all()
-            if user_filter:
-                users = users.filter(user_filter)
-            
-            notifications_created = 0
-            for user in users:
-                notification = NotificationService.send_promotional_notification(
-                    user=user,
-                    title=title,
-                    body=body,
-                    data=data
-                )
-                if notification:
-                    notifications_created += 1
-            
-            print(f"Sent {notifications_created} promotional notifications")
-            return notifications_created
-        except Exception as e:
-            print(f"Error sending bulk promotional notifications: {str(e)}")
-            return 0
+        """Send promotional notification to multiple users - DISABLED to prevent spam"""
+        # Bulk promotional notifications are now handled by the frontend only
+        # to prevent spam and ensure proper frequency control
+        print(f"Bulk promotional notifications blocked - handled by frontend")
+        return 0
 
 
 

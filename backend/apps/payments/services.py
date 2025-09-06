@@ -716,7 +716,7 @@ class PaymentService:
                 # Send notifications for all purchases (both events and digital products)
                 for purchase in purchases:
                     try:
-                        NotificationService.send_new_order_notification(purchase, purchase.product.owner)
+                        NotificationService.send_order_notification(purchase, purchase.product.owner)
                     except Exception as notif_error:
                         print(f"DEBUG: Error sending order notification: {str(notif_error)}")
                         

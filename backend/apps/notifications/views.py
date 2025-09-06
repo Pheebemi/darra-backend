@@ -36,6 +36,36 @@ class NotificationViewSet(viewsets.ModelViewSet):
                 'error': str(e)
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @action(detail=False, methods=['post'])
+    def test_notification(self, request):
+        """Test notification creation (for debugging)"""
+        try:
+            title = request.data.get('title', 'Test Notification')
+            body = request.data.get('body', 'This is a test notification')
+            notification_type = request.data.get('type', 'general')
+            
+            notification = NotificationService.create_notification(
+                user=request.user,
+                title=title,
+                body=body,
+                notification_type=notification_type,
+                data={'test': True}
+            )
+            
+            if notification:
+                return Response({
+                    'message': 'Test notification created successfully',
+                    'notification_id': notification.id
+                })
+            else:
+                return Response({
+                    'error': 'Failed to create notification'
+                }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        except Exception as e:
+            return Response({
+                'error': str(e)
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
     @action(detail=True, methods=['patch'])
     def mark_as_read(self, request, pk=None):
         """Mark a notification as read"""
