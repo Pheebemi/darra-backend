@@ -16,6 +16,11 @@ from django.db.models.functions import TruncDate
 from apps.payments.serializers import PurchaseSerializer
 from .file_validation import validate_uploaded_file, ALLOWED_FILE_TYPES
 from django.core.exceptions import ValidationError
+from core.cache_utils import (
+    cache_product_list, cache_product_data, cache_user_data, 
+    performance_monitor, CacheManager
+)
+from django.core.cache import cache
 # Removed Cloudinary dependency - using local storage
 
 # Create your views here.
@@ -220,8 +225,10 @@ class ProductListView(generics.ListAPIView):
     permission_classes = [permissions.AllowAny]
     queryset = Product.objects.all()
 
+    @cache_product_list
+    @performance_monitor('get_product_list')
     def get_queryset(self):
-        queryset = Product.objects.all()
+        queryset = Product.objects.select_related('owner', 'ticket_category').prefetch_related('ticket_tiers')
         product_type = self.request.query_params.get('product_type', None)
         ticket_category = self.request.query_params.get('ticket_category', None)
         
@@ -236,6 +243,11 @@ class PublicProductDetailView(generics.RetrieveAPIView):
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
     queryset = Product.objects.all()
+
+    @cache_product_data
+    @performance_monitor('get_product_detail')
+    def get_queryset(self):
+        return Product.objects.select_related('owner', 'ticket_category').prefetch_related('ticket_tiers')
 
 class SellerOrdersView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]

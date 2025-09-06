@@ -159,21 +159,29 @@ class EventTicket(models.Model):
         return self.pdf_ticket.url if self.pdf_ticket else None
     
     def save(self, *args, **kwargs):
-        """Override save to generate QR code on creation"""
+        """Override save to trigger async asset generation on creation"""
         is_new = self.pk is None
         super().save(*args, **kwargs)
         
-        # Generate QR code immediately for new tickets
+        # Trigger async asset generation for new tickets
         if is_new and not self.qr_code:
             try:
-                print(f"DEBUG: Generating QR code for new ticket {self.ticket_id}")
-                self.generate_qr_code()
-                # Save the QR code fields
-                super().save(update_fields=['qr_code', 'qr_code_cloudinary_id'])
-                print(f"DEBUG: ✅ QR code generated and saved for ticket {self.ticket_id}")
+                # Try Celery first, fallback to threading
+                try:
+                    from .tasks import generate_ticket_assets
+                    print(f"DEBUG: Starting Celery async asset generation for ticket {self.ticket_id}")
+                    task = generate_ticket_assets.delay(self.id)
+                    print(f"DEBUG: ✅ Celery task started for ticket {self.ticket_id} (Task ID: {task.id})")
+                except ImportError:
+                    # Fallback to threading
+                    from core.async_fallback import generate_ticket_assets
+                    print(f"DEBUG: Starting threading async asset generation for ticket {self.ticket_id}")
+                    task = generate_ticket_assets(self.id)
+                    print(f"DEBUG: ✅ Threading task started for ticket {self.ticket_id}")
+                
             except Exception as e:
-                print(f"⚠️ QR code generation failed for ticket {self.ticket_id}: {str(e)}")
-                # Don't fail the ticket creation - QR code can be generated later
+                print(f"⚠️ Failed to start async asset generation for ticket {self.ticket_id}: {str(e)}")
+                # Don't fail the ticket creation - assets can be generated later
                 # The ticket is still created successfully
     
     def delete(self, *args, **kwargs):

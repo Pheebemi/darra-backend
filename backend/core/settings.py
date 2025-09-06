@@ -64,6 +64,10 @@ INSTALLED_APPS = [
     'apps.payments',
     'apps.notifications',
     'apps.events',
+    
+    # Celery apps
+    'django_celery_beat',
+    'django_celery_results',
 ]
 
 MIDDLEWARE = [
@@ -104,13 +108,37 @@ WSGI_APPLICATION = 'core.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/5.2/ref/settings/#databases
 
-# Use PostgreSQL in production (Render), SQLite in development
+# Database configuration with connection pooling
 if os.getenv('DATABASE_URL'):
     import dj_database_url
     DATABASES = {
         'default': dj_database_url.parse(os.getenv('DATABASE_URL'))
     }
+    # Add connection pooling for production
+    DATABASES['default']['CONN_MAX_AGE'] = 60
+    DATABASES['default']['OPTIONS'] = {
+        'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+        'charset': 'utf8mb4',
+    }
+elif os.getenv('MYSQL_DATABASE'):
+    # MySQL configuration for development/production
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.mysql',
+            'NAME': os.getenv('MYSQL_DATABASE', 'darra_app'),
+            'USER': os.getenv('MYSQL_USER', 'darra_user'),
+            'PASSWORD': os.getenv('MYSQL_PASSWORD', 'password'),
+            'HOST': os.getenv('MYSQL_HOST', 'localhost'),
+            'PORT': os.getenv('MYSQL_PORT', '3306'),
+            'CONN_MAX_AGE': 60,  # Connection pooling
+            'OPTIONS': {
+                'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
+                'charset': 'utf8mb4',
+            },
+        }
+    }
 else:
+    # SQLite for local development
     DATABASES = {
         'default': {
             'ENGINE': 'django.db.backends.sqlite3',
@@ -217,7 +245,7 @@ SIMPLE_JWT = {
 if DEBUG:
     # Development: Allow all origins for local development
     CORS_ALLOW_ALL_ORIGINS = True
-    print("🔧 CORS: Development mode - allowing all origins")
+    print("CORS: Development mode - allowing all origins")
 else:
     # Production: Only allow specific trusted domains
     CORS_ALLOW_ALL_ORIGINS = False
@@ -227,7 +255,7 @@ else:
         "https://www.darra-app.com",       # Replace with your www domain
         "https://your-mobile-app.com",     # Your mobile app domain if any
     ]
-    print("🔒 CORS: Production mode - restricted origins")
+    print("CORS: Production mode - restricted origins")
 
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_METHODS = [
@@ -242,7 +270,7 @@ CORS_ALLOW_METHODS = [
 # Email settings
 if DEBUG:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-    print("📧 Email: Development mode - sending to console")
+    print("Email: Development mode - sending to console")
 else:
     # Production email settings
     EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
@@ -256,11 +284,11 @@ else:
         EMAIL_USE_TLS = True
         EMAIL_USE_SSL = False
         DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
-        print("📧 Email: Production mode - SMTP configured")
+        print("Email: Production mode - SMTP configured")
     else:
         # Fallback to console if email credentials not set
         EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
-        print("⚠️ Email: Production mode - SMTP credentials not found, falling back to console")
+        print("Email: Production mode - SMTP credentials not found, falling back to console")
 
 # Paystack settings
 PAYSTACK_SECRET_KEY = os.getenv('PAYSTACK_SECRET_KEY', 'sk_test_your_test_secret_key_here')
@@ -292,6 +320,41 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = 'require-corp'
 
+# Celery Configuration
+# Check if Redis is available for Celery
+REDIS_AVAILABLE_FOR_CELERY = False
+try:
+    import redis
+    r = redis.Redis(host='127.0.0.1', port=6379, db=0)
+    r.ping()
+    REDIS_AVAILABLE_FOR_CELERY = True
+    print("Redis available for Celery")
+except:
+    print("Redis not available for Celery - using database broker")
+
+if REDIS_AVAILABLE_FOR_CELERY:
+    CELERY_BROKER_URL = os.getenv('CELERY_BROKER_URL', 'redis://127.0.0.1:6379/0')
+    CELERY_RESULT_BACKEND = 'redis://127.0.0.1:6379/0'
+else:
+    # Use database as broker when Redis is not available
+    CELERY_BROKER_URL = 'django-db'
+    CELERY_RESULT_BACKEND = 'django-db'
+
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+CELERY_ENABLE_UTC = True
+
+# Celery task settings
+CELERY_TASK_SOFT_TIME_LIMIT = 300  # 5 minutes
+CELERY_TASK_TIME_LIMIT = 600       # 10 minutes
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_WORKER_MAX_TASKS_PER_CHILD = 1000
+
+# Celery beat settings
+CELERY_BEAT_SCHEDULER = 'django_celery_beat.schedulers:DatabaseScheduler'
+
 # File Upload Settings
 FILE_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
 DATA_UPLOAD_MAX_MEMORY_SIZE = 10 * 1024 * 1024  # 10MB
@@ -311,4 +374,106 @@ CONTENT_SECURITY_POLICY = {
         'base-uri': ("'self'",),
         'form-action': ("'self'", "https://checkout.paystack.com"),
     }
+}
+
+# Redis Caching Configuration
+# Check if Redis is available and running
+REDIS_AVAILABLE = False
+try:
+    import redis
+    r = redis.Redis(host='127.0.0.1', port=6379, db=1)
+    r.ping()  # Test connection
+    REDIS_AVAILABLE = True
+    print("Redis is running - using Redis cache")
+except:
+    print("Redis not available - using local memory cache")
+
+if REDIS_AVAILABLE:
+    CACHES = {
+        'default': {
+            'BACKEND': 'django_redis.cache.RedisCache',
+            'LOCATION': os.getenv('REDIS_URL', 'redis://127.0.0.1:6379/1'),
+            'OPTIONS': {
+                'CLIENT_CLASS': 'django_redis.client.DefaultClient',
+                'CONNECTION_POOL_KWARGS': {
+                    'max_connections': 50,
+                    'retry_on_timeout': True,
+                },
+            },
+            'KEY_PREFIX': 'darra_app',
+            'TIMEOUT': 300,  # 5 minutes default timeout
+        }
+    }
+else:
+    # Fallback to local memory cache if Redis is not available
+    CACHES = {
+        'default': {
+            'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+            'LOCATION': 'unique-snowflake',
+            'OPTIONS': {
+                'MAX_ENTRIES': 1000,
+                'CULL_FREQUENCY': 3,
+            },
+            'TIMEOUT': 300,
+        }
+    }
+
+# Session caching
+SESSION_ENGINE = 'django.contrib.sessions.backends.cache'
+SESSION_CACHE_ALIAS = 'default'
+SESSION_COOKIE_AGE = 3600  # 1 hour
+
+# Cache configuration for different data types
+CACHE_TIMEOUTS = {
+    'user_data': 300,      # 5 minutes
+    'product_list': 600,   # 10 minutes
+    'product_detail': 1800, # 30 minutes
+    'payment_data': 60,    # 1 minute
+    'notification': 300,   # 5 minutes
+}
+
+# Performance monitoring
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {process:d} {thread:d} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'file': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': 'django_performance.log',
+            'formatter': 'verbose',
+        },
+        'console': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+    },
+    'loggers': {
+        'django.db.backends': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'django.cache': {
+            'handlers': ['file'],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'performance': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+    },
 }

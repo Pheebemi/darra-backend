@@ -399,6 +399,7 @@ class PaystackService:
                         
                         # Create tickets based on quantity with error handling
                         tickets = []
+                        ticket_ids = []
                         for ticket_num in range(purchase.quantity):
                             try:
                                 ticket = EventTicket.objects.create(
@@ -407,11 +408,22 @@ class PaystackService:
                                     event=purchase.product
                                 )
                                 tickets.append(ticket)
+                                ticket_ids.append(ticket.id)
                                 print(f"DEBUG: ✅ Created ticket {ticket.ticket_id} for event {purchase.product.title}")
                             except Exception as ticket_error:
                                 print(f"DEBUG: ❌ Error creating ticket {ticket_num + 1}: {str(ticket_error)}")
                                 # Continue with other tickets even if one fails
                                 continue
+                        
+                        # Start async asset generation for all tickets
+                        if ticket_ids:
+                            try:
+                                from apps.events.tasks import generate_multiple_ticket_assets
+                                task = generate_multiple_ticket_assets.delay(ticket_ids)
+                                print(f"DEBUG: 🚀 Started async asset generation for {len(ticket_ids)} tickets (Task ID: {task.id})")
+                            except Exception as e:
+                                print(f"DEBUG: ⚠️ Failed to start async asset generation: {str(e)}")
+                                # Don't fail the payment - tickets are created, assets can be generated later
                         
                         # Group tickets by event product
                         if purchase.product.id not in event_products:
