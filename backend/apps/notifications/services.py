@@ -25,6 +25,9 @@ class NotificationService:
     def send_payment_notification(payment, user):
         """Send payment notification to buyer"""
         try:
+            print(f"DEBUG: Creating payment notification for user {user.email}")
+            print(f"DEBUG: Payment amount: {payment.amount}, Reference: {payment.reference}")
+            
             title = "Payment Successful!"
             body = f"Your payment of ₦{payment.amount} has been processed successfully. Reference: {payment.reference}"
             
@@ -41,10 +44,16 @@ class NotificationService:
                 }
             )
             
-            print(f"Payment notification created for user {user.email}")
+            if notification:
+                print(f"✅ Payment notification created successfully for user {user.email}")
+            else:
+                print(f"❌ Failed to create payment notification for user {user.email}")
+            
             return notification
         except Exception as e:
-            print(f"Error sending payment notification: {str(e)}")
+            print(f"❌ Error sending payment notification: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
 
     @staticmethod

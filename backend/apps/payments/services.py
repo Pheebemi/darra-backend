@@ -438,25 +438,29 @@ class PaystackService:
                     except Exception as notif_error:
                         print(f"DEBUG: Error sending event ticket notification: {str(notif_error)}")
                 
-                # Send individual notifications for each purchase
+                # Send payment notification once for the buyer (for events)
+                try:
+                    NotificationService.send_payment_notification(payment, payment.user)
+                    print(f"DEBUG: ✅ Payment notification sent to buyer for event purchase")
+                except Exception as notif_error:
+                    print(f"DEBUG: ❌ Error sending payment notification: {str(notif_error)}")
+                
+                # Send order notifications for each purchase
                 for purchase in purchases:
-                    try:
-                        NotificationService.send_payment_notification(payment, payment.user)
-                    except Exception as notif_error:
-                        print(f"DEBUG: Error sending payment notification: {str(notif_error)}")
-                    
                     try:
                         NotificationService.send_order_notification(purchase, purchase.product.owner)
                     except Exception as notif_error:
                         print(f"DEBUG: Error sending order notification: {str(notif_error)}")
             else:
-                # Handle digital products - send notifications for each purchase
+                # Handle digital products - send payment notification once for the buyer
+                try:
+                    NotificationService.send_payment_notification(payment, payment.user)
+                    print(f"DEBUG: ✅ Payment notification sent to buyer for digital product purchase")
+                except Exception as notif_error:
+                    print(f"DEBUG: ❌ Error sending payment notification: {str(notif_error)}")
+                
+                # Send order notifications for each purchase
                 for purchase in purchases:
-                    try:
-                        NotificationService.send_payment_notification(payment, payment.user)
-                    except Exception as notif_error:
-                        print(f"DEBUG: Error sending payment notification: {str(notif_error)}")
-                    
                     try:
                         NotificationService.send_order_notification(purchase, purchase.product.owner)
                     except Exception as notif_error:
@@ -713,7 +717,14 @@ class PaymentService:
                         except Exception as notif_error:
                             print(f"DEBUG: ❌ Error sending event ticket notification: {str(notif_error)}")
                 
-                # Send notifications for all purchases (both events and digital products)
+                # Send payment notification once for the buyer
+                try:
+                    NotificationService.send_payment_notification(payment, payment.user)
+                    print(f"DEBUG: ✅ Payment notification sent to buyer")
+                except Exception as notif_error:
+                    print(f"DEBUG: ❌ Error sending payment notification: {str(notif_error)}")
+                
+                # Send order notifications for all purchases (both events and digital products)
                 for purchase in purchases:
                     try:
                         NotificationService.send_order_notification(purchase, purchase.product.owner)
