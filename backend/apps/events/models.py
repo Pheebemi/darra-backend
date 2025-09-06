@@ -6,7 +6,7 @@ import qrcode
 from io import BytesIO
 from django.core.files import File
 from PIL import Image
-from cloudinary_storage.storage import MediaCloudinaryStorage
+from django.core.files.storage import default_storage
 from .ticket_service import ticket_service
 
 User = get_user_model()
@@ -18,10 +18,10 @@ class EventTicket(models.Model):
     buyer = models.ForeignKey(User, on_delete=models.CASCADE, related_name='purchased_tickets')
     event = models.ForeignKey('products.Product', on_delete=models.CASCADE, related_name='tickets')
     quantity = models.PositiveIntegerField(default=1)
-    qr_code = models.ImageField(upload_to='tickets/qr_codes/', blank=True, null=True, storage=MediaCloudinaryStorage())
-    qr_code_cloudinary_id = models.CharField(max_length=255, blank=True, null=True)  # Store Cloudinary public_id
-    pdf_ticket = models.FileField(upload_to='tickets/pdf/', blank=True, null=True, storage=MediaCloudinaryStorage())
-    pdf_ticket_cloudinary_id = models.CharField(max_length=255, blank=True, null=True)  # Store Cloudinary public_id
+    qr_code = models.ImageField(upload_to='tickets/qr_codes/', blank=True, null=True)
+    qr_code_file_path = models.CharField(max_length=500, blank=True, null=True)  # Store local file path
+    pdf_ticket = models.FileField(upload_to='tickets/pdf/', blank=True, null=True)
+    pdf_ticket_file_path = models.CharField(max_length=500, blank=True, null=True)  # Store local file path
     is_used = models.BooleanField(default=False)
     used_at = models.DateTimeField(null=True, blank=True)
     verified_by = models.ForeignKey(User, on_delete=models.SET_NULL, null=True, blank=True, related_name='verified_tickets')
@@ -32,8 +32,8 @@ class EventTicket(models.Model):
         return f"Ticket {self.ticket_id} for {self.event.title}"
     
     def generate_qr_code(self):
-        """Generate QR code for this ticket and upload to Cloudinary"""
-        if self.qr_code and self.qr_code_cloudinary_id:
+        """Generate QR code for this ticket and save to local storage"""
+        if self.qr_code and self.qr_code_file_path:
             return self.qr_code
             
         try:
@@ -48,8 +48,8 @@ class EventTicket(models.Model):
                 print(f"⚠️ QR code generation failed for ticket {self.ticket_id}, using fallback")
                 return self._generate_local_qr_code()
             
-            # Upload to Cloudinary
-            cloudinary_result = ticket_service.upload_qr_code_to_cloudinary(
+            # Upload to local storage
+            cloudinary_result = ticket_service.upload_qr_code_to_local_storage(
                 qr_buffer, 
                 str(self.ticket_id), 
                 self.event.id
@@ -57,15 +57,18 @@ class EventTicket(models.Model):
             
             # Check if upload was successful
             if cloudinary_result is None:
-                print(f"⚠️ Cloudinary upload failed for ticket {self.ticket_id}, using fallback")
+                print(f"⚠️ Local storage upload failed for ticket {self.ticket_id}, using fallback")
                 return self._generate_local_qr_code()
             
-            # Save Cloudinary ID
-            self.qr_code_cloudinary_id = cloudinary_result['public_id']
+            # Save file path
+            self.qr_code_file_path = cloudinary_result['public_id']
             
             # Save the file reference
             filename = f"ticket_{self.ticket_id}.png"
             self.qr_code.save(filename, File(qr_buffer), save=False)
+            
+            # Save the model to database
+            self.save(update_fields=['qr_code', 'qr_code_file_path'])
             
             return self.qr_code
             
@@ -96,11 +99,15 @@ class EventTicket(models.Model):
         
         filename = f"ticket_{self.ticket_id}.png"
         self.qr_code.save(filename, File(buffer), save=False)
+        
+        # Save the model to database
+        self.save(update_fields=['qr_code'])
+        
         return self.qr_code
     
     def generate_pdf_ticket(self):
-        """Generate PDF ticket and upload to Cloudinary"""
-        if self.pdf_ticket and self.pdf_ticket_cloudinary_id:
+        """Generate PDF ticket and save to local storage"""
+        if self.pdf_ticket and self.pdf_ticket_file_path:
             return self.pdf_ticket
             
         try:
@@ -121,8 +128,8 @@ class EventTicket(models.Model):
                 print(f"⚠️ PDF generation failed for ticket {self.ticket_id}")
                 return None
             
-            # Upload to Cloudinary
-            cloudinary_result = ticket_service.upload_pdf_ticket_to_cloudinary(
+            # Upload to local storage
+            cloudinary_result = ticket_service.upload_pdf_ticket_to_local_storage(
                 pdf_buffer, 
                 str(self.ticket_id), 
                 self.event.id
@@ -133,8 +140,8 @@ class EventTicket(models.Model):
                 print(f"⚠️ PDF upload failed for ticket {self.ticket_id}")
                 return None
             
-            # Save Cloudinary ID
-            self.pdf_ticket_cloudinary_id = cloudinary_result['public_id']
+            # Save file path
+            self.pdf_ticket_file_path = cloudinary_result['public_id']
             
             # Save the file reference
             filename = f"ticket_{self.ticket_id}.pdf"
@@ -147,15 +154,15 @@ class EventTicket(models.Model):
             return None
     
     def get_qr_code_url(self, transformation: str = None) -> str:
-        """Get optimized QR code URL from Cloudinary"""
-        if self.qr_code_cloudinary_id:
-            return ticket_service.get_ticket_url(self.qr_code_cloudinary_id, transformation)
+        """Get QR code URL from local storage"""
+        if self.qr_code_file_path:
+            return ticket_service.get_ticket_url(self.qr_code_file_path, transformation)
         return self.qr_code.url if self.qr_code else None
     
     def get_pdf_ticket_url(self) -> str:
-        """Get PDF ticket URL from Cloudinary"""
-        if self.pdf_ticket_cloudinary_id:
-            return ticket_service.get_ticket_url(self.pdf_ticket_cloudinary_id)
+        """Get PDF ticket URL from local storage"""
+        if self.pdf_ticket_file_path:
+            return ticket_service.get_ticket_url(self.pdf_ticket_file_path)
         return self.pdf_ticket.url if self.pdf_ticket else None
     
     def save(self, *args, **kwargs):
@@ -185,12 +192,12 @@ class EventTicket(models.Model):
                 # The ticket is still created successfully
     
     def delete(self, *args, **kwargs):
-        """Override delete to clean up Cloudinary files"""
-        # Delete from Cloudinary before deleting the model
-        if self.qr_code_cloudinary_id:
-            ticket_service.delete_ticket_from_cloudinary(self.qr_code_cloudinary_id)
-        if self.pdf_ticket_cloudinary_id:
-            ticket_service.delete_ticket_from_cloudinary(self.pdf_ticket_cloudinary_id)
+        """Override delete to clean up local files"""
+        # Delete from local storage before deleting the model
+        if self.qr_code_file_path:
+            ticket_service.delete_ticket_from_local_storage(self.qr_code_file_path)
+        if self.pdf_ticket_file_path:
+            ticket_service.delete_ticket_from_local_storage(self.pdf_ticket_file_path)
         
         super().delete(*args, **kwargs)
     

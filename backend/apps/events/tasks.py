@@ -24,6 +24,8 @@ def generate_ticket_qr_code(self, ticket_id):
         qr_code = ticket.generate_qr_code()
         
         if qr_code:
+            # Save the model to database after generating QR code
+            ticket.save(update_fields=['qr_code', 'qr_code_file_path'])
             logger.info(f"QR code generated successfully for ticket {ticket_id}")
             return {
                 'status': 'success',
@@ -61,6 +63,8 @@ def generate_ticket_pdf(self, ticket_id):
         pdf_ticket = ticket.generate_pdf_ticket()
         
         if pdf_ticket:
+            # Save the model to database after generating PDF
+            ticket.save(update_fields=['pdf_ticket', 'pdf_ticket_file_path'])
             logger.info(f"PDF generated successfully for ticket {ticket_id}")
             return {
                 'status': 'success',

@@ -8,8 +8,15 @@ For your Darra app, **MySQL is the better choice** because:
 - ✅ **Better for simple queries** - Your app has straightforward queries
 - ✅ **Great performance** - Handles 100K+ users easily
 - ✅ **Wide support** - More hosting options available
-
-## 📊 **Scalability Projections**
+ python manage.py makemigrations events
+CORS: Production mode - restricted origins
+Email: Production mode - SMTP configured
+Redis not available for Celery - using database broker
+Redis not available - using local memory cache
+Warning: python-magic not available, using extension-based validation
+No changes detected in app 'events'
+(venv) 
+## 📊 **Scalability Projections**icket
 
 ### **MySQL Scaling Tiers**
 
