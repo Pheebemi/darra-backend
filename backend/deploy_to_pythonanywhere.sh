@@ -6,11 +6,11 @@
 echo "🚀 Starting PythonAnywhere deployment..."
 
 # Navigate to project directory
-cd /home/$USER/darra-app/backend
+cd /home/pheedev/darra-backend/backend
 
 # Pull latest changes from GitHub (optional)
 echo "📥 Pulling latest changes from GitHub..."
-git pull origin main
+git pull origin master
 
 # Create virtual environment if it doesn't exist
 if [ ! -d "venv" ]; then
@@ -41,6 +41,6 @@ echo "You can skip this by pressing Ctrl+C"
 python manage.py createsuperuser
 
 echo "✅ Deployment complete!"
-echo "🌐 Your app should now be available at: https://$USER.pythonanywhere.com"
-echo "📊 Admin panel: https://$USER.pythonanywhere.com/admin"
-echo "🔗 API endpoints: https://$USER.pythonanywhere.com/api"
+echo "🌐 Your app should now be available at: https://pheedev.pythonanywhere.com"
+echo "📊 Admin panel: https://pheedev.pythonanywhere.com/admin"
+echo "🔗 API endpoints: https://pheedev.pythonanywhere.com/api"

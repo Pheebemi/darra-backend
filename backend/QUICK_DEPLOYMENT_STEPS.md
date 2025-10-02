@@ -11,13 +11,13 @@ git push origin main
 
 ### Clone your repository:
 ```bash
-cd /home/yourusername/
-git clone https://github.com/yourusername/darra-app.git
+cd /home/pheedev/
+git clone https://github.com/Pheebemi/darra-backend.git
 ```
 
 ### Run the deployment script:
 ```bash
-cd darra-app/backend
+cd darra-backend/backend
 chmod +x deploy_to_pythonanywhere.sh
 ./deploy_to_pythonanywhere.sh
 ```
@@ -32,7 +32,7 @@ chmod +x deploy_to_pythonanywhere.sh
    import os
    import sys
    
-   path = '/home/yourusername/darra-app/backend'
+   path = '/home/pheedev/darra-backend/backend'
    if path not in sys.path:
        sys.path.append(path)
    
@@ -44,18 +44,18 @@ chmod +x deploy_to_pythonanywhere.sh
 
 ### Configure Static Files:
 - **URL:** `/static/`
-- **Directory:** `/home/yourusername/darra-app/backend/staticfiles`
+- **Directory:** `/home/pheedev/darra-backend/backend/staticfiles`
 
 - **URL:** `/media/`
-- **Directory:** `/home/yourusername/darra-app/backend/media`
+- **Directory:** `/home/pheedev/darra-backend/backend/media`
 
 ## 3. Update Mobile App
 In `mobile/lib/api/client.ts`, change:
 ```typescript
-const BASE_URL = 'https://yourusername.pythonanywhere.com/api';
+const BASE_URL = 'https://pheedev.pythonanywhere.com/api';
 ```
 
 ## 4. Test
-- Visit: `https://yourusername.pythonanywhere.com`
-- API: `https://yourusername.pythonanywhere.com/api/`
-- Admin: `https://yourusername.pythonanywhere.com/admin/`
+- Visit: `https://pheedev.pythonanywhere.com`
+- API: `https://pheedev.pythonanywhere.com/api/`
+- Admin: `https://pheedev.pythonanywhere.com/admin/`

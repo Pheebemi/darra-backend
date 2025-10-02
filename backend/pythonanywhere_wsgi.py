@@ -9,13 +9,12 @@ import os
 import sys
 
 # add your project directory to the sys.path
-# replace 'yourusername' with your actual PythonAnywhere username
-path = '/home/yourusername/darra-app/backend'
+path = '/home/pheedev/darra-backend/backend'
 if path not in sys.path:
     sys.path.append(path)
 
 # add the Django project directory to the sys.path
-django_project_path = '/home/yourusername/darra-app/backend'
+django_project_path = '/home/pheedev/darra-backend/backend'
 if django_project_path not in sys.path:
     sys.path.append(django_project_path)
 
