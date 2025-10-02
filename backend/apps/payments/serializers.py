@@ -26,29 +26,35 @@ class UserLibrarySerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'quantity', 'added_at', 'event_tickets']
     
     def get_event_tickets(self, obj):
-        """Get event ticket details including QR codes for event products"""
+        """Get fast event ticket details including PNG tickets for event products"""
         print(f"DEBUG: Processing product {obj.product.id} with type: {obj.product.product_type}")
         
         if obj.product.product_type == 'event':
             try:
-                from apps.events.models import EventTicket
-                print(f"DEBUG: Importing EventTicket model")
+                from apps.events.fast_models import FastEventTicket
+                print(f"DEBUG: Importing FastEventTicket model")
                 
-                tickets = EventTicket.objects.filter(purchase=obj.purchase)
-                print(f"DEBUG: Found {tickets.count()} tickets for purchase {obj.purchase.id}")
+                tickets = FastEventTicket.objects.filter(purchase=obj.purchase)
+                print(f"DEBUG: Found {tickets.count()} fast tickets for purchase {obj.purchase.id}")
                 
-                result = [{
-                    'id': ticket.id,
-                    'ticket_id': str(ticket.ticket_id),
-                    'qr_code_url': ticket.qr_code.url if ticket.qr_code else None,
-                    'is_used': ticket.is_used,
-                    'created_at': ticket.created_at
-                } for ticket in tickets]
+                result = []
+                for ticket in tickets:
+                    ticket_data = {
+                        'id': ticket.id,
+                        'ticket_id': str(ticket.ticket_id),
+                        'ticket_png_url': ticket.ticket_png.url if ticket.ticket_png else None,
+                        'qr_code_url': ticket.qr_code.url if ticket.qr_code else None,
+                        'is_used': ticket.is_used,
+                        'created_at': ticket.created_at
+                    }
+                    print(f"DEBUG: Ticket {ticket.ticket_id} - PNG URL: {ticket_data['ticket_png_url']}")
+                    print(f"DEBUG: Ticket {ticket.ticket_id} - QR URL: {ticket_data['qr_code_url']}")
+                    result.append(ticket_data)
                 
-                print(f"DEBUG: Serialized tickets: {result}")
+                print(f"DEBUG: Serialized fast tickets: {result}")
                 return result
             except Exception as e:
-                print(f"ERROR: Error getting event tickets: {e}")
+                print(f"ERROR: Error getting fast event tickets: {e}")
                 import traceback
                 traceback.print_exc()
                 return []

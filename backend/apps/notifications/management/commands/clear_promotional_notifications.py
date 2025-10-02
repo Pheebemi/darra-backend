@@ -39,3 +39,6 @@ class Command(BaseCommand):
                 f'Successfully deleted {deleted_count} promotional notifications.'
             )
         )
+
+
+

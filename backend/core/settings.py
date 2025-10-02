@@ -32,10 +32,11 @@ DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = [
     'localhost',
-    '127.0.0.1',
+    '127.0.0.1',    
     '172.20.10.3',
     '172.20.10.3', 
     '.onrender.com',  # Render deployment
+    '.pythonanywhere.com',  # PythonAnywhere deployment
     # Add your custom domain here when you have one
 ]
 
