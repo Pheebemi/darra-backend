@@ -57,7 +57,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     'corsheaders',
     'csp',  # Content Security Policy
-    'cloudinary_storage',  # Cloudinary storage backend
+    # 'cloudinary_storage',  # Cloudinary storage backend - commented out for local storage
     
     # Local apps
     'users',

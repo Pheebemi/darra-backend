@@ -16,10 +16,11 @@ requests>=2.31.0
 # Additional utilities
 Pillow>=10.0.0  # For image handling
 img2pdf>=0.5.1  # For converting images to PDF
+qrcode>=7.4.2  # For generating QR codes
 
-# Cloudinary integration
-cloudinary>=1.40.0
-django-cloudinary-storage>=0.3.0
+# Cloudinary integration (commented out for local storage)
+# cloudinary>=1.40.0
+# django-cloudinary-storage>=0.3.0
 
 # Production server
 gunicorn>=21.2.0

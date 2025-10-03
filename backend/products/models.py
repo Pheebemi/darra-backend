@@ -1,6 +1,6 @@
 from django.db import models
 from users.models import User
-from cloudinary_storage.storage import MediaCloudinaryStorage
+# from cloudinary_storage.storage import MediaCloudinaryStorage  # Commented out for local storage
 
 class TicketCategory(models.Model):
     """Different types of tickets (VIP, Regular, Premium, etc.)"""
