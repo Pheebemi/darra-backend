@@ -187,7 +187,8 @@ STATIC_URL = '/static/'
 STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
 
 # WhiteNoise configuration for static files
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Use WhiteNoise for static files serving
+STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 
 # Media files (User uploads)
 MEDIA_URL = '/media/'
