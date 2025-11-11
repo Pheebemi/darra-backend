@@ -1,10 +1,54 @@
+"use client";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Search, Ticket, Shield, Zap, QrCode, Users } from "lucide-react";
+import { SafeImage } from "@/components/safe-image";
+import { useEffect, useMemo, useState } from "react";
+
+type TicketTier = {
+  id: number;
+  name: string;
+  price: number;
+  is_sold_out?: boolean;
+};
+
+type Product = {
+  id: number;
+  title: string;
+  description: string;
+  price: number;
+  product_type: string;
+  cover_image?: string;
+  ticket_tiers?: TicketTier[];
+  is_ticket_event?: boolean;
+};
 
 export default function Home() {
+  const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
+        const res = await fetch("/api/products");
+        if (!res.ok) throw new Error("Failed to fetch products");
+        const data = await res.json();
+        setProducts(Array.isArray(data) ? data : []);
+      } catch (_) {
+        setProducts([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
+  }, []);
+
+  const featuredProducts = useMemo(() => {
+    return products.filter((p) => p.product_type === "event").slice(0, 3);
+  }, [products]);
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -113,13 +157,30 @@ export default function Home() {
         </div>
 
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {[
-            { id: 1, name: "Summer Music Festival", price: "₦15,000", category: "Music" },
-            { id: 2, name: "Tech Conference 2024", price: "₦25,000", category: "Conference" },
-            { id: 3, name: "Art Exhibition Opening", price: "₦10,000", category: "Art" }
-          ].map((event) => (
-            <TicketCard key={event.id} event={event} />
-          ))}
+          {loading ? (
+            [1, 2, 3].map((i) => (
+              <Card key={i} className="group overflow-hidden rounded-2xl border-slate-200/50 bg-white/80 backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80">
+                <div className="relative h-48 overflow-hidden">
+                  <div className="absolute inset-0 animate-pulse bg-slate-200 dark:bg-slate-700" />
+                </div>
+                <CardContent className="p-6">
+                  <div className="h-6 w-1/2 animate-pulse rounded bg-slate-200 dark:bg-slate-700" />
+                </CardContent>
+              </Card>
+            ))
+          ) : featuredProducts.length === 0 ? (
+            [
+              "No featured events yet. Explore all tickets while we curate highlights.",
+            ].map((msg, i) => (
+              <Card key={i} className="rounded-2xl border-slate-200/50 bg-white/80 p-6 text-slate-600 dark:border-slate-700/50 dark:bg-slate-800/80 dark:text-slate-300">
+                {msg}
+              </Card>
+            ))
+          ) : (
+            featuredProducts.map((product) => (
+              <FeaturedTicketCard key={product.id} product={product} />
+            ))
+          )}
         </div>
       </section>
     </div>
@@ -155,33 +216,43 @@ function FeatureCard({ icon, title, description, delay }: {
   );
 }
 
-// Ticket Card Component
-function TicketCard({ event }: { event: { id: number; name: string; price: string; category: string } }) {
+// Featured Ticket Card Component (uses real product)
+function FeaturedTicketCard({ product }: { product: Product }) {
+  const minPrice = (() => {
+    if (product.is_ticket_event && product.ticket_tiers?.length) {
+      const prices = product.ticket_tiers
+        .filter((t) => !t.is_sold_out)
+        .map((t) => t.price);
+      return prices.length > 0 ? Math.min(...prices) : null;
+    }
+    return product.price || null;
+  })();
+
   return (
     <Card className="group overflow-hidden rounded-2xl border-slate-200/50 bg-white dark:border-slate-700/50 dark:bg-slate-800 transition-all duration-300 hover:shadow-xl hover:border-slate-300 dark:hover:border-slate-600">
       <div className="relative h-48 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
-        <div className="absolute top-4 left-4">
-          <span className="rounded-full bg-white/90 px-3 py-1 text-xs font-medium text-slate-700 backdrop-blur-sm dark:bg-slate-900/90 dark:text-slate-300">
-            {event.category}
-          </span>
-        </div>
+        {product.cover_image ? (
+          <SafeImage src={product.cover_image} alt={product.title} fill className="object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 to-purple-500/20" />
+        )}
         <div className="absolute bottom-4 left-4 right-4">
-          <h3 className="text-xl font-bold text-white drop-shadow-md">{event.name}</h3>
+          <h3 className="text-xl font-bold text-white drop-shadow-md line-clamp-1">{product.title}</h3>
         </div>
-        
-        {/* Gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-slate-900/60 via-transparent to-transparent" />
       </div>
-      
       <CardContent className="p-6">
         <div className="flex items-center justify-between">
           <div>
-            <p className="text-2xl font-bold text-slate-900 dark:text-white">{event.price}</p>
+            {minPrice !== null ? (
+              <p className="text-2xl font-bold text-slate-900 dark:text-white">₦{minPrice.toLocaleString()}</p>
+            ) : (
+              <p className="text-sm text-slate-600 dark:text-slate-400">Sold out</p>
+            )}
             <p className="text-sm text-slate-600 dark:text-slate-400">Starting price</p>
           </div>
           <Button className="rounded-xl transition-transform group-hover:scale-105" asChild>
-            <Link href={`/tickets/${event.id}`}>View Details</Link>
+            <Link href={`/tickets/${product.id}`}>View Details</Link>
           </Button>
         </div>
       </CardContent>
