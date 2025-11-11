@@ -209,15 +209,18 @@ class PaystackService:
             'Content-Type': 'application/json'
         }
     
-    def initialize_payment(self, payment):
+    def initialize_payment(self, payment, callback_url: str | None = None):
         """Initialize payment with Paystack"""
         url = f"{self.base_url}/transaction/initialize"
         
+        # Prefer a provided callback_url (from frontend) else fallback to settings.BASE_URL
+        resolved_callback = callback_url or f"{settings.BASE_URL}/api/payments/verify/{payment.reference}/"
+
         payload = {
             'email': payment.user.email,
             'amount': int(payment.amount * 100),  # Convert to kobo (smallest currency unit)
             'reference': payment.reference,
-            'callback_url': f"{settings.BASE_URL}/api/payments/verify/{payment.reference}/",
+            'callback_url': resolved_callback,
             'metadata': {
                 'payment_id': payment.id,
                 'user_id': payment.user.id
