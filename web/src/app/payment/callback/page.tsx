@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -7,7 +7,7 @@ import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
 import { useCart } from "@/lib/cart/cart-context";
 import { toast } from "sonner";
 
-export default function PaymentCallbackPage() {
+function CallbackInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { clearCart } = useCart();
@@ -15,8 +15,6 @@ export default function PaymentCallbackPage() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    // Paystack: reference, trxref
-    // Flutterwave: status, tx_ref, transaction_id
     const reference = searchParams.get("reference") || searchParams.get("trxref") || searchParams.get("tx_ref");
     const fwStatus = searchParams.get("status");
 
@@ -26,7 +24,6 @@ export default function PaymentCallbackPage() {
       return;
     }
 
-    // If provider reports failure in query, short-circuit
     if (fwStatus && fwStatus.toLowerCase() !== "successful") {
       setStatus("failed");
       setMessage("Payment reported as failed by provider.");
@@ -34,6 +31,7 @@ export default function PaymentCallbackPage() {
     }
 
     verifyPayment(reference);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [searchParams]);
 
   const verifyPayment = async (reference: string) => {
@@ -45,7 +43,6 @@ export default function PaymentCallbackPage() {
         throw new Error(data.message || "Payment verification failed");
       }
 
-      // Accept both shapes { payment: {... status }} and raw payment
       const payment = data.payment || data;
       if (payment?.status === "success" || payment?.status === "successful") {
         setStatus("success");
@@ -72,9 +69,7 @@ export default function PaymentCallbackPage() {
             <>
               <Loader2 className="mx-auto h-16 w-16 animate-spin text-primary" />
               <h2 className="mt-4 text-2xl font-semibold">Verifying Payment</h2>
-              <p className="mt-2 text-foreground/70">
-                Please wait while we verify your payment...
-              </p>
+              <p className="mt-2 text-foreground/70">Please wait while we verify your payment...</p>
             </>
           )}
 
@@ -83,9 +78,7 @@ export default function PaymentCallbackPage() {
               <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
               <h2 className="mt-4 text-2xl font-semibold">Payment Successful!</h2>
               <p className="mt-2 text-foreground/70">{message}</p>
-              <p className="mt-4 text-sm text-foreground/60">
-                Redirecting to your tickets...
-              </p>
+              <p className="mt-4 text-sm text-foreground/60">Redirecting to your tickets...</p>
             </>
           )}
 
@@ -95,18 +88,31 @@ export default function PaymentCallbackPage() {
               <h2 className="mt-4 text-2xl font-semibold">Payment Failed</h2>
               <p className="mt-2 text-foreground/70">{message}</p>
               <div className="mt-6 flex gap-3">
-                <Button variant="outline" onClick={() => router.push("/cart")}>
-                  Try Again
-                </Button>
-                <Button onClick={() => router.push("/tickets")}>
-                  Browse Tickets
-                </Button>
+                <Button variant="outline" onClick={() => router.push("/cart")}>Try Again</Button>
+                <Button onClick={() => router.push("/tickets")}>Browse Tickets</Button>
               </div>
             </>
           )}
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function PaymentCallbackPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center px-6">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-8 text-center">
+            <Loader2 className="mx-auto h-16 w-16 animate-spin text-primary" />
+            <h2 className="mt-4 text-2xl font-semibold">Processing payment...</h2>
+          </CardContent>
+        </Card>
+      </div>
+    }>
+      <CallbackInner />
+    </Suspense>
   );
 }
 
