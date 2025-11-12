@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Label } from "@/components/ui/label";
@@ -9,7 +9,7 @@ import { useAuth } from "@/lib/auth/auth-context";
 import { toast } from "sonner";
 import { Mail, Shield, RotateCcw, ArrowLeft, CheckCircle } from "lucide-react";
 
-export default function VerifyOTPPage() {
+function VerifyOTPInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email") || "";
@@ -223,5 +223,32 @@ export default function VerifyOTPPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function VerifyOTPPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-[calc(100dvh-8rem)] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-900">
+        <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center px-6 py-12">
+          <div className="w-full max-w-md">
+            <div className="rounded-2xl border border-slate-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80">
+              <div className="text-center">
+                <div className="mb-4 flex justify-center">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white">
+                    <Shield className="h-6 w-6 animate-pulse" />
+                  </div>
+                </div>
+                <h1 className="mb-3 text-3xl font-bold bg-gradient-to-br from-slate-900 to-blue-700 dark:from-slate-100 dark:to-blue-400 bg-clip-text text-transparent">
+                  Loading...
+                </h1>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <VerifyOTPInner />
+    </Suspense>
   );
 }

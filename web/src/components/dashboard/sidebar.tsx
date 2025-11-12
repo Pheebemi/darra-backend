@@ -93,14 +93,14 @@ const sellerItems: SidebarItem[] = [
   },
 ];
 
-export function DashboardSidebar() {
+export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const pathname = usePathname();
   const { user, logout } = useAuth();
   const userType = (user?.user_type || "buyer").toLowerCase();
   const items = userType === "seller" ? sellerItems : buyerItems;
 
   return (
-    <aside className="fixed left-0 top-16 z-30 h-[calc(100vh-4rem)] w-64 border-r bg-background">
+    <aside className="h-full w-full">
       <div className="flex h-full flex-col">
         <nav className="flex-1 space-y-1 p-4">
           {items.map((item) => {
@@ -110,6 +110,7 @@ export function DashboardSidebar() {
               <Link
                 key={item.href}
                 href={item.href}
+                onClick={onNavigate}
                 className={cn(
                   "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                   isActive
@@ -128,6 +129,7 @@ export function DashboardSidebar() {
           <div className="mb-4 space-y-1">
             <Link
               href="/dashboard/seller/settings"
+              onClick={onNavigate}
               className={cn(
                 "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors",
                 pathname.includes("/settings")
