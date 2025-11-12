@@ -27,6 +27,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/lib/auth/auth-context";
 import { toast } from "sonner";
+import { getImageUrl } from "@/lib/utils";
 
 interface EventTicket {
   id: number;
@@ -179,7 +180,7 @@ export default function MyTicketsPage() {
                         <div className="relative h-48 w-full bg-gradient-to-br from-blue-500/10 to-purple-500/10">
                           {ticket.qr_code_url ? (
                             <SafeImage
-                              src={ticket.qr_code_url}
+                              src={getImageUrl(ticket.qr_code_url)}
                               alt="QR Code"
                               fill
                               className="object-contain p-6"
@@ -231,16 +232,26 @@ export default function MyTicketsPage() {
                                 </DialogTitle>
                               </DialogHeader>
                               <div className="space-y-6">
-                                {ticket.qr_code_url && (
+                                {ticket.ticket_png_url ? (
+                                  <div className="relative mx-auto w-full rounded-xl overflow-hidden bg-gradient-to-br from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20">
+                                    <SafeImage
+                                      src={getImageUrl(ticket.ticket_png_url)}
+                                      alt="Ticket"
+                                      width={600}
+                                      height={400}
+                                      className="w-full h-auto object-contain"
+                                    />
+                                  </div>
+                                ) : ticket.qr_code_url ? (
                                   <div className="relative mx-auto aspect-square w-full max-w-xs rounded-xl bg-gradient-to-br from-blue-50 to-purple-50 p-6 dark:from-blue-900/20 dark:to-purple-900/20">
                                     <SafeImage
-                                      src={ticket.qr_code_url}
+                                      src={getImageUrl(ticket.qr_code_url)}
                                       alt="QR Code"
                                       fill
                                       className="object-contain"
                                     />
                                   </div>
-                                )}
+                                ) : null}
                                 <div className="space-y-3 text-sm">
                                   <div className="flex justify-between items-center py-2 border-b border-slate-200/50 dark:border-slate-700/50">
                                     <span className="text-slate-600 dark:text-slate-400">Ticket ID:</span>
@@ -308,7 +319,7 @@ export default function MyTicketsPage() {
                       <div className="relative h-48 w-full">
                         {item.product.cover_image_url ? (
                           <SafeImage
-                            src={item.product.cover_image_url}
+                            src={getImageUrl(item.product.cover_image_url)}
                             alt={item.product.title}
                             fill
                             className="object-cover"
