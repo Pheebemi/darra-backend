@@ -35,15 +35,18 @@ class FlutterwaveService:
             'Content-Type': 'application/json'
         }
     
-    def initialize_payment(self, payment):
+    def initialize_payment(self, payment, callback_url: str | None = None):
         """Initialize payment with Flutterwave"""
         url = f"{self.base_url}/payments"
+        
+        # Prefer a provided callback_url (from frontend) else fallback to settings.BASE_URL
+        resolved_callback = callback_url or f"{settings.BASE_URL}/api/payments/verify/{payment.reference}/"
         
         payload = {
             'tx_ref': payment.reference,  # This will now be DARRA_XXXX format
             'amount': float(payment.amount),  # Flutterwave uses float, not kobo
             'currency': payment.currency,
-            'redirect_url': f"{settings.BASE_URL}/api/payments/verify/{payment.reference}/",
+            'redirect_url': resolved_callback,
             'customer': {
                 'email': payment.user.email,
                 'name': payment.user.full_name,

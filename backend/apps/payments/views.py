@@ -69,7 +69,11 @@ class CheckoutView(generics.CreateAPIView):
                 print(f"DEBUG: Payment amount: {payment.amount}")
                 print(f"DEBUG: User email: {payment.user.email}")
                 
-                payment_response = payment_service.initialize_payment(payment)
+                # Get callback_url from serializer if provided
+                callback_url = serializer.validated_data.get('callback_url')
+                print(f"DEBUG: Callback URL: {callback_url}")
+                
+                payment_response = payment_service.initialize_payment(payment, callback_url=callback_url)
                 print(f"DEBUG: {payment.payment_provider} response: {payment_response}")
                 
                 # Return payment data with provider-specific authorization URL
