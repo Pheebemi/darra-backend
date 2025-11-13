@@ -30,9 +30,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
-    const callbackUrl = `${siteUrl}/payment/callback`;
-
+    const siteUrl =
+      process.env.NEXT_PUBLIC_SITE_URL ??
+      request.headers.get("origin") ??
+      "https://darra.vercel.app";
+const callbackUrl = `${siteUrl}/payment/callback`;
     const response = await apiClient.post(
       "/payments/checkout/",
       {
