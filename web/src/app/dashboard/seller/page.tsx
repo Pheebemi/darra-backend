@@ -533,14 +533,55 @@ export default function SellerDashboard() {
           </div>
         )}
 
+        {/* Quick Actions */}
+        <div className="mb-8 grid gap-4 md:grid-cols-2">
+          <Card>
+            <CardHeader>
+              <CardTitle>Manage Events</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button asChild className="w-full">
+                <Link href="/dashboard/seller/create-event">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Create Event
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard/seller/inventory">
+                  <Package className="mr-2 h-4 w-4" />
+                  View Inventory
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader>
+              <CardTitle>Orders & Analytics</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard/seller/orders">
+                  <ShoppingBag className="mr-2 h-4 w-4" />
+                  View Orders
+                </Link>
+              </Button>
+              <Button asChild variant="outline" className="w-full">
+                <Link href="/dashboard/seller">
+                  <BarChart3 className="mr-2 h-4 w-4" />
+                  View Analytics
+                </Link>
+              </Button>
+            </CardContent>
+          </Card>
+        </div>
+
         {/* Your Events */}
         <div className="mb-8">
           <div className="mb-4 flex items-center justify-between">
             <h2 className="text-xl font-semibold">Your Events</h2>
-            <Button asChild size="sm">
-              <Link href="/dashboard/seller/create-event">
-                <Plus className="mr-2 h-4 w-4" />
-                Create Event
+            <Button asChild size="sm" variant="outline">
+              <Link href="/dashboard/seller/inventory">
+                View All Products
               </Link>
             </Button>
           </div>
