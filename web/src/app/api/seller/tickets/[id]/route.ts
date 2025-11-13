@@ -1,10 +1,14 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { apiClient } from "@/lib/api/client";
-import { getAuthCookies } from "@/lib/auth/cookies";
+import { getValidAccessToken } from "@/lib/auth/get-access-token";
 
-export async function GET(request: NextRequest) {
+export async function GET(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
-    const { accessToken } = await getAuthCookies();
+    const { id } = await params;
+    const accessToken = await getValidAccessToken();
 
     if (!accessToken) {
       return NextResponse.json(
@@ -13,7 +17,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const response = await apiClient.get("/auth/profile/", {
+    const response = await apiClient.get(`/events/ticket/${id}/`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -25,14 +29,10 @@ export async function GET(request: NextRequest) {
     const message =
       error.response?.data?.message ||
       error.message ||
-      "Failed to fetch profile";
+      "Failed to fetch ticket details";
 
     return NextResponse.json({ message }, { status });
   }
 }
-
-
-
-
 
 
