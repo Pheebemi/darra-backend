@@ -110,14 +110,33 @@ export default function BankDetailsPage() {
     try {
       setLoadingBanks(true);
       const response = await fetch("/api/banks");
+      
       if (!response.ok) {
-        throw new Error("Failed to fetch banks");
+        const errorData = await response.json().catch(() => ({}));
+        const errorMessage = errorData.message || errorData.error || `Failed to fetch banks (${response.status})`;
+        console.error("Error fetching banks:", {
+          status: response.status,
+          statusText: response.statusText,
+          errorData,
+        });
+        throw new Error(errorMessage);
       }
+      
       const data = await response.json();
-      setBanks(Array.isArray(data) ? data : []);
+      
+      if (Array.isArray(data)) {
+        setBanks(data);
+      } else if (data && Array.isArray(data.data)) {
+        setBanks(data.data);
+      } else {
+        console.error("Unexpected banks data format:", data);
+        setBanks([]);
+        toast.error("Invalid banks data format received");
+      }
     } catch (error: any) {
       console.error("Error fetching banks:", error);
-      toast.error("Failed to fetch banks");
+      const errorMessage = error.message || "Failed to fetch banks. Please check your Paystack configuration.";
+      toast.error(errorMessage);
     } finally {
       setLoadingBanks(false);
     }
