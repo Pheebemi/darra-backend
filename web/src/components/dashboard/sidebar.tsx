@@ -18,6 +18,8 @@ import {
   QrCode,
   Plus,
   FileText,
+  Warehouse,
+  ShoppingCart,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -62,14 +64,19 @@ const sellerItems: SidebarItem[] = [
     icon: LayoutDashboard,
   },
   {
-    title: "My Events",
-    href: "/dashboard/seller/events",
-    icon: Package,
+    title: "Inventory",
+    href: "/dashboard/seller/inventory",
+    icon: Warehouse,
   },
   {
     title: "Create Event",
     href: "/dashboard/seller/create-event",
     icon: Plus,
+  },
+  {
+    title: "Orders",
+    href: "/dashboard/seller/orders",
+    icon: ShoppingCart,
   },
   {
     title: "Verify Tickets",
