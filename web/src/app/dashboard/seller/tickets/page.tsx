@@ -62,9 +62,9 @@ interface EventTicket {
 }
 
 interface TicketStats {
-  total_tickets: number;
-  used_tickets: number;
-  valid_tickets: number;
+  total: number;
+  valid: number;
+  used: number;
 }
 
 export default function SellerTicketsPage() {
@@ -124,6 +124,12 @@ export default function SellerTicketsPage() {
       }
     } catch (error: any) {
       console.error("Error fetching stats:", error);
+      // Set default values on error
+      setStats({
+        total: 0,
+        valid: 0,
+        used: 0,
+      });
     }
   };
 
