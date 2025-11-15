@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { apiClient } from "@/lib/api/client";
 import { getValidAccessToken } from "@/lib/auth/get-access-token";
 
@@ -7,7 +7,6 @@ export async function POST(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = await params;
     const accessToken = await getValidAccessToken();
 
     if (!accessToken) {
@@ -17,6 +16,7 @@ export async function POST(
       );
     }
 
+    const { id } = await params;
     const response = await apiClient.post(`/events/verify/${id}/`, {}, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -26,14 +26,17 @@ export async function POST(
     return NextResponse.json(response.data);
   } catch (error: any) {
     const status = error.response?.status || 500;
-    const message =
-      error.response?.data?.error ||
+    let message =
       error.response?.data?.message ||
+      error.response?.data?.error ||
       error.message ||
       "Failed to verify ticket";
+
+    // Handle specific error cases
+    if (error.response?.data?.error) {
+      message = error.response.data.error;
+    }
 
     return NextResponse.json({ message }, { status });
   }
 }
-
-

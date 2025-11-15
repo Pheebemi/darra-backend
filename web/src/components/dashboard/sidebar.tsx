@@ -86,7 +86,7 @@ const sellerItems: SidebarItem[] = [
   },
   {
     title: "Verify Tickets",
-    href: "/scan",
+    href: "/dashboard/seller/verify-tickets",
     icon: QrCode,
   },
   {
