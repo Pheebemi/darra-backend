@@ -300,6 +300,9 @@ export default function SellerTicketsPage() {
                       <h3 className="text-lg font-semibold">
                         {ticket.event.title}
                       </h3>
+                      <p className="mt-1 text-sm font-mono text-muted-foreground">
+                        Ticket ID: {ticket.ticket_id}
+                      </p>
                     </div>
                     <Badge
                       className={
