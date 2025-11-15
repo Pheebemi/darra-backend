@@ -1,8 +1,11 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { apiClient } from "@/lib/api/client";
 import { getValidAccessToken } from "@/lib/auth/get-access-token";
 
-export async function GET() {
+export async function DELETE(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> }
+) {
   try {
     const accessToken = await getValidAccessToken();
 
@@ -13,7 +16,9 @@ export async function GET() {
       );
     }
 
-    const response = await apiClient.get("/payments/seller/earnings/", {
+    const { id } = await params;
+
+    const response = await apiClient.delete(`/auth/bank-detail/${id}/`, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -21,34 +26,20 @@ export async function GET() {
 
     return NextResponse.json(response.data);
   } catch (error: any) {
-    console.error("Earnings API Error:", error);
+    console.error("Delete bank details API Error:", error);
     
     const status = error.response?.status || 500;
     const errorData = error.response?.data;
     
-    let message = "Failed to fetch earnings";
+    let message = "Failed to delete bank account";
     
     if (errorData) {
-      // Handle different error response formats
       if (errorData.error) {
         message = errorData.error;
       } else if (errorData.message) {
         message = errorData.message;
-      } else if (typeof errorData === 'string') {
-        message = errorData;
-      } else if (errorData.detail) {
-        message = errorData.detail;
       }
-    } else if (error.message) {
-      message = error.message;
     }
-
-    console.error("Earnings API Error Details:", {
-      status,
-      message,
-      errorData,
-      errorMessage: error.message,
-    });
 
     return NextResponse.json(
       { 
@@ -60,5 +51,4 @@ export async function GET() {
     );
   }
 }
-
 

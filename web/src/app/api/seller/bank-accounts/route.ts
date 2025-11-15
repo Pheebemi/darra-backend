@@ -13,7 +13,7 @@ export async function GET() {
       );
     }
 
-    const response = await apiClient.get("/payments/seller/earnings/", {
+    const response = await apiClient.get("/users/bank-detail/", {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
@@ -21,15 +21,14 @@ export async function GET() {
 
     return NextResponse.json(response.data);
   } catch (error: any) {
-    console.error("Earnings API Error:", error);
+    console.error("Bank accounts API Error:", error);
     
     const status = error.response?.status || 500;
     const errorData = error.response?.data;
     
-    let message = "Failed to fetch earnings";
+    let message = "Failed to fetch bank accounts";
     
     if (errorData) {
-      // Handle different error response formats
       if (errorData.error) {
         message = errorData.error;
       } else if (errorData.message) {
@@ -43,13 +42,6 @@ export async function GET() {
       message = error.message;
     }
 
-    console.error("Earnings API Error Details:", {
-      status,
-      message,
-      errorData,
-      errorMessage: error.message,
-    });
-
     return NextResponse.json(
       { 
         message,
@@ -60,5 +52,4 @@ export async function GET() {
     );
   }
 }
-
 

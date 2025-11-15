@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { apiClient } from "@/lib/api/client";
 import { getValidAccessToken } from "@/lib/auth/get-access-token";
 
-export async function GET() {
+export async function POST(request: NextRequest) {
   try {
     const accessToken = await getValidAccessToken();
 
@@ -13,23 +13,39 @@ export async function GET() {
       );
     }
 
-    const response = await apiClient.get("/payments/seller/earnings/", {
-      headers: {
-        Authorization: `Bearer ${accessToken}`,
+    const body = await request.json();
+    const { amount, bank_details } = body;
+
+    if (!amount || !bank_details) {
+      return NextResponse.json(
+        { message: "Amount and bank details are required" },
+        { status: 400 }
+      );
+    }
+
+    const response = await apiClient.post(
+      "/payments/seller/request-payout/",
+      {
+        amount: parseFloat(amount),
+        bank_details: bank_details,
       },
-    });
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+        },
+      }
+    );
 
     return NextResponse.json(response.data);
   } catch (error: any) {
-    console.error("Earnings API Error:", error);
+    console.error("Request payout API Error:", error);
     
     const status = error.response?.status || 500;
     const errorData = error.response?.data;
     
-    let message = "Failed to fetch earnings";
+    let message = "Failed to request payout";
     
     if (errorData) {
-      // Handle different error response formats
       if (errorData.error) {
         message = errorData.error;
       } else if (errorData.message) {
@@ -43,13 +59,6 @@ export async function GET() {
       message = error.message;
     }
 
-    console.error("Earnings API Error Details:", {
-      status,
-      message,
-      errorData,
-      errorMessage: error.message,
-    });
-
     return NextResponse.json(
       { 
         message,
@@ -60,5 +69,4 @@ export async function GET() {
     );
   }
 }
-
 
