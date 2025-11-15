@@ -20,6 +20,7 @@ import {
   FileText,
   Warehouse,
   ShoppingCart,
+  TicketCheck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -77,6 +78,11 @@ const sellerItems: SidebarItem[] = [
     title: "Orders",
     href: "/dashboard/seller/orders",
     icon: ShoppingCart,
+  },
+  {
+    title: "Event Tickets",
+    href: "/dashboard/seller/tickets",
+    icon: TicketCheck,
   },
   {
     title: "Verify Tickets",
