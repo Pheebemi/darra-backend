@@ -35,6 +35,8 @@ import {
   Loader2,
   AlertCircle,
   RefreshCw,
+  Search,
+  ChevronDown,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -69,6 +71,10 @@ export default function BankDetailsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
   const [loadingBanks, setLoadingBanks] = useState(false);
+  
+  // Enhanced bank selection states
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
   useEffect(() => {
     if (initialized && !isAuthenticated) {
@@ -93,7 +99,6 @@ export default function BankDetailsPage() {
       const data = await response.json();
       setSavedAccounts(Array.isArray(data) ? data : []);
 
-      // If no accounts exist, show add form by default
       if (data.length === 0) {
         setShowAddForm(true);
       }
@@ -195,12 +200,15 @@ export default function BankDetailsPage() {
     setSelectedBankName("");
     setAccountNumber("");
     setAccountName("");
+    setSearchQuery("");
   };
 
   const selectBank = (bankCode: string, bankName: string) => {
     setSelectedBank(bankCode);
     setSelectedBankName(bankName);
-    setAccountName(""); // Clear previous account name when bank changes
+    setAccountName("");
+    setIsDropdownOpen(false);
+    setSearchQuery("");
   };
 
   const deleteAccount = async (accountId: string) => {
@@ -224,6 +232,13 @@ export default function BankDetailsPage() {
       toast.error("Failed to delete bank account");
     }
   };
+
+  // Filter banks based on search query
+  const filteredBanks = banks.filter(bank =>
+    bank.name.toLowerCase().includes(searchQuery.toLowerCase())
+  );
+
+  const selectedBankObj = banks.find(bank => bank.code === selectedBank);
 
   if (!initialized || !isAuthenticated) {
     return (
@@ -334,32 +349,90 @@ export default function BankDetailsPage() {
               <h2 className="mb-6 text-xl font-semibold">Add New Bank Account</h2>
 
               <div className="space-y-4">
-                {/* Bank Selection */}
+                {/* Enhanced Bank Selection */}
                 <div className="space-y-2">
                   <Label htmlFor="bank">Select Bank</Label>
                   {loadingBanks ? (
-                    <Skeleton className="h-10 w-full" />
+                    <div className="space-y-2">
+                      <Skeleton className="h-10 w-full" />
+                      <Skeleton className="h-8 w-3/4" />
+                    </div>
                   ) : (
-                    <Select
-                      value={selectedBank}
-                      onValueChange={(value) => {
-                        const bank = banks.find((b) => b.code === value);
-                        if (bank) {
-                          selectBank(bank.code, bank.name);
-                        }
-                      }}
-                    >
-                      <SelectTrigger id="bank">
-                        <SelectValue placeholder="Select Bank" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {banks.map((bank) => (
-                          <SelectItem key={bank.code} value={bank.code}>
-                            {bank.name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
+                    <div className="relative">
+                      <Select
+                        value={selectedBank}
+                        open={isDropdownOpen}
+                        onOpenChange={setIsDropdownOpen}
+                      >
+                        <SelectTrigger 
+                          id="bank"
+                          className="h-12 w-full"
+                        >
+                          <SelectValue>
+                            {selectedBankObj ? (
+                              <div className="flex items-center gap-2">
+                                <Building2 className="h-4 w-4 text-muted-foreground" />
+                                <span>{selectedBankObj.name}</span>
+                              </div>
+                            ) : (
+                              "Select Bank"
+                            )}
+                          </SelectValue>
+                        </SelectTrigger>
+                        <SelectContent 
+                          className="w-full p-2"
+                          position="popper"
+                          sideOffset={4}
+                        >
+                          {/* Search Input */}
+                          <div className="relative mb-2 p-2">
+                            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 transform text-muted-foreground" />
+                            <Input
+                              placeholder="Search banks..."
+                              value={searchQuery}
+                              onChange={(e) => setSearchQuery(e.target.value)}
+                              className="pl-10 pr-4"
+                              onClick={(e) => e.stopPropagation()}
+                            />
+                          </div>
+
+                          {/* Banks List */}
+                          <div className="max-h-60 overflow-y-auto">
+                            {filteredBanks.length === 0 ? (
+                              <div className="flex flex-col items-center justify-center py-8 text-center">
+                                <AlertCircle className="mb-2 h-8 w-8 text-muted-foreground" />
+                                <p className="text-sm text-muted-foreground">No banks found</p>
+                                <p className="text-xs text-muted-foreground">
+                                  Try a different search term
+                                </p>
+                              </div>
+                            ) : (
+                              filteredBanks.map((bank) => (
+                                <SelectItem 
+                                  key={bank.code} 
+                                  value={bank.code}
+                                  className="cursor-pointer py-3"
+                                >
+                                  <div className="flex items-center gap-3">
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
+                                      <Building2 className="h-4 w-4 text-primary" />
+                                    </div>
+                                    <span className="font-medium">{bank.name}</span>
+                                  </div>
+                                </SelectItem>
+                              ))
+                            )}
+                          </div>
+
+                          {/* Banks Count */}
+                          <div className="border-t p-2">
+                            <p className="text-xs text-muted-foreground text-center">
+                              {filteredBanks.length} of {banks.length} banks
+                            </p>
+                          </div>
+                        </SelectContent>
+                      </Select>
+                    </div>
                   )}
                 </div>
 
@@ -374,52 +447,71 @@ export default function BankDetailsPage() {
                     onChange={(e) => {
                       const numericValue = e.target.value.replace(/[^0-9]/g, "");
                       setAccountNumber(numericValue);
-                      setAccountName(""); // Clear account name when number changes
+                      setAccountName("");
                     }}
                     maxLength={10}
+                    className="h-12"
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Enter 10-digit account number
+                  </p>
                 </div>
 
-                {/* Validate & Save Button */}
-                <Button
-                  onClick={validateAndSaveAccount}
-                  disabled={isValidating || !selectedBank || !accountNumber}
-                  className="w-full"
-                  size="lg"
-                >
-                  {isValidating ? (
-                    <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Validating...
-                    </>
-                  ) : (
-                    <>
-                      <CheckCircle2 className="mr-2 h-4 w-4" />
-                      Validate & Save Account
-                    </>
-                  )}
-                </Button>
-
-                {/* Account Name Display */}
+                {/* Account Name Preview */}
                 {accountName && (
-                  <div className="rounded-lg border-l-4 border-primary bg-primary/10 p-4">
-                    <p className="font-medium text-primary">
-                      ✓ Account Name: {accountName}
+                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <p className="font-medium text-foreground">Account Verified</p>
+                    </div>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      Account Name: <span className="font-semibold text-foreground">{accountName}</span>
                     </p>
                   </div>
                 )}
 
-                {/* Cancel Button */}
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    resetForm();
-                    setShowAddForm(false);
-                  }}
-                  className="w-full"
-                >
-                  Cancel
-                </Button>
+                {/* Action Buttons */}
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    onClick={validateAndSaveAccount}
+                    disabled={isValidating || !selectedBank || accountNumber.length !== 10}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    {isValidating ? (
+                      <>
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        Validating...
+                      </>
+                    ) : (
+                      <>
+                        <CheckCircle2 className="mr-2 h-4 w-4" />
+                        Save Account
+                      </>
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      resetForm();
+                      setShowAddForm(false);
+                    }}
+                    className="flex-1"
+                    size="lg"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+
+                {/* Validation Help */}
+                {accountNumber.length > 0 && accountNumber.length !== 10 && (
+                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                    <p className="text-sm text-amber-800">
+                      Please enter a complete 10-digit account number
+                    </p>
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -427,7 +519,12 @@ export default function BankDetailsPage() {
 
         {/* Add Another Account Button */}
         {savedAccounts.length > 0 && !showAddForm && (
-          <Button onClick={() => setShowAddForm(true)} className="w-full" size="lg">
+          <Button 
+            onClick={() => setShowAddForm(true)} 
+            className="w-full" 
+            size="lg"
+            variant="outline"
+          >
             <Plus className="mr-2 h-4 w-4" />
             Add New Bank Account
           </Button>
@@ -436,4 +533,3 @@ export default function BankDetailsPage() {
     </DashboardLayout>
   );
 }
-
