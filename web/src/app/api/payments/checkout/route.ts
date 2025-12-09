@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { items, email, payment_provider = "paystack" } = body;
+    const { items, email, payment_provider = "flutterwave" } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(

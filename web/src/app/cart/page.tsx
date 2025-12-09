@@ -17,7 +17,7 @@ export default function CartPage() {
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
-  const [provider, setProvider] = useState<"paystack" | "flutterwave">("paystack");
+  const [provider] = useState<"flutterwave">("flutterwave"); // enforce Flutterwave only
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -278,32 +278,15 @@ export default function CartPage() {
                   </div>
                 </div>
 
-                {/* Payment Provider Selection */}
+                {/* Payment Provider Selection - Flutterwave only */}
                 <div className="mt-6">
                   <p className="mb-3 text-sm font-medium text-slate-700 dark:text-slate-300">Payment Provider</p>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 gap-3">
                     <Button
                       type="button"
-                      variant={provider === "paystack" ? "default" : "outline"}
-                      onClick={() => setProvider("paystack")}
-                      className={`rounded-xl ${
-                        provider === "paystack" 
-                          ? "bg-blue-600 hover:bg-blue-700" 
-                          : "border-slate-300 bg-white hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700/50 dark:hover:bg-slate-700"
-                      }`}
-                    >
-                      <CreditCard className="mr-2 h-4 w-4" />
-                      Paystack
-                    </Button>
-                    <Button
-                      type="button"
-                      variant={provider === "flutterwave" ? "default" : "outline"}
-                      onClick={() => setProvider("flutterwave")}
-                      className={`rounded-xl ${
-                        provider === "flutterwave" 
-                          ? "bg-purple-600 hover:bg-purple-700" 
-                          : "border-slate-300 bg-white hover:bg-slate-50 dark:border-slate-600 dark:bg-slate-700/50 dark:hover:bg-slate-700"
-                      }`}
+                      variant="default"
+                      className="rounded-xl bg-purple-600 hover:bg-purple-700"
+                      disabled
                     >
                       <CreditCard className="mr-2 h-4 w-4" />
                       Flutterwave
