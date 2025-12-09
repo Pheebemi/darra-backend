@@ -15,21 +15,26 @@ function CallbackInner() {
   const [message, setMessage] = useState("");
 
   useEffect(() => {
-    const reference = searchParams.get("reference") || searchParams.get("trxref") || searchParams.get("tx_ref");
+    const reference =
+      searchParams.get("reference") ||
+      searchParams.get("trxref") ||
+      searchParams.get("tx_ref");
     const fwStatus = searchParams.get("status");
 
-    if (!reference) {
-      setStatus("failed");
-      setMessage("No payment reference found in callback.");
-      return;
-    }
-
+    // If provider sends an explicit failure, stop early.
     if (
       fwStatus &&
-      !["successful", "success"].includes(fwStatus.toLowerCase())
+      ["failed", "cancelled", "error"].includes(fwStatus.toLowerCase())
     ) {
       setStatus("failed");
       setMessage("Payment reported as failed by provider.");
+      return;
+    }
+
+    // Proceed to verify when we have a reference; if missing, try tx_ref and still attempt verify.
+    if (!reference) {
+      setStatus("failed");
+      setMessage("No payment reference found in callback.");
       return;
     }
 
