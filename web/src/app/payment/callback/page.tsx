@@ -24,7 +24,10 @@ function CallbackInner() {
       return;
     }
 
-    if (fwStatus && fwStatus.toLowerCase() !== "successful") {
+    if (
+      fwStatus &&
+      !["successful", "success"].includes(fwStatus.toLowerCase())
+    ) {
       setStatus("failed");
       setMessage("Payment reported as failed by provider.");
       return;
@@ -44,7 +47,11 @@ function CallbackInner() {
       }
 
       const payment = data.payment || data;
-      if (payment?.status === "success" || payment?.status === "successful") {
+      if (
+        payment?.status === "success" ||
+        payment?.status === "successful" ||
+        payment?.status === "completed"
+      ) {
         setStatus("success");
         setMessage("Payment successful! Your tickets are being generated...");
         clearCart();

@@ -319,16 +319,27 @@ def payment_webhook(request):
         print(f"DEBUG: Received webhook data: {webhook_data}")
         
         # Determine payment provider from webhook data
+        reference = None
+        provider = None
+
+        # Paystack webhook format (reference lives under data.reference)
         if 'data' in webhook_data and 'reference' in webhook_data.get('data', {}):
-            # Paystack webhook format
             reference = webhook_data.get('data', {}).get('reference')
             provider = 'paystack'
-        elif 'tx_ref' in webhook_data:
-            # Flutterwave webhook format
-            reference = webhook_data.get('tx_ref')
-            provider = 'flutterwave'
-        else:
-            print("DEBUG: Unknown webhook format")
+
+        # Flutterwave webhook formats:
+        # - Some deliveries put tx_ref at the root
+        # - Others nest tx_ref under data.tx_ref (common)
+        if not provider:
+            if 'tx_ref' in webhook_data:
+                reference = webhook_data.get('tx_ref')
+                provider = 'flutterwave'
+            elif 'data' in webhook_data and webhook_data.get('data', {}).get('tx_ref'):
+                reference = webhook_data.get('data', {}).get('tx_ref')
+                provider = 'flutterwave'
+
+        if not provider or not reference:
+            print("DEBUG: Unknown webhook format or missing reference")
             return HttpResponse(status=400)
         
         print(f"DEBUG: Processing {provider} webhook for reference: {reference}")
@@ -338,9 +349,12 @@ def payment_webhook(request):
         
         # Check payment status based on provider
         if provider == 'paystack':
-            is_successful = webhook_data.get('data', {}).get('status') == 'success'
+            status_value = webhook_data.get('data', {}).get('status')
+            is_successful = status_value == 'success'
         else:  # Flutterwave
-            is_successful = webhook_data.get('status') == 'successful'
+            status_value = webhook_data.get('status') or webhook_data.get('data', {}).get('status')
+            # Accept both 'success' and 'successful' to cover sandbox/live differences
+            is_successful = status_value in ['success', 'successful']
         
         if is_successful:
             print(f"DEBUG: {provider} webhook indicates successful payment")
