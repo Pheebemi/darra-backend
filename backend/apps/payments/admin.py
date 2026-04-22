@@ -89,19 +89,53 @@ class PayoutRequestAdmin(admin.ModelAdmin):
         return 'N/A'
     transfer_provider.short_description = 'Provider'
     
-    actions = ['mark_as_completed', 'mark_as_failed']
+    actions = ['mark_as_processing', 'mark_as_completed', 'mark_as_failed']
     
     def mark_as_completed(self, request, queryset):
-        """Mark selected payouts as completed"""
+        """Mark selected payouts as completed and notify sellers"""
         from django.utils import timezone
-        count = queryset.update(status='completed', processed_at=timezone.now())
-        self.message_user(request, f"Marked {count} payouts as completed.")
+        from users.utils import send_payout_completed_email
+        count = 0
+        for payout in queryset:
+            payout.status = 'completed'
+            payout.processed_at = timezone.now()
+            payout.save()
+            try:
+                send_payout_completed_email(payout)
+            except Exception as e:
+                print(f"Payout completed email error for {payout.id}: {e}")
+            count += 1
+        self.message_user(request, f"Marked {count} payouts as completed and notified sellers.")
     mark_as_completed.short_description = "Mark payouts as completed"
     
+    def mark_as_processing(self, request, queryset):
+        """Mark selected payouts as processing and notify sellers"""
+        from users.utils import send_payout_processing_email
+        count = 0
+        for payout in queryset:
+            payout.status = 'processing'
+            payout.save()
+            try:
+                send_payout_processing_email(payout)
+            except Exception as e:
+                print(f"Payout processing email error for {payout.id}: {e}")
+            count += 1
+        self.message_user(request, f"Marked {count} payouts as processing and notified sellers.")
+    mark_as_processing.short_description = "Mark payouts as processing"
+
     def mark_as_failed(self, request, queryset):
-        """Mark selected payouts as failed"""
-        count = queryset.update(status='failed')
-        self.message_user(request, f"Marked {count} payouts as failed.")
+        """Mark selected payouts as failed and notify sellers"""
+        from users.utils import send_payout_failed_email
+        count = 0
+        for payout in queryset:
+            payout.status = 'failed'
+            payout.save()
+            try:
+                send_payout_failed_email(payout)
+            except Exception as e:
+                print(f"Payout failed email error for {payout.id}: {e}")
+            count += 1
+        self.message_user(request, f"Marked {count} payouts as failed and notified sellers.")
     mark_as_failed.short_description = "Mark payouts as failed"
 
 @admin.register(SellerEarnings)

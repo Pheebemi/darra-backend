@@ -485,6 +485,13 @@ def request_payout(request):
         # Create payout request — manual processing by admin
         payout_request = serializer.save(seller=request.user, status='pending')
 
+        # Notify seller
+        try:
+            from users.utils import send_payout_requested_email
+            send_payout_requested_email(payout_request)
+        except Exception as e:
+            print(f"Payout request email error: {e}")
+
         return Response({
             'message': 'Payout request submitted. You will be paid within 1-3 business days.',
             'payout': PayoutRequestSerializer(payout_request).data
