@@ -1,12 +1,12 @@
 "use client";
 import { useState } from "react";
 import Link from "next/link";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { toast } from "sonner";
-import { Eye, EyeOff, Mail, Lock, User, Building, Ticket, UserCheck } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Eye, EyeOff, ShoppingBag, Store } from "lucide-react";
 
 type UserType = "BUYER" | "SELLER";
 
@@ -19,300 +19,176 @@ export default function RegisterPage() {
   const [brandName, setBrandName] = useState("");
   const [brandSlug, setBrandSlug] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
   const { register, isLoading } = useAuth();
 
   return (
-    <div className="min-h-[calc(100dvh-8rem)] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-900">
-      <div className="absolute inset-0 bg-grid-slate-900/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-400/10 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
-      
-      <div className="relative flex min-h-[calc(100dvh-8rem)] items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
-          {/* Card Container */}
-          <div className="rounded-2xl border border-slate-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80">
-            {/* Header */}
-            <div className="mb-8 text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white">
-                  <UserCheck className="h-6 w-6" />
-                </div>
+    <div className="flex min-h-[calc(100dvh-4rem)]">
+
+      {/* Left — brand */}
+      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12 text-primary-foreground">
+        <div className="flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
+            <ShoppingBag className="h-4 w-4" />
+          </div>
+          <span className="font-semibold">Darra</span>
+        </div>
+
+        <div>
+          <h2 className="mb-3 text-4xl font-semibold leading-tight">
+            Join thousands of creators and learners
+          </h2>
+          <p className="text-primary-foreground/70">
+            Create an account to start buying or selling digital products today.
+          </p>
+          <div className="mt-10 space-y-3">
+            {[
+              "Sell your eBooks, templates, and courses",
+              "Instant payouts to your bank account",
+              "Secure checkout for buyers",
+              "QR-code access verification",
+            ].map((item) => (
+              <div key={item} className="flex items-center gap-3">
+                <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-white/20 text-xs">✓</span>
+                <span className="text-sm text-primary-foreground/80">{item}</span>
               </div>
-              <h1 className="mb-3 text-3xl font-bold bg-gradient-to-br from-slate-900 to-blue-700 dark:from-slate-100 dark:to-blue-400 bg-clip-text text-transparent">
-                Join Darra
-              </h1>
-              <p className="text-lg text-slate-600 dark:text-slate-300">
-                Start your journey with us today
-              </p>
+            ))}
+          </div>
+        </div>
+
+        <p className="text-xs text-primary-foreground/40">© {new Date().getFullYear()} Darra</p>
+      </div>
+
+      {/* Right — form */}
+      <div className="flex w-full flex-col items-center justify-center overflow-y-auto bg-background px-6 py-12 lg:w-1/2">
+        <div className="w-full max-w-sm">
+          {/* Mobile logo */}
+          <div className="mb-8 flex items-center gap-2 lg:hidden">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+              <ShoppingBag className="h-3.5 w-3.5 text-primary-foreground" />
             </div>
+            <span className="font-semibold">Darra</span>
+          </div>
 
-            {/* Form */}
-            <form
-              className="space-y-6"
-              onSubmit={async (e) => {
-                e.preventDefault();
-                
-                if (!email || !password || !confirmPassword || !fullName) {
-                  toast.error("Please fill in all required fields");
-                  return;
-                }
+          <h1 className="mb-1 text-2xl font-semibold">Create an account</h1>
+          <p className="mb-7 text-sm text-muted-foreground">Get started on Darra for free</p>
 
-                if (password !== confirmPassword) {
-                  toast.error("Passwords do not match");
-                  return;
-                }
-
-                if (userType === "SELLER" && !brandName) {
-                  toast.error("Please enter your brand name");
-                  return;
-                }
-
-                try {
-                  await register({
-                    email,
-                    password,
-                    full_name: fullName,
-                    user_type: userType,
-                    brand_name: userType === "SELLER" ? brandName : undefined,
-                    brand_slug: userType === "SELLER" && brandSlug ? brandSlug : undefined,
-                  });
-                } catch (error) {
-                  // Error is handled by auth context
-                }
-              }}
-            >
-              {/* Full Name Field */}
-              <div className="space-y-3">
-                <Label htmlFor="fullName" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Full Name
-                </Label>
-                <div className="relative">
-                  <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-slate-400" />
-                  <Input
-                    id="fullName"
-                    type="text"
-                    placeholder="Enter your full name"
-                    value={fullName}
-                    onChange={(e) => setFullName(e.target.value)}
-                    disabled={isLoading}
-                    className="rounded-xl border-slate-300 bg-white pl-10 pr-4 py-3 transition-colors focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700/50 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              {/* Email Field */}
-              <div className="space-y-3">
-                <Label htmlFor="email" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Email Address
-                </Label>
-                <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-slate-400" />
-                  <Input
-                    id="email"
-                    type="email"
-                    placeholder="Enter your email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={isLoading}
-                    className="rounded-xl border-slate-300 bg-white pl-10 pr-4 py-3 transition-colors focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700/50 dark:text-white"
-                  />
-                </div>
-              </div>
-
-              {/* Password Field */}
-              <div className="space-y-3">
-                <Label htmlFor="password" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-slate-400" />
-                  <Input
-                    id="password"
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Create a password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="rounded-xl border-slate-300 bg-white pl-10 pr-12 py-3 transition-colors focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700/50 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 transform text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
-                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* Confirm Password Field */}
-              <div className="space-y-3">
-                <Label htmlFor="confirmPassword" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Confirm Password
-                </Label>
-                <div className="relative">
-                  <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-slate-400" />
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? "text" : "password"}
-                    placeholder="Confirm your password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    disabled={isLoading}
-                    className="rounded-xl border-slate-300 bg-white pl-10 pr-12 py-3 transition-colors focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700/50 dark:text-white"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 transform text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
-                  >
-                    {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                  </button>
-                </div>
-              </div>
-
-              {/* User Type Selection */}
-              <div className="space-y-3">
-                <Label className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  I want to:
-                </Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setUserType("BUYER")}
-                    disabled={isLoading}
-                    className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 text-sm font-medium transition-all ${
-                      userType === "BUYER"
-                        ? "border-blue-500 bg-blue-50 text-blue-700 shadow-sm dark:border-blue-400 dark:bg-blue-900/20 dark:text-blue-300"
-                        : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-700/50 dark:text-slate-300 dark:hover:border-slate-500"
-                    }`}
-                  >
-                    <Ticket className="h-4 w-4" />
-                    Buy Tickets
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setUserType("SELLER")}
-                    disabled={isLoading}
-                    className={`flex items-center justify-center gap-2 rounded-xl border-2 p-4 text-sm font-medium transition-all ${
-                      userType === "SELLER"
-                        ? "border-purple-500 bg-purple-50 text-purple-700 shadow-sm dark:border-purple-400 dark:bg-purple-900/20 dark:text-purple-300"
-                        : "border-slate-300 bg-white text-slate-700 hover:border-slate-400 dark:border-slate-600 dark:bg-slate-700/50 dark:text-slate-300 dark:hover:border-slate-500"
-                    }`}
-                  >
-                    <Building className="h-4 w-4" />
-                    Sell Tickets
-                  </button>
-                </div>
-              </div>
-
-              {/* Seller-specific Fields */}
-              {userType === "SELLER" && (
-                <div className="space-y-4 rounded-xl border-2 border-blue-200 bg-blue-50/50 p-4 dark:border-blue-800 dark:bg-blue-900/20">
-                  <div className="space-y-3">
-                    <Label htmlFor="brandName" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Brand Name *
-                    </Label>
-                    <div className="relative">
-                      <Building className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 transform text-slate-400" />
-                      <Input
-                        id="brandName"
-                        type="text"
-                        placeholder="Enter your brand name"
-                        value={brandName}
-                        onChange={(e) => setBrandName(e.target.value)}
-                        disabled={isLoading}
-                        className="rounded-xl border-slate-300 bg-white pl-10 pr-4 py-3 transition-colors focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700/50 dark:text-white"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <Label htmlFor="brandSlug" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                      Brand URL (optional)
-                    </Label>
-                    <div className="relative">
-                      <span className="absolute left-3 top-1/2 -translate-y-1/2 transform text-slate-400 text-sm">
-                        darra.com/
-                      </span>
-                      <Input
-                        id="brandSlug"
-                        type="text"
-                        placeholder="your-brand"
-                        value={brandSlug}
-                        onChange={(e) => setBrandSlug(e.target.value)}
-                        disabled={isLoading}
-                        className="rounded-xl border-slate-300 bg-white pl-24 pr-4 py-3 transition-colors focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700/50 dark:text-white"
-                      />
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                className="w-full rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 py-3 text-base font-medium text-white shadow-lg transition-all hover:from-blue-700 hover:to-purple-700 hover:shadow-xl disabled:opacity-50"
-                disabled={isLoading}
+          {/* Role selector */}
+          <div className="mb-5 flex overflow-hidden rounded-lg border">
+            {(["BUYER", "SELLER"] as UserType[]).map((type) => (
+              <button
+                key={type}
+                type="button"
+                onClick={() => setUserType(type)}
+                className={`flex flex-1 items-center justify-center gap-2 py-2 text-sm font-medium transition-colors ${
+                  userType === type
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-background text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                }`}
               >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Creating account...
+                {type === "BUYER" ? <ShoppingBag className="h-3.5 w-3.5" /> : <Store className="h-3.5 w-3.5" />}
+                {type === "BUYER" ? "Buyer" : "Seller"}
+              </button>
+            ))}
+          </div>
+
+          <form
+            className="space-y-4"
+            onSubmit={async (e) => {
+              e.preventDefault();
+              if (!email || !password || !confirmPassword || !fullName) {
+                toast.error("Please fill in all required fields"); return;
+              }
+              if (password !== confirmPassword) {
+                toast.error("Passwords do not match"); return;
+              }
+              if (userType === "SELLER" && !brandName) {
+                toast.error("Please enter your brand name"); return;
+              }
+              try {
+                await register({
+                  email, password, full_name: fullName, user_type: userType,
+                  brand_name: userType === "SELLER" ? brandName : undefined,
+                  brand_slug: userType === "SELLER" && brandSlug ? brandSlug : undefined,
+                });
+              } catch (_) {}
+            }}
+          >
+            <div className="space-y-1.5">
+              <Label htmlFor="fullName" className="text-xs font-medium">Full name</Label>
+              <Input id="fullName" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isLoading} className="h-9" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="email" className="text-xs font-medium">Email address</Label>
+              <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading} className="h-9" />
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="password" className="text-xs font-medium">Password</Label>
+              <div className="relative">
+                <Input id="password" type={showPassword ? "text" : "password"} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading} className="h-9 pr-9" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <Label htmlFor="confirm" className="text-xs font-medium">Confirm password</Label>
+              <div className="relative">
+                <Input id="confirm" type={showConfirm ? "text" : "password"} placeholder="Repeat your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isLoading} className="h-9 pr-9" />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+                  {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+            </div>
+
+            {/* Seller fields */}
+            {userType === "SELLER" && (
+              <div className="space-y-3 rounded-lg border bg-muted/40 p-3">
+                <p className="text-xs font-medium text-muted-foreground">Seller information</p>
+                <div className="space-y-1.5">
+                  <Label htmlFor="brandName" className="text-xs font-medium">Brand name *</Label>
+                  <Input id="brandName" placeholder="Your brand or store name" value={brandName} onChange={(e) => setBrandName(e.target.value)} disabled={isLoading} className="h-9 bg-background" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="brandSlug" className="text-xs font-medium">
+                    Brand URL <span className="text-muted-foreground font-normal">(optional)</span>
+                  </Label>
+                  <div className="flex items-center rounded-md border bg-background focus-within:ring-2 focus-within:ring-ring/50">
+                    <span className="border-r px-2.5 py-2 text-xs text-muted-foreground">darra.com/</span>
+                    <input
+                      id="brandSlug"
+                      placeholder="your-brand"
+                      value={brandSlug}
+                      onChange={(e) => setBrandSlug(e.target.value)}
+                      disabled={isLoading}
+                      className="h-9 flex-1 bg-transparent px-2.5 text-sm outline-none disabled:opacity-50"
+                    />
                   </div>
-                ) : (
-                  "Create Account"
-                )}
-              </Button>
-            </form>
+                </div>
+              </div>
+            )}
 
-            {/* Sign In Link */}
-            <div className="mt-8 text-center">
-              <p className="text-slate-600 dark:text-slate-400">
-                Already have an account?{" "}
-                <Link 
-                  href="/login" 
-                  className="font-semibold text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
-                >
-                  Sign in here
-                </Link>
-              </p>
-            </div>
-          </div>
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                  Creating account...
+                </span>
+              ) : "Create account"}
+            </Button>
+          </form>
 
-          {/* Trust Indicators */}
-          <div className="mt-8 grid grid-cols-3 gap-4 text-center text-xs text-slate-500 dark:text-slate-500">
-            <div className="flex flex-col items-center">
-              <Shield className="h-4 w-4 mb-1" />
-              <span>Secure</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <Zap className="h-4 w-4 mb-1" />
-              <span>Instant</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <Ticket className="h-4 w-4 mb-1" />
-              <span>Verified</span>
-            </div>
-          </div>
+          <p className="mt-5 text-center text-sm text-muted-foreground">
+            Already have an account?{" "}
+            <Link href="/login" className="font-medium text-foreground hover:text-primary transition-colors">
+              Sign in
+            </Link>
+          </p>
         </div>
       </div>
     </div>
-  );
-}
-
-// Trust Icons Component
-function Shield({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-    </svg>
-  );
-}
-
-function Zap({ className }: { className?: string }) {
-  return (
-    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-    </svg>
   );
 }

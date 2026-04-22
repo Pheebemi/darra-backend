@@ -1,36 +1,102 @@
 @import "tailwindcss";
 
-:root {
-  /* Light theme (matches mobile) */
-  --background: #ffffff; /* colors.background.light */
-  --foreground: #1F2937; /* colors.text.primary.light */
-  --primary: #4F46E5;    /* colors.primary.light */
-  --card: #F3F4F6;       /* colors.card.light */
-  --border: #E5E7EB;     /* colors.border.light */
-}
-
+/* ─── Tailwind v4 → shadcn bridge ──────────────────────────────────────── */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --color-primary: var(--primary);
-  --color-card: var(--card);
-  --color-border: var(--border);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-background:           var(--background);
+  --color-foreground:           var(--foreground);
+  --color-card:                 var(--card);
+  --color-card-foreground:      var(--card-foreground);
+  --color-popover:              var(--popover);
+  --color-popover-foreground:   var(--popover-foreground);
+  --color-primary:              var(--primary);
+  --color-primary-foreground:   var(--primary-foreground);
+  --color-secondary:            var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted:                var(--muted);
+  --color-muted-foreground:     var(--muted-foreground);
+  --color-accent:               var(--accent);
+  --color-accent-foreground:    var(--accent-foreground);
+  --color-destructive:          var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border:               var(--border);
+  --color-input:                var(--input);
+  --color-ring:                 var(--ring);
+  --radius:                     var(--radius);
+  --font-sans:                  var(--font-geist-sans);
+  --font-mono:                  var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    /* Dark theme (matches mobile) */
-    --background: #111827; /* colors.background.dark */
-    --foreground: #F9FAFB; /* colors.text.primary.dark */
-    --primary: #6366F1;    /* colors.primary.dark */
-    --card: #1F2937;       /* colors.card.dark */
-    --border: #374151;     /* colors.border.dark */
-  }
+/* ─── Light theme ───────────────────────────────────────────────────────── */
+:root {
+  --radius: 0.5rem;
+
+  --background:           oklch(1 0 0);
+  --foreground:           oklch(0.09 0 0);
+
+  --card:                 oklch(1 0 0);
+  --card-foreground:      oklch(0.09 0 0);
+
+  --popover:              oklch(1 0 0);
+  --popover-foreground:   oklch(0.09 0 0);
+
+  /* #3800ff → oklch(0.41 0.286 268) */
+  --primary:              oklch(0.41 0.286 268);
+  --primary-foreground:   oklch(1 0 0);
+
+  --secondary:            oklch(0.96 0 0);
+  --secondary-foreground: oklch(0.12 0 0);
+
+  --muted:                oklch(0.96 0 0);
+  --muted-foreground:     oklch(0.5 0 0);
+
+  --accent:               oklch(0.96 0 0);
+  --accent-foreground:    oklch(0.12 0 0);
+
+  --destructive:          oklch(0.57 0.22 27);
+  --destructive-foreground: oklch(1 0 0);
+
+  --border:               oklch(0.9 0 0);
+  --input:                oklch(0.9 0 0);
+  --ring:                 oklch(0.41 0.286 268);
 }
+
+/* ─── Dark theme ────────────────────────────────────────────────────────── */
+.dark {
+  --background:           oklch(0.09 0 0);
+  --foreground:           oklch(0.98 0 0);
+
+  --card:                 oklch(0.09 0 0);
+  --card-foreground:      oklch(0.98 0 0);
+
+  --popover:              oklch(0.09 0 0);
+  --popover-foreground:   oklch(0.98 0 0);
+
+  /* lighter purple for dark bg */
+  --primary:              oklch(0.72 0.19 268);
+  --primary-foreground:   oklch(0.09 0 0);
+
+  --secondary:            oklch(0.18 0 0);
+  --secondary-foreground: oklch(0.98 0 0);
+
+  --muted:                oklch(0.18 0 0);
+  --muted-foreground:     oklch(0.64 0 0);
+
+  --accent:               oklch(0.18 0 0);
+  --accent-foreground:    oklch(0.98 0 0);
+
+  --destructive:          oklch(0.3 0.12 27);
+  --destructive-foreground: oklch(0.98 0 0);
+
+  --border:               oklch(0.18 0 0);
+  --input:                oklch(0.18 0 0);
+  --ring:                 oklch(0.72 0.19 268);
+}
+
+/* ─── Base ──────────────────────────────────────────────────────────────── */
+* { border-color: var(--border); }
 
 body {
-  background: var(--background);
+  background-color: var(--background);
   color: var(--foreground);
+  font-feature-settings: "rlig" 1, "calt" 1;
 }

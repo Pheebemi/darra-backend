@@ -1,225 +1,203 @@
 "use client";
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { toast } from "sonner";
-import { Mail, Shield, RotateCcw, ArrowLeft, CheckCircle } from "lucide-react";
+import { ArrowLeft, RotateCcw, ShoppingBag, CheckCircle } from "lucide-react";
 
 function VerifyOTPInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const email = searchParams.get("email") || "";
   const isLogin = searchParams.get("isLogin") === "true";
-  const [otp, setOtp] = useState("");
+  const [digits, setDigits] = useState(["", "", "", "", "", ""]);
   const [isResending, setIsResending] = useState(false);
-  const { loginWithOTP, isLoading, fetchProfile } = useAuth();
+  const [cooldown, setCooldown] = useState(0);
+  const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
+  const { isLoading, fetchProfile } = useAuth();
+  const otp = digits.join("");
 
-  const handleVerify = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!otp) {
-      toast.error("Please enter the verification code");
-      return;
-    }
-
-    if (otp.length !== 6) {
-      toast.error("Code must be 6 digits");
-      return;
-    }
-
+  const handleVerify = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (otp.length !== 6) { toast.error("Please enter all 6 digits"); return; }
     try {
-      const response = await fetch("/api/auth/verify-otp", {
+      const res = await fetch("/api/auth/verify-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, otp, isLogin }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Verification failed");
-      }
-
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Verification failed");
       if (isLogin) {
-        // Login flow - fetch profile to update auth state
         await fetchProfile();
-        toast.success("Welcome back! Login successful.");
+        toast.success("Welcome back!");
         router.push("/");
       } else {
-        // Registration flow - redirect to login
-        toast.success("Your email has been verified successfully! Please login to continue.");
-        setTimeout(() => {
-          router.push("/login");
-        }, 2000);
+        toast.success("Email verified! Please sign in.");
+        setTimeout(() => router.push("/login"), 2000);
       }
     } catch (error: any) {
       toast.error(error.message || "Invalid code. Please try again.");
-      setOtp("");
+      setDigits(["", "", "", "", "", ""]);
+      inputRefs.current[0]?.focus();
     }
   };
 
-  const handleResendOTP = async () => {
+  const handleResend = async () => {
     setIsResending(true);
     try {
-      const response = await fetch("/api/auth/request-otp", {
+      const res = await fetch("/api/auth/request-otp", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
       });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to send code");
-      }
-
-      toast.success("A new verification code has been sent to your email");
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message);
+      toast.success("New code sent to your email");
+      setCooldown(60);
     } catch (error: any) {
-      toast.error(error.message || "Failed to send code. Please try again.");
+      toast.error(error.message || "Failed to resend code");
     } finally {
       setIsResending(false);
     }
   };
 
-  // Auto-submit when OTP is complete
   useEffect(() => {
-    if (otp.length === 6 && !isLoading) {
-      handleVerify(new Event('submit') as any);
-    }
+    if (cooldown <= 0) return;
+    const t = setTimeout(() => setCooldown((c) => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [cooldown]);
+
+  useEffect(() => {
+    if (otp.length === 6 && !isLoading) handleVerify();
   }, [otp]);
 
-  // Redirect if no email
   useEffect(() => {
-    if (!email) {
-      router.push(isLogin ? "/login" : "/register");
-    }
+    if (!email) router.push(isLogin ? "/login" : "/register");
   }, [email, isLogin, router]);
 
-  if (!email) {
-    return null;
-  }
+  const handleDigitChange = (i: number, value: string) => {
+    const digit = value.replace(/\D/g, "").slice(-1);
+    const next = [...digits];
+    next[i] = digit;
+    setDigits(next);
+    if (digit && i < 5) inputRefs.current[i + 1]?.focus();
+  };
+
+  const handleKeyDown = (i: number, e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Backspace") {
+      if (digits[i]) { const n = [...digits]; n[i] = ""; setDigits(n); }
+      else if (i > 0) inputRefs.current[i - 1]?.focus();
+    } else if (e.key === "ArrowLeft" && i > 0) inputRefs.current[i - 1]?.focus();
+    else if (e.key === "ArrowRight" && i < 5) inputRefs.current[i + 1]?.focus();
+  };
+
+  const handlePaste = (e: React.ClipboardEvent) => {
+    e.preventDefault();
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
+    if (!pasted) return;
+    const next = [...digits];
+    pasted.split("").forEach((ch, i) => { next[i] = ch; });
+    setDigits(next);
+    inputRefs.current[Math.min(pasted.length, 5)]?.focus();
+  };
+
+  if (!email) return null;
 
   return (
-    <div className="min-h-[calc(100dvh-8rem)] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-900">
-      <div className="absolute inset-0 bg-grid-slate-900/10 [mask-image:linear-gradient(0deg,white,rgba(255,255,255,0.6))] dark:bg-grid-slate-400/10 dark:[mask-image:linear-gradient(0deg,rgba(255,255,255,0.1),rgba(255,255,255,0.5))]" />
-      
-      <div className="relative flex min-h-[calc(100dvh-8rem)] items-center justify-center px-6 py-12">
-        <div className="w-full max-w-md">
-          {/* Card Container */}
-          <div className="rounded-2xl border border-slate-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80">
-            {/* Header */}
-            <div className="mb-8 text-center">
-              <div className="mb-4 flex justify-center">
-                <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white">
-                  <Shield className="h-6 w-6" />
-                </div>
-              </div>
-              <h1 className="mb-3 text-3xl font-bold bg-gradient-to-br from-slate-900 to-blue-700 dark:from-slate-100 dark:to-blue-400 bg-clip-text text-transparent">
-                Verify Email
-              </h1>
-              <p className="text-lg text-slate-600 dark:text-slate-300 mb-2">
-                {isLogin
-                  ? "Enter the code sent to your email to login"
-                  : "Enter the code to verify your account"}
-              </p>
-              
-              {/* Email Display */}
-              <div className="inline-flex items-center gap-2 rounded-full bg-blue-100 px-4 py-2 text-sm text-blue-700 dark:bg-blue-900/30 dark:text-blue-300">
-                <Mail className="h-4 w-4" />
-                {email}
+    <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-background px-4 py-12">
+      <div className="w-full max-w-sm">
+        {/* Logo */}
+        <div className="mb-8 flex justify-center">
+          <div className="flex items-center gap-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+              <ShoppingBag className="h-3.5 w-3.5 text-primary-foreground" />
+            </div>
+            <span className="font-semibold">Darra</span>
+          </div>
+        </div>
+
+        {/* Card */}
+        <div className="rounded-xl border bg-card p-8 shadow-sm">
+          <div className="mb-6 text-center">
+            <div className="mb-4 flex justify-center">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-primary/10 text-primary">
+                <CheckCircle className="h-6 w-6" />
               </div>
             </div>
+            <h1 className="mb-1 text-xl font-semibold">Check your email</h1>
+            <p className="text-sm text-muted-foreground">
+              {isLogin ? "Enter the code we sent to log you in" : "Enter the code to verify your account"}
+            </p>
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border bg-muted px-3 py-1">
+              <span className="text-xs font-medium text-muted-foreground truncate max-w-[180px]">{email}</span>
+            </div>
+          </div>
 
-            {/* OTP Form */}
-            <form onSubmit={handleVerify} className="space-y-6">
-              {/* OTP Input */}
-              <div className="space-y-3">
-                <Label htmlFor="otp" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-                  Verification Code
-                </Label>
-                <Input
-                  id="otp"
+          <form onSubmit={handleVerify}>
+            {/* OTP boxes */}
+            <div className="mb-2 flex justify-center gap-2" onPaste={handlePaste}>
+              {digits.map((digit, i) => (
+                <input
+                  key={i}
+                  ref={(el) => { inputRefs.current[i] = el; }}
                   type="text"
-                  placeholder="000000"
-                  maxLength={6}
-                  value={otp}
-                  onChange={(e) => {
-                    const value = e.target.value.replace(/\D/g, "");
-                    setOtp(value);
-                  }}
+                  inputMode="numeric"
+                  maxLength={1}
+                  value={digit}
+                  onChange={(e) => handleDigitChange(i, e.target.value)}
+                  onKeyDown={(e) => handleKeyDown(i, e)}
                   disabled={isLoading}
-                  className="text-center text-3xl tracking-[0.5em] font-mono h-16 rounded-xl border-slate-300 bg-white transition-colors focus:border-blue-500 focus:ring-blue-500 dark:border-slate-600 dark:bg-slate-700/50 dark:text-white"
-                  autoFocus
+                  autoFocus={i === 0}
+                  className={`h-12 w-11 rounded-lg border text-center text-lg font-semibold outline-none transition-all disabled:opacity-50 ${
+                    digit
+                      ? "border-primary bg-primary/5 text-primary"
+                      : "border-input bg-background text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  }`}
                 />
-                <p className="text-center text-sm text-slate-500 dark:text-slate-400">
-                  Enter the 6-digit code sent to your email
-                </p>
-              </div>
+              ))}
+            </div>
+            <p className="mb-5 text-center text-xs text-muted-foreground">
+              6-digit code · expires in 10 minutes
+            </p>
 
-              {/* Resend Code */}
-              <div className="text-center">
+            <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                  Verifying...
+                </span>
+              ) : "Verify code"}
+            </Button>
+
+            <div className="mt-4 text-center">
+              {cooldown > 0 ? (
+                <p className="text-xs text-muted-foreground">Resend in <span className="font-medium text-foreground">{cooldown}s</span></p>
+              ) : (
                 <button
                   type="button"
-                  onClick={handleResendOTP}
+                  onClick={handleResend}
                   disabled={isLoading || isResending}
-                  className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 disabled:opacity-50 dark:text-blue-400 dark:hover:text-blue-300 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
                 >
-                  <RotateCcw className={`h-4 w-4 ${isResending ? 'animate-spin' : ''}`} />
-                  {isResending ? "Sending..." : "Didn't receive the code? Resend"}
+                  <RotateCcw className={`h-3 w-3 ${isResending ? "animate-spin" : ""}`} />
+                  {isResending ? "Sending..." : "Didn't get it? Resend"}
                 </button>
-              </div>
+              )}
+            </div>
+          </form>
+        </div>
 
-              {/* Verify Button */}
-              <Button
-                type="submit"
-                className="w-full rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 py-3 text-base font-medium text-white shadow-lg transition-all hover:from-blue-700 hover:to-purple-700 hover:shadow-xl disabled:opacity-50"
-                disabled={isLoading || otp.length !== 6}
-              >
-                {isLoading ? (
-                  <div className="flex items-center gap-2">
-                    <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
-                    Verifying...
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <CheckCircle className="h-4 w-4" />
-                    Verify Code
-                  </div>
-                )}
-              </Button>
-            </form>
-
-            {/* Back Link */}
-            <div className="mt-8 text-center">
-              <Link 
-                href={isLogin ? "/login" : "/register"} 
-                className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-300 transition-colors"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to {isLogin ? "login" : "register"}
-              </Link>
-            </div>
-          </div>
-
-          {/* Trust Indicators */}
-          <div className="mt-8 grid grid-cols-3 gap-4 text-center text-xs text-slate-500 dark:text-slate-500">
-            <div className="flex flex-col items-center">
-              <Shield className="h-4 w-4 mb-1" />
-              <span>Secure</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <Mail className="h-4 w-4 mb-1" />
-              <span>Email</span>
-            </div>
-            <div className="flex flex-col items-center">
-              <CheckCircle className="h-4 w-4 mb-1" />
-              <span>Verified</span>
-            </div>
-          </div>
+        <div className="mt-5 text-center">
+          <Link
+            href={isLogin ? "/login" : "/register"}
+            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Back to {isLogin ? "sign in" : "register"}
+          </Link>
         </div>
       </div>
     </div>
@@ -229,22 +207,9 @@ function VerifyOTPInner() {
 export default function VerifyOTPPage() {
   return (
     <Suspense fallback={
-      <div className="min-h-[calc(100dvh-8rem)] bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 dark:from-slate-900 dark:via-blue-950 dark:to-indigo-900">
-        <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center px-6 py-12">
-          <div className="w-full max-w-md">
-            <div className="rounded-2xl border border-slate-200/50 bg-white/80 p-8 shadow-2xl backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80">
-              <div className="text-center">
-                <div className="mb-4 flex justify-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white">
-                    <Shield className="h-6 w-6 animate-pulse" />
-                  </div>
-                </div>
-                <h1 className="mb-3 text-3xl font-bold bg-gradient-to-br from-slate-900 to-blue-700 dark:from-slate-100 dark:to-blue-400 bg-clip-text text-transparent">
-                  Loading...
-                </h1>
-              </div>
-            </div>
-          </div>
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-background">
+        <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-primary/10 text-primary animate-pulse">
+          <CheckCircle className="h-6 w-6" />
         </div>
       </div>
     }>

@@ -407,9 +407,9 @@ export default function BankDetailsPage() {
                                 </p>
                               </div>
                             ) : (
-                              filteredBanks.map((bank) => (
-                                <SelectItem 
-                                  key={bank.code} 
+                              filteredBanks.map((bank, idx) => (
+                                <SelectItem
+                                  key={`${bank.code}-${idx}`}
                                   value={bank.code}
                                   className="cursor-pointer py-3"
                                 >

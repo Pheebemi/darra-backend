@@ -9,58 +9,39 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
-  DropdownMenuTrigger, // Added missing import
+  DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { 
-  ShoppingCart, 
-  User, 
-  LogOut, 
-  LayoutDashboard, 
-  Ticket,
-  Menu,
-  Search
-} from "lucide-react";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, ShoppingBag, Library } from "lucide-react";
 import { useState } from "react";
 
 export function SiteHeader() {
   const { user, isAuthenticated, logout, initialized } = useAuth();
   const { getItemCount } = useCart();
   const cartCount = getItemCount();
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [open, setOpen] = useState(false);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-slate-200/50 bg-white/80 backdrop-blur-xl supports-[backdrop-filter]:bg-white/60 dark:border-slate-700/50 dark:bg-slate-900/80">
-      <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+    <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="mx-auto flex h-14 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+
         {/* Logo */}
-        <Link 
-          href="/" 
-          className="flex items-center gap-2 text-xl font-bold tracking-tight"
-        >
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-blue-600 to-purple-600 text-white">
-            <Ticket className="h-4 w-4" />
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
+            <ShoppingBag className="h-3.5 w-3.5 text-primary-foreground" />
           </div>
-          <span className="bg-gradient-to-br from-slate-900 to-blue-700 dark:from-slate-100 dark:to-blue-400 bg-clip-text text-transparent">
-            Darra
-          </span>
+          <span className="text-sm">Darra</span>
         </Link>
 
-        {/* Desktop Navigation */}
-        <nav className="hidden items-center gap-6 md:flex">
-          <Link 
-            href="/tickets" 
-            className="text-sm font-medium text-slate-700 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
-          >
-            Browse Tickets
+        {/* Desktop nav */}
+        <nav className="hidden items-center gap-1 md:flex">
+          <Link href="/products" className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
+            Browse
           </Link>
-          
           {isAuthenticated && (
-            <Link 
-              href="/cart" 
-              className="relative transition-colors hover:text-blue-600 dark:hover:text-blue-400"
-            >
-              <ShoppingCart className="h-5 w-5 text-slate-700 dark:text-slate-300" />
+            <Link href="/cart" className="relative rounded-md p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
+              <ShoppingCart className="h-4 w-4" />
               {cartCount > 0 && (
-                <Badge className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full border-2 border-white bg-red-500 p-0 text-xs text-white dark:border-slate-900">
+                <Badge className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full p-0 text-[10px]">
                   {cartCount}
                 </Badge>
               )}
@@ -68,198 +49,96 @@ export function SiteHeader() {
           )}
         </nav>
 
-        {/* Desktop Auth Section */}
-        <div className="hidden items-center gap-4 md:flex">
+        {/* Desktop auth */}
+        <div className="hidden items-center gap-2 md:flex">
           {initialized && (
-            <>
-              {isAuthenticated ? (
-                <div className="flex items-center gap-4">
-                  {/* Search Icon */}
-                  <Button variant="ghost" size="sm" className="rounded-xl">
-                    <Search className="h-4 w-4" />
-                  </Button>
-
-                  {/* Dashboard Links */}
-                  {(user?.user_type || "buyer").toLowerCase() === "seller" ? (
-                    <Link
-                      href="/dashboard/seller"
-                      className="text-sm font-medium text-slate-700 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
-                    >
-                      Dashboard
-                    </Link>
-                  ) : (
-                    <Link
-                      href="/dashboard/buyer"
-                      className="text-sm font-medium text-slate-700 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
-                    >
-                      Dashboard
-                    </Link>
-                  )}
-                  
-                  <Link
-                    href="/account/tickets"
-                    className="text-sm font-medium text-slate-700 transition-colors hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400"
-                  >
-                    My Tickets
-                  </Link>
-
-                  {/* User Dropdown */}
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="flex items-center gap-2 rounded-xl px-3"
-                      >
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-purple-100 text-blue-600 dark:from-blue-900/50 dark:to-purple-900/50 dark:text-blue-400">
-                          <User className="h-4 w-4" />
-                        </div>
-                        <span className="max-w-32 truncate text-sm font-medium">
-                          {user?.full_name || user?.email || "Account"}
-                        </span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent 
-                      align="end" 
-                      className="w-56 rounded-xl border-slate-200/50 bg-white/80 backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-800/80"
-                    >
-                      <div className="flex items-center gap-2 p-2">
-                        <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-purple-100 text-blue-600 dark:from-blue-900/50 dark:to-purple-900/50 dark:text-blue-400">
-                          <User className="h-4 w-4" />
-                        </div>
-                        <div className="flex flex-col space-y-1">
-                          <p className="text-sm font-medium truncate">
-                            {user?.full_name || "User"}
-                          </p>
-                          <p className="text-xs text-slate-600 dark:text-slate-400 truncate">
-                            {user?.email}
-                          </p>
-                        </div>
+            isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <Link href={(user?.user_type || "buyer").toLowerCase() === "seller" ? "/dashboard/seller" : "/dashboard/buyer"}
+                  className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
+                  Dashboard
+                </Link>
+                <Link href="/dashboard/buyer/library"
+                  className="rounded-md px-3 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground">
+                  My Library
+                </Link>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button variant="ghost" size="sm" className="gap-2 px-2">
+                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                        <User className="h-3.5 w-3.5" />
                       </div>
-                      <DropdownMenuSeparator className="bg-slate-200/50 dark:bg-slate-700/50" />
-                      <DropdownMenuItem 
-                        onClick={logout}
-                        className="flex cursor-pointer items-center gap-2 text-red-600 focus:text-red-600 dark:text-red-400 dark:focus:text-red-400"
-                      >
-                        <LogOut className="h-4 w-4" />
-                        Logout
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              ) : (
-                <Button asChild size="sm" className="rounded-xl bg-blue-600 hover:bg-blue-700">
-                  <Link href="/login">Sign in</Link>
-                </Button>
-              )}
-            </>
+                      <span className="max-w-24 truncate text-xs">{user?.full_name || user?.email || "Account"}</span>
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48 rounded-lg">
+                    <div className="px-3 py-2">
+                      <p className="text-xs font-medium truncate">{user?.full_name || "User"}</p>
+                      <p className="text-xs text-muted-foreground truncate">{user?.email}</p>
+                    </div>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={logout} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
+                      <LogOut className="h-3.5 w-3.5" />
+                      Logout
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+            ) : (
+              <Button size="sm" asChild>
+                <Link href="/login">Sign in</Link>
+              </Button>
+            )
           )}
         </div>
 
-        {/* Mobile Menu Button */}
-        <button
-          onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
-          className="flex items-center justify-center rounded-xl p-2 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800 md:hidden"
-        >
-          <Menu className="h-5 w-5" />
+        {/* Mobile menu button */}
+        <button onClick={() => setOpen(!open)} className="rounded-md p-2 text-muted-foreground hover:bg-accent md:hidden">
+          <Menu className="h-4 w-4" />
         </button>
       </div>
 
-      {/* Mobile Menu */}
-      {isMobileMenuOpen && (
-        <div className="border-t border-slate-200/50 bg-white/95 backdrop-blur-xl dark:border-slate-700/50 dark:bg-slate-900/95 md:hidden">
-          <div className="px-4 py-4 space-y-4">
-            {/* Navigation Links */}
-            <Link
-              href="/tickets"
-              className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-              onClick={() => setIsMobileMenuOpen(false)}
-            >
-              Browse Tickets
+      {/* Mobile menu */}
+      {open && (
+        <div className="border-t bg-background md:hidden">
+          <div className="space-y-0.5 px-4 py-3">
+            <Link href="/products" onClick={() => setOpen(false)} className="flex items-center rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent">
+              Browse Products
             </Link>
-
             {isAuthenticated && (
               <>
-                <Link
-                  href="/cart"
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <ShoppingCart className="h-4 w-4" />
-                  Cart
-                  {cartCount > 0 && (
-                    <Badge className="ml-auto bg-red-500 text-xs text-white">
-                      {cartCount}
-                    </Badge>
-                  )}
+                <Link href="/cart" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent">
+                  <ShoppingCart className="h-4 w-4" /> Cart
+                  {cartCount > 0 && <Badge className="ml-auto h-4 rounded-full px-1.5 text-[10px]">{cartCount}</Badge>}
                 </Link>
-
-                {(user?.user_type || "buyer").toLowerCase() === "seller" ? (
-                  <Link
-                    href="/dashboard/seller"
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
-                  </Link>
-                ) : (
-                  <Link
-                    href="/dashboard/buyer"
-                    className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                    onClick={() => setIsMobileMenuOpen(false)}
-                  >
-                    <LayoutDashboard className="h-4 w-4" />
-                    Dashboard
-                  </Link>
-                )}
-
-                <Link
-                  href="/account/tickets"
-                  className="flex items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-slate-700 transition-colors hover:bg-slate-100 hover:text-blue-600 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-blue-400"
-                  onClick={() => setIsMobileMenuOpen(false)}
-                >
-                  <Ticket className="h-4 w-4" />
-                  My Tickets
+                <Link href={(user?.user_type || "buyer").toLowerCase() === "seller" ? "/dashboard/seller" : "/dashboard/buyer"} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent">
+                  <LayoutDashboard className="h-4 w-4" /> Dashboard
                 </Link>
-
-                <div className="border-t border-slate-200/50 pt-4 dark:border-slate-700/50">
-                  <div className="flex items-center gap-3 px-3 py-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-100 to-purple-100 text-blue-600 dark:from-blue-900/50 dark:to-purple-900/50 dark:text-blue-400">
-                      <User className="h-4 w-4" />
+                <Link href="/dashboard/buyer/library" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent">
+                  <Library className="h-4 w-4" /> My Library
+                </Link>
+                <div className="border-t pt-2 mt-2">
+                  <div className="flex items-center gap-2 px-3 py-1.5">
+                    <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/10 text-primary">
+                      <User className="h-3 w-3" />
                     </div>
-                    <div className="flex flex-col">
-                      <p className="text-sm font-medium text-slate-900 dark:text-white">
-                        {user?.full_name || "User"}
-                      </p>
-                      <p className="text-xs text-slate-600 dark:text-slate-400">
-                        {user?.email}
-                      </p>
+                    <div>
+                      <p className="text-xs font-medium">{user?.full_name}</p>
+                      <p className="text-xs text-muted-foreground">{user?.email}</p>
                     </div>
                   </div>
-                  
-                  <button
-                    onClick={() => {
-                      logout();
-                      setIsMobileMenuOpen(false);
-                    }}
-                    className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium text-red-600 transition-colors hover:bg-red-50 dark:text-red-400 dark:hover:bg-red-900/20"
-                  >
-                    <LogOut className="h-4 w-4" />
-                    Logout
+                  <button onClick={() => { logout(); setOpen(false); }} className="flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm text-destructive hover:bg-destructive/10">
+                    <LogOut className="h-4 w-4" /> Logout
                   </button>
                 </div>
               </>
             )}
-
             {!isAuthenticated && initialized && (
-              <Button 
-                asChild 
-                className="w-full rounded-xl bg-blue-600 hover:bg-blue-700"
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                <Link href="/login">Sign in</Link>
-              </Button>
+              <div className="pt-1">
+                <Button size="sm" className="w-full" asChild onClick={() => setOpen(false)}>
+                  <Link href="/login">Sign in</Link>
+                </Button>
+              </div>
             )}
           </div>
         </div>
