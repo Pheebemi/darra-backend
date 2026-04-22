@@ -8,9 +8,11 @@ export async function GET(request: NextRequest) {
     const productType = searchParams.get("product_type");
     const ticketCategory = searchParams.get("ticket_category");
 
+    const search = searchParams.get("search");
     const queryParams = new URLSearchParams();
     if (productType) queryParams.append("product_type", productType);
     if (ticketCategory) queryParams.append("ticket_category", ticketCategory);
+    if (search) queryParams.append("search", search);
 
     const url = `/products/${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
     const response = await apiClient.get(url);

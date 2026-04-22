@@ -1,7 +1,9 @@
 "use client";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 import {
@@ -11,7 +13,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, ShoppingBag, Library } from "lucide-react";
+import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, ShoppingBag, Library, Search } from "lucide-react";
 import { useState } from "react";
 
 export function SiteHeader() {
@@ -19,6 +21,16 @@ export function SiteHeader() {
   const { getItemCount } = useCart();
   const cartCount = getItemCount();
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const router = useRouter();
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchQuery.trim())}`);
+      setOpen(false);
+    }
+  };
 
   return (
     <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
@@ -31,6 +43,19 @@ export function SiteHeader() {
           </div>
           <span className="text-sm">Darra</span>
         </Link>
+
+        {/* Search bar */}
+        <form onSubmit={handleSearch} className="hidden md:flex flex-1 max-w-sm mx-6">
+          <div className="relative w-full">
+            <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Search products..."
+              className="h-8 rounded-full pl-9 pr-4 text-sm"
+            />
+          </div>
+        </form>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
@@ -102,6 +127,17 @@ export function SiteHeader() {
       {open && (
         <div className="border-t bg-background md:hidden">
           <div className="space-y-0.5 px-4 py-3">
+            <form onSubmit={handleSearch} className="mb-2">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchQuery}
+                  onChange={e => setSearchQuery(e.target.value)}
+                  placeholder="Search products..."
+                  className="h-8 rounded-full pl-9 pr-4 text-sm"
+                />
+              </div>
+            </form>
             <Link href="/products" onClick={() => setOpen(false)} className="flex items-center rounded-md px-3 py-2 text-sm text-muted-foreground hover:bg-accent">
               Browse Products
             </Link>

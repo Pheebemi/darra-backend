@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { SafeImage } from "@/components/safe-image";
 import { Input } from "@/components/ui/input";
@@ -67,9 +68,11 @@ function getMinPrice(p: Product): number | null {
 }
 
 export default function ProductsPage() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState("");
+  const [search, setSearch] = useState(searchParams.get("search") || "");
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState("newest");
 
@@ -77,7 +80,9 @@ export default function ProductsPage() {
     (async () => {
       try {
         setLoading(true);
-        const res = await fetch("/api/products");
+        const q = new URLSearchParams();
+        if (search.trim()) q.set("search", search.trim());
+        const res = await fetch(`/api/products${q.toString() ? `?${q}` : ""}`);
         if (!res.ok) throw new Error("Failed to fetch");
         const data = await res.json();
         setProducts(Array.isArray(data) ? data : []);
@@ -87,7 +92,7 @@ export default function ProductsPage() {
         setLoading(false);
       }
     })();
-  }, []);
+  }, [search]);
 
   const filtered = products
     .filter((p) => {

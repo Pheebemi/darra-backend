@@ -231,12 +231,20 @@ class ProductListView(generics.ListAPIView):
         queryset = Product.objects.select_related('owner', 'ticket_category').prefetch_related('ticket_tiers')
         product_type = self.request.query_params.get('product_type', None)
         ticket_category = self.request.query_params.get('ticket_category', None)
-        
+        search = self.request.query_params.get('search', None)
+
         if product_type:
             queryset = queryset.filter(product_type=product_type)
         if ticket_category:
             queryset = queryset.filter(ticket_category_id=ticket_category)
-            
+        if search:
+            from django.db.models import Q
+            queryset = queryset.filter(
+                Q(title__icontains=search) |
+                Q(description__icontains=search) |
+                Q(owner__brand_name__icontains=search)
+            )
+
         return queryset
 
 class PublicProductDetailView(generics.RetrieveAPIView):
