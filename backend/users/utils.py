@@ -336,7 +336,7 @@ def send_payout_requested_email(payout_request):
             f"Account Number: {bank.account_number}\n"
             f"Account Name: {bank.account_name}\n"
             f"Reference: {payout_request.transfer_reference}\n\n"
-            f"You will be paid within 24-48 hours.\n\n"
+            f"You will be paid within 12-14 hours.\n\n"
             f"Thank you for being part of Darra!"
         )
         send_mail(

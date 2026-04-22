@@ -190,7 +190,7 @@ export default function RequestPayoutPage() {
       const data = await response.json();
       toast.success(
         data.message ||
-          `Payout request of ${formatCurrency(parseFloat(amount))} submitted. You will be paid within 24-48 hours.`
+          `Payout request of ${formatCurrency(parseFloat(amount))} submitted. You will be paid within 12-14 hours.`
       );
 
       // Navigate to history after a short delay
@@ -423,7 +423,7 @@ export default function RequestPayoutPage() {
               <h3 className="text-lg font-semibold text-foreground">Important Information</h3>
             </div>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• Payouts are processed within 24-48 hours</li>
+              <li>• Payouts are processed within 12-14 hours</li>
               <li>• You'll receive a confirmation email once processed</li>
               <li>• Minimum payout amount is ₦1,000</li>
               <li>• Platform fee of 4% is already deducted from your sales</li>
