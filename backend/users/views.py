@@ -363,16 +363,25 @@ class BankDetailView(APIView):
         account_number = request.data.get('account_number')
         bank_name = request.data.get('bank_name')
 
-        # Validate with Paystack
+        # Validate with Flutterwave
         headers = {
-            'Authorization': f'Bearer {settings.PAYSTACK_SECRET_KEY}',
+            'Authorization': f'Bearer {settings.FLUTTERWAVE_SECRET_KEY}',
+            'Content-Type': 'application/json',
         }
-        url = f'https://api.paystack.co/bank/resolve?account_number={account_number}&bank_code={bank_code}'
-        resp = requests.get(url, headers=headers)
-        data = resp.json()
+        try:
+            resp = requests.post(
+                'https://api.flutterwave.com/v3/accounts/resolve',
+                json={'account_number': account_number, 'account_bank': bank_code},
+                headers=headers,
+                timeout=15,
+            )
+            data = resp.json()
+        except Exception as e:
+            return Response({'status': False, 'message': 'Could not connect to bank validation service.'}, status=400)
 
-        if not data.get('status'):
-            return Response({'status': False, 'message': data.get('message', 'Validation failed')}, status=400)
+        if data.get('status') != 'success':
+            msg = data.get('message') or 'Could not resolve account. Check account number and bank.'
+            return Response({'status': False, 'message': msg}, status=400)
 
         account_name = data['data']['account_name']
 

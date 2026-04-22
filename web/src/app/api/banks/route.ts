@@ -2,56 +2,44 @@ import { NextResponse } from "next/server";
 
 export async function GET() {
   try {
-    // Fetch Nigerian banks from Paystack
-    const paystackPublicKey = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY;
-    
-    if (!paystackPublicKey) {
-      console.error("Paystack public key not configured in environment variables");
+    const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
+
+    if (!secretKey) {
       return NextResponse.json(
-        { 
-          message: "Paystack public key not configured",
-          error: "NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY environment variable is missing"
-        },
+        { message: "Flutterwave secret key not configured" },
         { status: 500 }
       );
     }
 
-    const response = await fetch("https://api.paystack.co/bank", {
+    const response = await fetch("https://api.flutterwave.com/v3/banks/NG", {
       headers: {
-        Authorization: `Bearer ${paystackPublicKey}`,
+        Authorization: `Bearer ${secretKey}`,
       },
     });
 
     if (!response.ok) {
       const errorData = await response.json().catch(() => ({}));
-      console.error("Paystack API Error:", {
-        status: response.status,
-        statusText: response.statusText,
-        errorData,
-      });
-      throw new Error(
-        errorData.message || `Failed to fetch banks from Paystack (${response.status})`
-      );
+      throw new Error(errorData.message || `Failed to fetch banks (${response.status})`);
     }
 
     const data = await response.json();
-    
-    if (!data.status) {
-      console.error("Paystack API returned error:", data);
-      throw new Error(data.message || "Failed to fetch banks from Paystack");
+
+    if (data.status !== "success") {
+      throw new Error(data.message || "Failed to fetch banks from Flutterwave");
     }
 
-    return NextResponse.json(data.data || []);
+    // Normalize to { name, code } shape the frontend expects
+    const banks = (data.data || []).map((b: any) => ({
+      name: b.name,
+      code: b.code,
+    }));
+
+    return NextResponse.json(banks);
   } catch (error: any) {
     console.error("Banks API Error:", error);
     return NextResponse.json(
-      { 
-        message: error.message || "Failed to fetch banks",
-        error: error.message,
-        details: error.toString()
-      },
+      { message: error.message || "Failed to fetch banks" },
       { status: 500 }
     );
   }
 }
-

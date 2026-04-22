@@ -140,7 +140,7 @@ export default function BankDetailsPage() {
       }
     } catch (error: any) {
       console.error("Error fetching banks:", error);
-      const errorMessage = error.message || "Failed to fetch banks. Please check your Paystack configuration.";
+      const errorMessage = error.message || "Failed to fetch banks.";
       toast.error(errorMessage);
     } finally {
       setLoadingBanks(false);
