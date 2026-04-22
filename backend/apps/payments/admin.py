@@ -68,7 +68,8 @@ class PayoutRequestAdmin(admin.ModelAdmin):
         'status', 'created_at', 'processed_at', 'transfer_provider'
     ]
     list_filter = ['status', 'created_at']
-    search_fields = ['seller__email', 'transfer_reference', 'paystack_transfer_id', 'flutterwave_transfer_id']
+    list_editable = ['status']
+    search_fields = ['seller__email', 'transfer_reference']
     readonly_fields = ['transfer_reference', 'created_at']
     ordering = ['-created_at']
     

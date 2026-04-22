@@ -482,23 +482,13 @@ def request_payout(request):
         )
         serializer.is_valid(raise_exception=True)
         
-        # Create payout request
-        payout_request = serializer.save(seller=request.user)
-        
-        # Process payout immediately
-        payout_service = PayoutService()
-        success = payout_service.process_payout(payout_request)
-        
-        if success:
-            return Response({
-                'message': 'Payout processed successfully',
-                'payout': PayoutRequestSerializer(payout_request).data
-            }, status=status.HTTP_201_CREATED)
-        else:
-            return Response({
-                'message': 'Payout request created but processing failed',
-                'payout': PayoutRequestSerializer(payout_request).data
-            }, status=status.HTTP_202_ACCEPTED)
+        # Create payout request — manual processing by admin
+        payout_request = serializer.save(seller=request.user, status='pending')
+
+        return Response({
+            'message': 'Payout request submitted. You will be paid within 1-3 business days.',
+            'payout': PayoutRequestSerializer(payout_request).data
+        }, status=status.HTTP_201_CREATED)
             
     except Exception as e:
         return Response({
