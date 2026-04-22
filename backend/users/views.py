@@ -428,3 +428,20 @@ class SellerStoreView(APIView):
         from .serializers import SellerStoreSerializer
         serializer = SellerStoreSerializer(seller, context={'request': request})
         return Response(serializer.data)
+
+
+class AllStoresView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        sellers = User.objects.filter(user_type='seller', store_active=True).exclude(brand_slug__isnull=True).exclude(brand_slug='')
+        data = [
+            {
+                'brand_name': s.brand_name,
+                'brand_slug': s.brand_slug,
+                'about': s.about,
+                'product_count': s.products.count(),
+            }
+            for s in sellers
+        ]
+        return Response(data)

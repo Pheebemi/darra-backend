@@ -80,6 +80,11 @@ export default function Home() {
                   Start Selling
                 </Link>
               </Button>
+              <Button size="lg" variant="ghost" asChild>
+                <Link href="/stores">
+                  Browse Stores
+                </Link>
+              </Button>
             </div>
           </div>
         </div>

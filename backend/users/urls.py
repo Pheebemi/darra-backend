@@ -11,6 +11,7 @@ from .views import (
     check_brand_name,
     BankDetailView,
     SellerStoreView,
+    AllStoresView,
 )
 
 urlpatterns = [
@@ -27,5 +28,6 @@ urlpatterns = [
 
 urlpatterns += [
     path('bank-detail/', BankDetailView.as_view(), name='bank-detail'),
+    path('stores/', AllStoresView.as_view(), name='all-stores'),
     path('store/<slug:brand_slug>/', SellerStoreView.as_view(), name='seller-store'),
 ]
