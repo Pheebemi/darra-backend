@@ -414,3 +414,17 @@ def check_brand_name(request):
     user = request.user
     exists = User.objects.filter(brand_slug=slug).exclude(id=user.id).exists()
     return Response({'available': not exists})
+
+
+class SellerStoreView(APIView):
+    permission_classes = [AllowAny]
+
+    def get(self, request, brand_slug):
+        try:
+            seller = User.objects.get(brand_slug=brand_slug, user_type='seller')
+        except User.DoesNotExist:
+            return Response({'error': 'Store not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        from .serializers import SellerStoreSerializer
+        serializer = SellerStoreSerializer(seller, context={'request': request})
+        return Response(serializer.data)

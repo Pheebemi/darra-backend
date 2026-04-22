@@ -9,7 +9,8 @@ from .views import (
     UserProfileView,
     UpdatePasswordView,
     check_brand_name,
-    BankDetailView
+    BankDetailView,
+    SellerStoreView,
 )
 
 urlpatterns = [
@@ -26,4 +27,5 @@ urlpatterns = [
 
 urlpatterns += [
     path('bank-detail/', BankDetailView.as_view(), name='bank-detail'),
+    path('store/<slug:brand_slug>/', SellerStoreView.as_view(), name='seller-store'),
 ]

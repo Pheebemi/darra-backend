@@ -135,3 +135,19 @@ class BankDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = BankDetail
         fields = ['id', 'bank_code', 'bank_name', 'account_number', 'account_name']
+
+
+class SellerStoreSerializer(serializers.ModelSerializer):
+    products = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            'id', 'full_name', 'brand_name', 'brand_slug',
+            'about', 'open_time', 'close_time', 'store_active', 'products'
+        ]
+
+    def get_products(self, obj):
+        from products.serializers import ProductSerializer
+        products = obj.products.all().order_by('-id')
+        return ProductSerializer(products, many=True, context=self.context).data

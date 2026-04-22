@@ -18,6 +18,7 @@ import {
   ShoppingBag as BrowseIcon,
   TicketCheck,
   User,
+  Store,
 } from "lucide-react";
 
 interface NavItem {
@@ -34,6 +35,7 @@ const sellerNav: NavItem[] = [
   { title: "Purchases",    href: "/dashboard/seller/tickets",            icon: TicketCheck },
   { title: "Verify QR",    href: "/dashboard/seller/verify-tickets",     icon: QrCode },
   { title: "Earnings",     href: "/dashboard/seller/earnings",           icon: DollarSign },
+  { title: "My Store",    href: "/dashboard/seller/store",              icon: Store },
 ];
 
 const sellerBottom: NavItem[] = [
