@@ -42,6 +42,10 @@ const sellerBottom: NavItem[] = [
   { title: "Settings",     href: "/dashboard/seller/settings",           icon: Settings },
 ];
 
+const buyerBottom: NavItem[] = [
+  { title: "Settings",     href: "/dashboard/buyer/settings",            icon: Settings },
+];
+
 const buyerNav: NavItem[] = [
   { title: "Overview",     href: "/dashboard/buyer",                     icon: LayoutDashboard },
   { title: "My Library",   href: "/dashboard/buyer/library",             icon: Library },
@@ -85,7 +89,7 @@ export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const { user, logout } = useAuth();
   const userType = (user?.user_type || "buyer").toLowerCase();
   const nav = userType === "seller" ? sellerNav : buyerNav;
-  const bottomNav = userType === "seller" ? sellerBottom : [];
+  const bottomNav = userType === "seller" ? sellerBottom : buyerBottom;
 
   return (
     <div className="flex h-full flex-col">
