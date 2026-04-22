@@ -62,6 +62,9 @@ class User(AbstractUser):
         if self.user_type != self.UserType.SELLER:
             self.brand_name = ''
             self.brand_slug = None
+        elif self.brand_name and not self.brand_slug:
+            from django.utils.text import slugify
+            self.brand_slug = slugify(self.brand_name)
         super().save(*args, **kwargs)
 
 class BankDetail(models.Model):
