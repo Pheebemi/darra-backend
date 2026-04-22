@@ -493,7 +493,7 @@ def request_payout(request):
             print(f"Payout request email error: {e}")
 
         return Response({
-            'message': 'Payout request submitted. You will be paid within 1-3 business days.',
+            'message': 'Payout request submitted. You will be paid within 24-48 hours.',
             'payout': PayoutRequestSerializer(payout_request).data
         }, status=status.HTTP_201_CREATED)
             

@@ -190,7 +190,7 @@ export default function RequestPayoutPage() {
       const data = await response.json();
       toast.success(
         data.message ||
-          `Payout request of ${formatCurrency(parseFloat(amount))} has been submitted successfully.`
+          `Payout request of ${formatCurrency(parseFloat(amount))} submitted. You will be paid within 24-48 hours.`
       );
 
       // Navigate to history after a short delay
