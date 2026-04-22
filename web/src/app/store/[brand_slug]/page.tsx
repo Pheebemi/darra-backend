@@ -54,6 +54,13 @@ export default function PublicStorePage() {
   const formatCurrency = (amount: string | number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(Number(amount));
 
+  const getImageUrl = (url: string | null) => {
+    if (!url) return null;
+    if (url.startsWith("http")) return url;
+    const base = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api", "") || "http://localhost:8000";
+    return `${base}${url}`;
+  };
+
   if (loading) {
     return (
       <div className="mx-auto max-w-5xl px-4 py-10">
@@ -121,9 +128,9 @@ export default function PublicStorePage() {
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {store.products.map(product => (
             <Card key={product.id} className="overflow-hidden rounded-xl shadow-sm">
-              <div className="aspect-video w-full bg-[#e8deff]">
+              <div className="h-48 w-full bg-[#e8deff]">
                 {product.cover_image_url ? (
-                  <img src={product.cover_image_url} alt={product.title} className="h-full w-full object-cover" />
+                  <img src={getImageUrl(product.cover_image_url) || ""} alt={product.title} className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full items-center justify-center">
                     <PackageOpen className="h-10 w-10 text-[#3800ff]/40" />
