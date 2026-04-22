@@ -52,7 +52,6 @@ export default function SettingsPage() {
       description: "Update your profile information",
       icon: User,
       href: "/dashboard/seller/settings/profile",
-      disabled: true,
     },
     {
       title: "Notifications",
@@ -66,7 +65,6 @@ export default function SettingsPage() {
       description: "Change password and security settings",
       icon: Shield,
       href: "/dashboard/seller/settings/security",
-      disabled: true,
     },
     {
       title: "Language & Region",
