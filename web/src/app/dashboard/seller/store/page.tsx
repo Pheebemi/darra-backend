@@ -140,7 +140,7 @@ export default function SellerStorePage() {
               <p className="text-sm text-muted-foreground">{profile?.brand_name}</p>
             </div>
           </div>
-          {profile && (
+          {profile?.brand_slug && (
             <Button variant="outline" size="sm" asChild>
               <Link href={`/store/${profile.brand_slug}`} target="_blank">
                 <ExternalLink className="mr-2 h-4 w-4" /> View Store
