@@ -1,12 +1,12 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, ShoppingBag, Store } from "lucide-react";
+import { Eye, EyeOff, ShoppingBag, Store, CheckCircle2, XCircle, Loader2 } from "lucide-react";
 
 type UserType = "BUYER" | "SELLER";
 
@@ -20,7 +20,27 @@ export default function RegisterPage() {
   const [brandSlug, setBrandSlug] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
+  const [brandAvailable, setBrandAvailable] = useState<boolean | null>(null);
+  const [checkingBrand, setCheckingBrand] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { register, isLoading } = useAuth();
+
+  useEffect(() => {
+    if (!brandName || brandName.length < 2) { setBrandAvailable(null); return; }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    setCheckingBrand(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/auth/check-brand-name?brand_name=${encodeURIComponent(brandName)}`);
+        const data = await res.json();
+        setBrandAvailable(data.available);
+      } catch {
+        setBrandAvailable(null);
+      } finally {
+        setCheckingBrand(false);
+      }
+    }, 500);
+  }, [brandName]);
 
   return (
     <div className="flex min-h-[calc(100dvh-4rem)]">
@@ -105,6 +125,12 @@ export default function RegisterPage() {
               if (userType === "SELLER" && !brandName) {
                 toast.error("Please enter your brand name"); return;
               }
+              if (userType === "SELLER" && brandAvailable === false) {
+                toast.error("That brand name is already taken"); return;
+              }
+              if (userType === "SELLER" && checkingBrand) {
+                toast.error("Please wait while we check your brand name"); return;
+              }
               try {
                 await register({
                   email, password, full_name: fullName, user_type: userType,
@@ -150,7 +176,27 @@ export default function RegisterPage() {
                 <p className="text-xs font-medium text-muted-foreground">Seller information</p>
                 <div className="space-y-1.5">
                   <Label htmlFor="brandName" className="text-xs font-medium">Brand name *</Label>
-                  <Input id="brandName" placeholder="Your brand or store name" value={brandName} onChange={(e) => setBrandName(e.target.value)} disabled={isLoading} className="h-9 bg-background" />
+                  <div className="relative">
+                    <Input
+                      id="brandName"
+                      placeholder="Your brand or store name"
+                      value={brandName}
+                      onChange={(e) => setBrandName(e.target.value)}
+                      disabled={isLoading}
+                      className={`h-9 bg-background pr-9 ${brandAvailable === false ? "border-red-500 focus-visible:ring-red-500" : brandAvailable === true ? "border-green-500 focus-visible:ring-green-500" : ""}`}
+                    />
+                    <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+                      {checkingBrand && <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />}
+                      {!checkingBrand && brandAvailable === true && <CheckCircle2 className="h-4 w-4 text-green-500" />}
+                      {!checkingBrand && brandAvailable === false && <XCircle className="h-4 w-4 text-red-500" />}
+                    </div>
+                  </div>
+                  {!checkingBrand && brandAvailable === true && (
+                    <p className="text-xs text-green-600">Brand name is available</p>
+                  )}
+                  {!checkingBrand && brandAvailable === false && (
+                    <p className="text-xs text-red-600">Brand name is already taken</p>
+                  )}
                 </div>
                 <div className="space-y-1.5">
                   <Label htmlFor="brandSlug" className="text-xs font-medium">
