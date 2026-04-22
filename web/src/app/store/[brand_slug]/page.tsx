@@ -6,9 +6,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Store, Clock, ShoppingCart, PackageOpen, CheckCircle2, XCircle } from "lucide-react";
-import { toast } from "sonner";
-import { useCart } from "@/lib/cart/cart-context";
+import { Store, Clock, PackageOpen, CheckCircle2, XCircle } from "lucide-react";
 
 interface Product {
   id: number;
@@ -34,7 +32,6 @@ interface StoreData {
 export default function PublicStorePage() {
   const params = useParams();
   const brand_slug = params?.brand_slug as string;
-  const { addItem } = useCart();
   const [store, setStore] = useState<StoreData | null>(null);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
@@ -56,17 +53,6 @@ export default function PublicStorePage() {
 
   const formatCurrency = (amount: string | number) =>
     new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0 }).format(Number(amount));
-
-  const handleAddToCart = (product: Product) => {
-    addItem(product.id, undefined, 1, {
-      id: product.id,
-      title: product.title,
-      price: Number(product.price),
-      cover_image: product.cover_image_url || undefined,
-      product_type: product.product_type,
-    });
-    toast.success(`${product.title} added to cart`);
-  };
 
   if (loading) {
     return (
@@ -149,8 +135,8 @@ export default function PublicStorePage() {
                 <p className="mb-3 text-xs text-muted-foreground line-clamp-2">{product.description}</p>
                 <div className="flex items-center justify-between">
                   <span className="font-bold text-[#3800ff]">{formatCurrency(product.price)}</span>
-                  <Button size="sm" className="bg-[#3800ff] text-white hover:bg-[#2d00d4]" onClick={() => handleAddToCart(product)}>
-                    <ShoppingCart className="mr-1 h-3 w-3" /> Add
+                  <Button size="sm" className="bg-[#3800ff] text-white hover:bg-[#2d00d4]" asChild>
+                    <Link href={`/products/${product.id}`}>View</Link>
                   </Button>
                 </div>
               </CardContent>
