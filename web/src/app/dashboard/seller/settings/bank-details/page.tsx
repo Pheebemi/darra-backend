@@ -363,6 +363,10 @@ export default function BankDetailsPage() {
                         value={selectedBank}
                         open={isDropdownOpen}
                         onOpenChange={setIsDropdownOpen}
+                        onValueChange={(value) => {
+                          const bank = banks.find((b) => b.code === value);
+                          if (bank) selectBank(bank.code, bank.name);
+                        }}
                       >
                         <SelectTrigger 
                           id="bank"

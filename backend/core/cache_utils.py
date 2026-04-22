@@ -2,6 +2,8 @@
 Caching utilities for Darra app performance optimization
 """
 import logging
+import hashlib
+import re
 from django.core.cache import cache
 from django.conf import settings
 from functools import wraps
@@ -21,14 +23,42 @@ class CacheManager:
     """Centralized cache management for the Darra app"""
     
     @staticmethod
+    def _safe_arg(arg):
+        """Convert an argument to a memcached-safe string fragment."""
+        # If it looks like a Django view/model instance, use just the class name
+        if hasattr(arg, '__class__') and hasattr(arg, 'request'):
+            # It's a view instance — use class name + URL kwargs + query string
+            cls_name = type(arg).__name__
+            url_kwargs = getattr(arg, 'kwargs', {}) or {}
+            request = getattr(arg, 'request', None)
+            qs = ""
+            if request:
+                qs = request.GET.urlencode()
+            parts = [cls_name] + [f"{k}{v}" for k, v in sorted(url_kwargs.items())]
+            if qs:
+                parts.append(hashlib.md5(qs.encode()).hexdigest()[:8])
+            return "_".join(parts)
+        return str(arg)
+
+    @staticmethod
+    def _sanitize_key(key):
+        """Replace memcached-invalid characters and hash if key is too long."""
+        # Memcached keys must not contain whitespace or control chars
+        key = re.sub(r'[\s\x00-\x1f\x7f<>]', '_', key)
+        if len(key) > 250:
+            key = hashlib.md5(key.encode()).hexdigest()
+        return key
+
+    @staticmethod
     def get_cache_key(prefix, *args, **kwargs):
-        """Generate consistent cache keys"""
+        """Generate consistent, memcached-safe cache keys."""
         key_parts = [prefix]
         for arg in args:
-            key_parts.append(str(arg))
+            key_parts.append(CacheManager._safe_arg(arg))
         for key, value in sorted(kwargs.items()):
             key_parts.append(f"{key}:{value}")
-        return ":".join(key_parts)
+        raw = ":".join(key_parts)
+        return CacheManager._sanitize_key(raw)
     
     @staticmethod
     def get_user_cache_key(user_id, data_type):
