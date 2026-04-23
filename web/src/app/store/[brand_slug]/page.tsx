@@ -25,6 +25,7 @@ interface StoreData {
   open_time: string | null;
   close_time: string | null;
   store_active: boolean;
+  banner_url: string | null;
   products: Product[];
 }
 
@@ -99,7 +100,15 @@ export default function PublicStorePage() {
   return (
     <div>
       {/* Banner */}
-      <div className="h-48 w-full bg-gradient-to-br from-[#3800ff] to-[#7c3aed]" />
+      <div className="relative h-48 w-full overflow-hidden bg-linear-to-br from-[#3800ff] to-[#7c3aed]">
+        {store.banner_url && (
+          <img
+            src={getImageUrl(store.banner_url) || ""}
+            alt="Store banner"
+            className="h-full w-full object-cover"
+          />
+        )}
+      </div>
 
       {/* Profile row */}
       <div className="mx-auto max-w-5xl px-4">
