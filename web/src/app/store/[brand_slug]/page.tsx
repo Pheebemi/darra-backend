@@ -149,7 +149,10 @@ export default function PublicStorePage() {
             </div>
           )}
           {store.about && (
-            <p className="w-full text-sm text-muted-foreground sm:w-auto">{store.about}</p>
+            <div
+              className="w-full text-sm text-muted-foreground [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-foreground [&_p]:mb-1"
+              dangerouslySetInnerHTML={{ __html: store.about }}
+            />
           )}
         </div>
 
