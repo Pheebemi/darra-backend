@@ -8,7 +8,6 @@ from django.test import RequestFactory
 import requests
 from io import BytesIO
 from PIL import Image
-import img2pdf
 
 def send_otp_email(email: str, otp: str, is_verification: bool = True):
     subject = 'Verify your email' if is_verification else 'Login OTP'
