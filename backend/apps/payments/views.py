@@ -741,3 +741,76 @@ def send_digital_product_to_email(request, library_item_id):
             'message': 'Error sending product to email',
             'error': str(e)
         }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_product_file(request, library_item_id):
+    """Securely serve a purchased digital product file"""
+    import os
+    from django.http import FileResponse
+
+    library_item = get_object_or_404(UserLibrary, id=library_item_id, user=request.user)
+    product = library_item.product
+
+    if product.product_type == 'event':
+        return Response({'message': 'Event tickets are not downloadable here.'}, status=400)
+
+    if not product.file:
+        return Response({'message': 'No file attached to this product.'}, status=404)
+
+    try:
+        file_path = product.file.path
+    except Exception:
+        return Response({'message': 'File not found on server.'}, status=404)
+
+    if not os.path.exists(file_path):
+        return Response({'message': 'File not found on server.'}, status=404)
+
+    ext = os.path.splitext(file_path)[1].lower()
+    content_types = {
+        '.pdf': 'application/pdf',
+        '.mp3': 'audio/mpeg',
+        '.mp4': 'video/mp4',
+        '.zip': 'application/zip',
+        '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        '.png': 'image/png',
+    }
+    content_type = content_types.get(ext, 'application/octet-stream')
+    filename = os.path.basename(file_path)
+
+    response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+    response['Content-Disposition'] = f'attachment; filename="{filename}"'
+    return response
+
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def download_ticket_qr(request, ticket_id):
+    """Securely serve a purchased event ticket QR code"""
+    import os
+    from django.http import FileResponse
+    from apps.events.models import EventTicket
+
+    try:
+        ticket = EventTicket.objects.get(
+            id=ticket_id,
+            buyer=request.user
+        )
+    except EventTicket.DoesNotExist:
+        return Response({'message': 'Ticket not found.'}, status=404)
+
+    if not ticket.qr_code:
+        return Response({'message': 'QR code not yet generated for this ticket.'}, status=404)
+
+    try:
+        file_path = ticket.qr_code.path
+    except Exception:
+        return Response({'message': 'QR code file not found on server.'}, status=404)
+
+    if not os.path.exists(file_path):
+        return Response({'message': 'QR code file not found on server.'}, status=404)
+
+    response = FileResponse(open(file_path, 'rb'), content_type='image/png')
+    response['Content-Disposition'] = f'attachment; filename="ticket_{ticket.ticket_id}_qr.png"'
+    return response
