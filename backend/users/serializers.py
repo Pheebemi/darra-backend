@@ -88,15 +88,29 @@ class UserProfileSerializer(serializers.ModelSerializer):
     open_time = serializers.CharField(required=False, allow_blank=True)
     close_time = serializers.CharField(required=False, allow_blank=True)
     store_active = serializers.BooleanField(required=False)
+    banner_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id',
             'email', 'full_name', 'user_type', 'brand_name', 'brand_slug',
-            'about', 'open_time', 'close_time', 'store_active'
+            'about', 'open_time', 'close_time', 'store_active', 'banner', 'banner_url'
         ]
-        read_only_fields = ['id', 'email', 'user_type', 'brand_slug']
+        read_only_fields = ['id', 'email', 'user_type', 'brand_slug', 'banner_url']
+
+    def get_banner_url(self, obj):
+        if obj.banner:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.banner.url)
+            return obj.banner.url
+        return None
+
+    def validate_banner(self, value):
+        if value and value.size > 100 * 1024:
+            raise serializers.ValidationError("Banner image must be 100 KB or smaller.")
+        return value
 
     def validate_brand_name(self, value):
         user = self.instance
@@ -139,13 +153,22 @@ class BankDetailSerializer(serializers.ModelSerializer):
 
 class SellerStoreSerializer(serializers.ModelSerializer):
     products = serializers.SerializerMethodField()
+    banner_url = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'full_name', 'brand_name', 'brand_slug',
-            'about', 'open_time', 'close_time', 'store_active', 'products'
+            'about', 'open_time', 'close_time', 'store_active', 'banner_url', 'products'
         ]
+
+    def get_banner_url(self, obj):
+        if obj.banner:
+            request = self.context.get('request')
+            if request:
+                return request.build_absolute_uri(obj.banner.url)
+            return obj.banner.url
+        return None
 
     def get_products(self, obj):
         from products.serializers import ProductSerializer

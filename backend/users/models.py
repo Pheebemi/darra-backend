@@ -44,6 +44,7 @@ class User(AbstractUser):
     is_verified = models.BooleanField(default=False)
     otp = models.CharField(max_length=6, blank=True)
     otp_created_at = models.DateTimeField(null=True, blank=True)
+    banner = models.ImageField(upload_to='store/banners/', blank=True, null=True)
     about = models.TextField(blank=True, null=True)
     open_time = models.CharField(max_length=10, blank=True, null=True, default='09:00')
     close_time = models.CharField(max_length=10, blank=True, null=True, default='18:00')
