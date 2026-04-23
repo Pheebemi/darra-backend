@@ -100,18 +100,18 @@ export default function PublicStorePage() {
   return (
     <div>
       {/* Banner */}
-      <div className="relative h-48 w-full overflow-hidden bg-linear-to-br from-[#3800ff] to-[#7c3aed]">
+      <div className="relative h-48 w-full bg-linear-to-br from-[#3800ff] to-[#7c3aed]">
         {store.banner_url && (
           <img
             src={getImageUrl(store.banner_url) || ""}
             alt="Store banner"
-            className="h-full w-full object-cover"
+            className="absolute inset-0 h-full w-full object-cover"
           />
         )}
       </div>
 
       {/* Profile row */}
-      <div className="mx-auto max-w-5xl px-4">
+      <div className="relative z-10 mx-auto max-w-5xl px-4">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div className="flex items-end gap-4 -mt-10">
             {/* Avatar */}

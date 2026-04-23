@@ -92,7 +92,11 @@ export default function VerifyTicketsPage() {
     if (initialized && !isAuthenticated) {
       router.push("/login");
     }
-  }, [isAuthenticated, initialized, router]);
+    if (initialized && isAuthenticated && user) {
+      const userType = (user.user_type || "buyer").toLowerCase();
+      if (userType !== "seller") router.push("/dashboard/buyer");
+    }
+  }, [isAuthenticated, initialized, user, router]);
 
   useEffect(() => {
     // Cleanup scanner on unmount
@@ -332,10 +336,7 @@ export default function VerifyTicketsPage() {
   }
 
   const userType = (user?.user_type || "buyer").toLowerCase();
-  if (userType !== "seller") {
-    router.push("/dashboard/buyer");
-    return null;
-  }
+  if (initialized && userType !== "seller") return null;
 
   return (
     <DashboardLayout>
