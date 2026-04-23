@@ -61,6 +61,30 @@ export default function BuyerLibraryPage() {
   const [items, setItems] = useState<LibraryItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState<"all" | "products" | "access">("all");
+  const [downloading, setDownloading] = useState<number | null>(null);
+
+  const handleDownload = async (url: string, filename: string, id: number) => {
+    setDownloading(id);
+    try {
+      const res = await fetch(url);
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        toast.error(data.message || "Download failed");
+        return;
+      }
+      const blob = await res.blob();
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = filename;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    } catch {
+      toast.error("Download failed. Please try again.");
+    } finally {
+      setDownloading(null);
+    }
+  };
+
 
   useEffect(() => {
     if (initialized && !isAuthenticated) router.push("/login");
@@ -191,10 +215,13 @@ export default function BuyerLibraryPage() {
                   </p>
                   <div className="mt-auto pt-3">
                     {item.product.file_url ? (
-                      <Button size="sm" variant="outline" className="w-full h-8 text-xs" asChild>
-                        <a href={item.product.file_url} download target="_blank" rel="noopener noreferrer">
-                          <Download className="mr-1.5 h-3.5 w-3.5" />Download
-                        </a>
+                      <Button
+                        size="sm" variant="outline" className="w-full h-8 text-xs"
+                        disabled={downloading === item.id}
+                        onClick={() => handleDownload(`/api/payments/library/${item.id}/download`, item.product.title, item.id)}
+                      >
+                        <Download className="mr-1.5 h-3.5 w-3.5" />
+                        {downloading === item.id ? "Downloading..." : "Download"}
                       </Button>
                     ) : (
                       <Button size="sm" variant="outline" className="w-full h-8 text-xs" disabled>
@@ -309,11 +336,13 @@ export default function BuyerLibraryPage() {
                               </div>
                             </div>
 
-                            {ticket.ticket_png_url && (
-                              <Button size="sm" variant="outline" className="w-full h-8 text-xs" asChild>
-                                <a href={ticket.ticket_png_url} download target="_blank" rel="noopener noreferrer">
-                                  <Download className="mr-1.5 h-3.5 w-3.5" />Download Ticket
-                                </a>
+                            {(ticket.ticket_png_url || ticket.qr_code_url) && (
+                              <Button
+                                size="sm" variant="outline" className="w-full h-8 text-xs"
+                                onClick={() => window.open(getImageUrl(ticket.ticket_png_url || ticket.qr_code_url!), '_blank')}
+                              >
+                                <Download className="mr-1.5 h-3.5 w-3.5" />
+                                Open &amp; Save Ticket
                               </Button>
                             )}
                           </div>
