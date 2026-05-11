@@ -358,7 +358,16 @@ class PaystackService:
                         quantity=purchase.quantity
                     )
                     print(f"DEBUG: Created library entry for digital product: {purchase.product.title} x{purchase.quantity}")
-                
+
+                # Decrement ticket tier quantity_sold
+                if purchase.selected_ticket_tier:
+                    from django.db.models import F
+                    from products.models import TicketTier
+                    TicketTier.objects.filter(id=purchase.selected_ticket_tier.id).update(
+                        quantity_sold=F('quantity_sold') + purchase.quantity
+                    )
+                    print(f"DEBUG: Updated quantity_sold for tier {purchase.selected_ticket_tier.id} by {purchase.quantity}")
+
                 # Update seller earnings
                 if commission:
                     self.update_seller_earnings(purchase.product.owner)
@@ -623,7 +632,16 @@ class PaymentService:
                             quantity=purchase.quantity
                         )
                         print(f"DEBUG: Created library entry for digital product: {purchase.product.title} x{purchase.quantity}")
-                    
+
+                    # Decrement ticket tier quantity_sold
+                    if purchase.selected_ticket_tier:
+                        from django.db.models import F
+                        from products.models import TicketTier
+                        TicketTier.objects.filter(id=purchase.selected_ticket_tier.id).update(
+                            quantity_sold=F('quantity_sold') + purchase.quantity
+                        )
+                        print(f"DEBUG: Updated quantity_sold for tier {purchase.selected_ticket_tier.id} by {purchase.quantity}")
+
                     # Update seller earnings
                     if commission:
                         if payment.payment_provider == 'flutterwave':
