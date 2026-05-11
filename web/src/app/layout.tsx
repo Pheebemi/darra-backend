@@ -5,6 +5,7 @@ import { Toaster } from "sonner";
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { CartProvider } from "@/lib/cart/cart-context";
+import { Analytics } from "@vercel/analytics/next";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,6 +34,7 @@ export default function RootLayout({
           <CartProvider>
             <LayoutWrapper>{children}</LayoutWrapper>
             <Toaster richColors position="top-right" />
+            <Analytics />
           </CartProvider>
         </AuthProvider>
       </body>
