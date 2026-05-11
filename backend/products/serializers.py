@@ -32,7 +32,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'title', 'description', 'description_html', 'price', 'product_type',
             'file', 'cover_image', 'file_url', 'cover_image_url', 'thumbnail_url',
-            'created_at', 'event_date', 'ticket_quantity',
+            'created_at', 'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
             'seller_name', 'seller_id', 'ticket_category', 'ticket_tiers', 'is_ticket_event'
         ]
         read_only_fields = ['owner', 'created_at']
@@ -77,7 +77,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'title', 'description', 'description_html', 'price', 'product_type',
-            'event_date', 'ticket_quantity',
+            'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
             'ticket_category_id', 'ticket_types'
         ]
 
@@ -155,7 +155,7 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'title', 'description', 'description_html', 'price', 'product_type',
-            'event_date', 'ticket_quantity',
+            'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
             'ticket_category_id', 'ticket_types'
         ]
 

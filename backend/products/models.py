@@ -65,6 +65,10 @@ class Product(models.Model):
 
     # For events/tickets
     event_date = models.DateTimeField(blank=True, null=True)
+    event_end_date = models.DateTimeField(blank=True, null=True)
+    venue_name = models.CharField(max_length=255, blank=True, null=True)
+    location = models.CharField(max_length=500, blank=True, null=True)
+    speakers = models.TextField(blank=True, null=True)
     ticket_quantity = models.PositiveIntegerField(blank=True, null=True)
     
     # New ticket system fields

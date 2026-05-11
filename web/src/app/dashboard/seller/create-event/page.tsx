@@ -74,6 +74,12 @@ function CreateEventInner() {
   const [coverImagePreview, setCoverImagePreview] = useState<string | null>(null);
   const [existingCoverUrl, setExistingCoverUrl] = useState<string | null>(null);
 
+  const [eventEndDate, setEventEndDate] = useState("");
+  const [eventEndTime, setEventEndTime] = useState("");
+  const [venueName, setVenueName] = useState("");
+  const [location, setLocation] = useState("");
+  const [speakers, setSpeakers] = useState("");
+
   const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>([]);
   const [selectedTicketCategory, setSelectedTicketCategory] = useState<number | null>(null);
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
@@ -130,6 +136,14 @@ function CreateEventInner() {
         setEventDate(dt.toISOString().split("T")[0]);
         setEventTime(dt.toTimeString().slice(0, 5));
       }
+      if (data.event_end_date) {
+        const dt = new Date(data.event_end_date);
+        setEventEndDate(dt.toISOString().split("T")[0]);
+        setEventEndTime(dt.toTimeString().slice(0, 5));
+      }
+      setVenueName(data.venue_name || "");
+      setLocation(data.location || "");
+      setSpeakers(data.speakers || "");
 
       // Pre-fill ticket tiers if event type — map to local TicketType shape
       if (data.ticket_tiers && Array.isArray(data.ticket_tiers)) {
@@ -218,6 +232,13 @@ function CreateEventInner() {
         const dt = new Date(`${eventDate}T${eventTime}`);
         if (isNaN(dt.getTime())) { toast.error("Invalid date/time format"); return; }
         formData.append("event_date", dt.toISOString());
+        if (eventEndDate && eventEndTime) {
+          const dtEnd = new Date(`${eventEndDate}T${eventEndTime}`);
+          if (!isNaN(dtEnd.getTime())) formData.append("event_end_date", dtEnd.toISOString());
+        }
+        if (venueName.trim()) formData.append("venue_name", venueName.trim());
+        if (location.trim()) formData.append("location", location.trim());
+        if (speakers.trim()) formData.append("speakers", speakers.trim());
         formData.append(
           "ticket_types",
           JSON.stringify(ticketTypes.map((t) => ({
@@ -365,14 +386,39 @@ function CreateEventInner() {
                     </div>
 
                     {productType === "event" && (
-                      <div className="grid gap-4 sm:grid-cols-2">
-                        <div className="space-y-1.5">
-                          <Label htmlFor="eventDate" className="text-xs">Event Date *</Label>
-                          <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="h-9" />
+                      <div className="space-y-4">
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="eventDate" className="text-xs">Start Date *</Label>
+                            <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="h-9" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="eventTime" className="text-xs">Start Time *</Label>
+                            <Input id="eventTime" type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className="h-9" />
+                          </div>
+                        </div>
+                        <div className="grid gap-4 sm:grid-cols-2">
+                          <div className="space-y-1.5">
+                            <Label htmlFor="eventEndDate" className="text-xs">End Date</Label>
+                            <Input id="eventEndDate" type="date" value={eventEndDate} onChange={(e) => setEventEndDate(e.target.value)} min={eventDate || new Date().toISOString().split("T")[0]} className="h-9" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <Label htmlFor="eventEndTime" className="text-xs">End Time</Label>
+                            <Input id="eventEndTime" type="time" value={eventEndTime} onChange={(e) => setEventEndTime(e.target.value)} className="h-9" />
+                          </div>
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="eventTime" className="text-xs">Event Time *</Label>
-                          <Input id="eventTime" type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className="h-9" />
+                          <Label htmlFor="venueName" className="text-xs">Venue Name</Label>
+                          <Input id="venueName" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="e.g. Taraba State Event Centre" className="h-9" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="location" className="text-xs">Address / Location</Label>
+                          <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Jalingo, Taraba State, Nigeria" className="h-9" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label htmlFor="speakers" className="text-xs">Speakers / Guests</Label>
+                          <Textarea id="speakers" value={speakers} onChange={(e) => setSpeakers(e.target.value)} placeholder={"One speaker per line:\nJohn Doe\nJane Smith"} rows={3} />
+                          <p className="text-[11px] text-muted-foreground">Enter one speaker or guest per line</p>
                         </div>
                       </div>
                     )}
