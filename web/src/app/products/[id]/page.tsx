@@ -6,7 +6,9 @@ const BACKEND = process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api", "") || "ht
 
 async function fetchProduct(id: string) {
   try {
-    const res = await fetch(`${BACKEND}/api/products/${id}/`, { next: { revalidate: 60 } });
+    const res = await fetch(`${BACKEND}/api/products/${id}/`, {
+      cache: "no-store",
+    });
     if (!res.ok) return null;
     return await res.json();
   } catch {
@@ -23,10 +25,9 @@ export async function generateMetadata(
 
   const title = product.title;
   const description = product.description?.slice(0, 160) || "Browse digital products on Darra";
-  const image = product.cover_image_url
-    ? product.cover_image_url.startsWith("http")
-      ? product.cover_image_url
-      : `${BACKEND}${product.cover_image_url}`
+  const rawImage = product.cover_image_url || product.cover_image;
+  const image = rawImage
+    ? rawImage.startsWith("http") ? rawImage : `${BACKEND}${rawImage}`
     : null;
 
   return {
@@ -35,7 +36,7 @@ export async function generateMetadata(
     openGraph: {
       title,
       description,
-      type: product.product_type === "event" ? "website" : "website",
+      type: "website",
       ...(image && { images: [{ url: image, width: 1200, height: 630, alt: title }] }),
     },
     twitter: {
