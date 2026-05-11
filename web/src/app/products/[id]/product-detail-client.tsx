@@ -242,16 +242,6 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                     <div className="flex-1">
                       {product.venue_name && <p className="font-medium">{product.venue_name}</p>}
                       {product.location && <p className="text-sm text-muted-foreground mt-0.5">{product.location}</p>}
-                      {osmUrl && (
-                        <a
-                          href={osmUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="mt-2 inline-flex items-center gap-1.5 text-xs font-medium text-[#3800ff] hover:underline"
-                        >
-                          <ExternalLink className="h-3 w-3" /> View on OpenStreetMap
-                        </a>
-                      )}
                     </div>
                   </div>
                   {/* OSM map embed */}
@@ -336,8 +326,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                       >
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-sm font-medium">{tier.name}</p>
-                            {tier.description && <p className="text-xs text-muted-foreground">{tier.description}</p>}
+                            <p className="text-sm font-medium">{tier.category?.name || tier.name}</p>
+                            {tier.description && tier.description !== `${tier.category?.name} tickets` && (
+                              <p className="text-xs text-muted-foreground">{tier.description}</p>
+                            )}
                             <p className="mt-0.5 text-xs text-muted-foreground">
                               {tier.is_sold_out ? "Sold out" : `${tier.remaining_quantity} left`}
                             </p>
@@ -373,8 +365,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                           <div key={tier.id} className="rounded-lg border bg-background p-3">
                             <div className="flex items-start justify-between mb-3">
                               <div>
-                                <p className="text-sm font-medium">{tier.name}</p>
-                                {tier.description && <p className="text-xs text-muted-foreground">{tier.description}</p>}
+                                <p className="text-sm font-medium">{tier.category?.name || tier.name}</p>
+                                {tier.description && tier.description !== `${tier.category?.name} tickets` && (
+                                  <p className="text-xs text-muted-foreground">{tier.description}</p>
+                                )}
                                 <p className="mt-0.5 text-xs text-muted-foreground">{tier.remaining_quantity} available</p>
                               </div>
                               <p className="text-sm font-bold text-[#3800ff]">₦{Number(tier.price).toLocaleString()}</p>
