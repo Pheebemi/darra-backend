@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { SafeImage } from "@/components/safe-image";
 import Link from "next/link";
@@ -81,6 +81,20 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [selectedTiers, setSelectedTiers] = useState<Record<number, number>>({});
 
   const isEvent = product.product_type === "event";
+  const [mapCoords, setMapCoords] = useState<{ lat: number; lon: number } | null>(null);
+
+  useEffect(() => {
+    if (!isEvent || (!product.location && !product.venue_name)) return;
+    const query = [product.venue_name, product.location].filter(Boolean).join(", ");
+    fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`, {
+      headers: { "Accept-Language": "en" },
+    })
+      .then(r => r.json())
+      .then(data => {
+        if (data?.[0]) setMapCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
+      })
+      .catch(() => {});
+  }, [isEvent, product.location, product.venue_name]);
   const availableTiers = product.ticket_tiers?.filter((t) => !t.is_sold_out) || [];
   const hasSelectedTiers = Object.keys(selectedTiers).length > 0;
   const totalSelectedTickets = Object.values(selectedTiers).reduce((s, q) => s + q, 0);
@@ -240,25 +254,38 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                       )}
                     </div>
                   </div>
-                  {/* OSM iframe embed */}
-                  {product.location && (
+                  {/* OSM map embed */}
+                  {(product.location || product.venue_name) && (
                     <div className="mt-4 overflow-hidden rounded-lg border">
-                      <iframe
-                        title="Event location"
-                        src={`https://www.openstreetmap.org/export/embed.html?layer=mapnik&marker=0,0&bbox=-180,-90,180,90`}
-                        className="hidden"
-                        aria-hidden
-                      />
-                      <a
-                        href={osmUrl || "#"}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex h-32 w-full items-center justify-center gap-3 bg-[#e8deff] text-[#3800ff] hover:bg-[#d4c9ff] transition-colors"
-                      >
-                        <MapPin className="h-6 w-6" />
-                        <span className="font-medium text-sm">Open map — {product.venue_name || product.location}</span>
-                        <ExternalLink className="h-4 w-4" />
-                      </a>
+                      {mapCoords ? (
+                        <>
+                          <iframe
+                            title="Event location map"
+                            src={`https://www.openstreetmap.org/export/embed.html?bbox=${mapCoords.lon - 0.01},${mapCoords.lat - 0.01},${mapCoords.lon + 0.01},${mapCoords.lat + 0.01}&layer=mapnik&marker=${mapCoords.lat},${mapCoords.lon}`}
+                            className="h-48 w-full"
+                            loading="lazy"
+                          />
+                          <a
+                            href={`https://www.openstreetmap.org/?mlat=${mapCoords.lat}&mlon=${mapCoords.lon}#map=15/${mapCoords.lat}/${mapCoords.lon}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center justify-center gap-1.5 bg-muted py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                          >
+                            <ExternalLink className="h-3 w-3" /> View larger map
+                          </a>
+                        </>
+                      ) : (
+                        <a
+                          href={osmUrl || "#"}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex h-24 w-full items-center justify-center gap-2 bg-[#e8deff] text-[#3800ff] hover:bg-[#d4c9ff] transition-colors text-sm font-medium"
+                        >
+                          <MapPin className="h-4 w-4" />
+                          View on OpenStreetMap
+                          <ExternalLink className="h-3.5 w-3.5" />
+                        </a>
+                      )}
                     </div>
                   )}
                 </div>
