@@ -9,6 +9,32 @@ import { Eye, EyeOff, ShoppingBag, Store, CheckCircle2, XCircle, Loader2 } from 
 
 type UserType = "BUYER" | "SELLER";
 
+// A handful of the most common passwords Django's CommonPasswordValidator
+// rejects — a fast client-side fail so users get instant feedback. The
+// backend runs the full ~20k list and is the real authority.
+const COMMON_PASSWORDS = new Set([
+  "password", "password1", "12345678", "123456789", "1234567890",
+  "qwerty", "qwertyuiop", "111111", "abc123", "letmein", "iloveyou",
+  "admin", "welcome", "monkey", "1q2w3e4r", "1qaz2wsx", "trustno1",
+]);
+
+function getPasswordChecks(pw: string, email: string, fullName: string) {
+  const lower = pw.toLowerCase();
+  const emailLocal = email.split("@")[0]?.toLowerCase() || "";
+  const nameParts = fullName.toLowerCase().split(/\s+/).filter((p) => p.length >= 3);
+  const similar =
+    pw.length > 0 &&
+    ((emailLocal.length >= 3 && lower.includes(emailLocal)) ||
+      nameParts.some((p) => lower.includes(p)));
+
+  return [
+    { label: "At least 8 characters", ok: pw.length >= 8 },
+    { label: "Not entirely numbers", ok: pw.length > 0 && !/^\d+$/.test(pw) },
+    { label: "Not a common password", ok: pw.length > 0 && !COMMON_PASSWORDS.has(lower) },
+    { label: "Doesn't contain your name or email", ok: pw.length > 0 && !similar },
+  ];
+}
+
 export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,6 +49,9 @@ export default function RegisterPage() {
   const [checkingBrand, setCheckingBrand] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const { register, isLoading } = useAuth();
+
+  const passwordChecks = getPasswordChecks(password, email, fullName);
+  const passwordStrong = passwordChecks.every((c) => c.ok);
 
   useEffect(() => {
     if (!brandName || brandName.length < 2) { setBrandAvailable(null); return; }
@@ -124,6 +153,9 @@ export default function RegisterPage() {
               if (!email || !password || !confirmPassword || !fullName) {
                 toast.error("Please fill in all required fields"); return;
               }
+              if (!passwordStrong) {
+                toast.error("Please choose a stronger password"); return;
+              }
               if (password !== confirmPassword) {
                 toast.error("Passwords do not match"); return;
               }
@@ -166,6 +198,25 @@ export default function RegisterPage() {
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
+
+              {/* Password strength checklist */}
+              {password.length > 0 && (
+                <ul className="mt-2 space-y-1">
+                  {passwordChecks.map((c) => (
+                    <li
+                      key={c.label}
+                      className={`flex items-center gap-1.5 text-xs ${c.ok ? "text-[#00B42A]" : "text-gray-500"}`}
+                    >
+                      {c.ok ? (
+                        <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
+                      ) : (
+                        <XCircle className="h-3.5 w-3.5 shrink-0" />
+                      )}
+                      {c.label}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </div>
 
             <div className="space-y-1.5">
