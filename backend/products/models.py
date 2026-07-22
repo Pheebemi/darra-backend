@@ -105,13 +105,43 @@ class Product(models.Model):
             return f"{settings.MEDIA_URL}{self.cover_image.name}"
         return None
 
-    @property
-    def file_url(self):
-        if self.file:
-            from django.conf import settings
-            return f"{settings.MEDIA_URL}{self.file.name}"
+    def resolve_file_path(self):
+        """
+        Absolute on-disk path of the product file, or None if it isn't there.
+
+        Product files moved from MEDIA_ROOT to PRIVATE_MEDIA_ROOT so the web
+        server can no longer serve them directly. Files uploaded before that
+        change may still be sitting under MEDIA_ROOT until
+        `manage.py move_product_files_private` has run, so the old location is
+        checked as a fallback. That keeps downloads working regardless of
+        whether the code reload or the file move happens first.
+
+        NOTE: there is deliberately no `file_url` here. Building a public
+        /media/ URL for a paid file is what allowed it to be downloaded
+        without buying. Delivery goes through the authenticated
+        /payments/library/<id>/download/ endpoint only.
+        """
+        import os
+        from django.conf import settings
+
+        if not self.file:
+            return None
+
+        try:
+            private_path = self.file.path
+        except (ValueError, NotImplementedError):
+            private_path = None
+
+        if private_path and os.path.exists(private_path):
+            return private_path
+
+        legacy_path = os.path.join(settings.MEDIA_ROOT, self.file.name)
+        if os.path.exists(legacy_path):
+            return legacy_path
+
         return None
-    
+
+
     @property
     def is_ticket_event(self):
         return self.product_type == 'event' and (self.ticket_category is not None or self.ticket_tiers.exists())

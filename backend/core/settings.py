@@ -307,8 +307,18 @@ PAYMENT_PROVIDER = os.getenv('PAYMENT_PROVIDER', 'paystack')
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
 
 # Public site address used for links inside emails (receipts, sale alerts).
-# This is the FRONTEND, not the API — set it in .env per environment.
-FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
+# This is the FRONTEND, not the API — set FRONTEND_URL in .env per environment.
+# The fallback is deliberately environment-aware: defaulting to localhost in
+# production would send buyers a dead link in every receipt, and nothing would
+# error to tell us about it.
+_DEFAULT_FRONTEND_URL = 'http://localhost:3000' if DEBUG else 'https://darra.com.ng'
+FRONTEND_URL = os.getenv('FRONTEND_URL', _DEFAULT_FRONTEND_URL).rstrip('/')
+
+if not DEBUG and not os.getenv('FRONTEND_URL'):
+    print(
+        f"WARNING: FRONTEND_URL is not set; email links will use "
+        f"{_DEFAULT_FRONTEND_URL}. Set it in .env to be explicit."
+    )
 
 # Currency settings
 CURRENCY = os.getenv('CURRENCY', 'NGN')
