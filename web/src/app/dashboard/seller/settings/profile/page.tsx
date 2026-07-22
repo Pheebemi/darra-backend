@@ -78,7 +78,7 @@ export default function SellerProfilePage() {
             <Link href="/dashboard/seller/settings"><ArrowLeft className="h-4 w-4" /></Link>
           </Button>
           <div>
-            <h1 className="text-2xl font-bold text-foreground">Edit Profile</h1>
+            <h1 className="text-2xl font-semibold text-ink">Edit Profile</h1>
             <p className="text-sm text-muted-foreground">Update your account information</p>
           </div>
         </div>
@@ -129,7 +129,7 @@ export default function SellerProfilePage() {
               <Button
                 onClick={handleSave}
                 disabled={saving}
-                className="bg-[#3800ff] text-white hover:bg-[#2d00d4]"
+                className="bg-brand-500 text-white hover:bg-brand-600"
               >
                 {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Save Changes</>}
               </Button>

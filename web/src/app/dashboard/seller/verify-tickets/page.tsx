@@ -318,7 +318,7 @@ export default function VerifyTicketsPage() {
 
   const formatCurrency = (amount: string | number) => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    if (isNaN(numAmount)) return "₦0";
+    if (isNaN(numAmount)) return "â‚¦0";
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
@@ -351,7 +351,7 @@ export default function VerifyTicketsPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">
+              <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
                 Verify Tickets
               </h1>
               <p className="mt-1 text-sm text-muted-foreground">
@@ -480,7 +480,7 @@ export default function VerifyTicketsPage() {
                   <h3 className="mb-3 text-lg font-semibold">
                     Event Information
                   </h3>
-                  <div className="space-y-2 rounded-lg border p-4">
+                  <div className="space-y-2 rounded-2xl border border-gray-100 p-4">
                     <h4 className="text-xl font-bold">
                       {ticketDetails.event.title}
                     </h4>
@@ -495,7 +495,7 @@ export default function VerifyTicketsPage() {
                   <h3 className="mb-3 text-lg font-semibold">
                     Buyer Information
                   </h3>
-                  <div className="space-y-2 rounded-lg border p-4">
+                  <div className="space-y-2 rounded-2xl border border-gray-100 p-4">
                     <div className="flex items-center gap-2">
                       <User className="h-4 w-4 text-muted-foreground" />
                       <span className="font-medium">
@@ -515,7 +515,7 @@ export default function VerifyTicketsPage() {
                   <h3 className="mb-3 text-lg font-semibold">
                     Ticket Information
                   </h3>
-                  <div className="space-y-3 rounded-lg border p-4">
+                  <div className="space-y-3 rounded-2xl border border-gray-100 p-4">
                     <div className="flex items-center justify-between">
                       <span className="text-sm font-medium text-muted-foreground">
                         Ticket ID:
@@ -608,7 +608,7 @@ export default function VerifyTicketsPage() {
                     <h3 className="mb-3 text-lg font-semibold">
                       Usage Information
                     </h3>
-                    <div className="space-y-2 rounded-lg border p-4">
+                    <div className="space-y-2 rounded-2xl border border-gray-100 p-4">
                       {ticketDetails.used_at && (
                         <div className="flex items-center justify-between">
                           <span className="text-sm font-medium text-muted-foreground">

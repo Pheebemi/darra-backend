@@ -167,16 +167,16 @@ export default function SellerDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 max-w-5xl">
+      <div className="mx-auto max-w-5xl space-y-8 p-6 sm:p-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Overview</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
               {user?.brand_name || user?.full_name || "Your Store"}
             </h1>
-            <p className="text-sm text-muted-foreground">Store overview</p>
           </div>
-          <Button size="sm" asChild>
+          <Button asChild>
             <Link href="/dashboard/seller/create-event">
               <Plus className="mr-1.5 h-3.5 w-3.5" />
               Add Product
@@ -185,15 +185,15 @@ export default function SellerDashboard() {
         </div>
 
         {/* Time range */}
-        <div className="flex gap-1 border rounded-md p-0.5 w-fit">
+        <div className="flex w-fit gap-1 rounded-full border border-gray-200 bg-white p-1">
           {(["7d", "30d", "90d", "1y"] as const).map((r) => (
             <button
               key={r}
               onClick={() => setTimeRange(r)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
                 timeRange === r
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-brand-500 text-white"
+                  : "text-gray-600 hover:text-brand-500"
               }`}
             >
               {r === "7d" ? "7 days" : r === "30d" ? "30 days" : r === "90d" ? "90 days" : "1 year"}
@@ -202,21 +202,23 @@ export default function SellerDashboard() {
         </div>
 
         {/* Stat cards */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
+        <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
           {statCards.map(({ label, value, growth, icon: Icon }) => (
             <Card key={label} className="shadow-none">
-              <CardHeader className="flex flex-row items-center justify-between pb-1 pt-4 px-4">
-                <span className="text-xs text-muted-foreground">{label}</span>
-                <Icon className="h-3.5 w-3.5 text-muted-foreground" />
+              <CardHeader className="flex flex-row items-center justify-between px-5 pb-1 pt-5">
+                <span className="text-xs text-gray-600">{label}</span>
+                <span className="rounded-lg bg-brand-100 p-2">
+                  <Icon className="h-3.5 w-3.5 text-brand-500" />
+                </span>
               </CardHeader>
-              <CardContent className="px-4 pb-4">
+              <CardContent className="px-5 pb-5">
                 {loading ? (
                   <Skeleton className="h-7 w-24" />
                 ) : (
                   <>
-                    <p className="text-xl font-semibold">{value}</p>
+                    <p className="text-2xl font-semibold text-ink">{value}</p>
                     {growth !== undefined && (
-                      <p className={`mt-0.5 flex items-center gap-0.5 text-xs ${growth >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                      <p className={`mt-0.5 flex items-center gap-0.5 text-xs ${growth >= 0 ? "text-[#00B42A]" : "text-[#b3261e]"}`}>
                         {growth >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                         {growth > 0 ? "+" : ""}{growth}%
                       </p>
@@ -230,56 +232,57 @@ export default function SellerDashboard() {
 
         {/* Earnings summary */}
         {(earnings || loading) && (
-          <Card className="shadow-none">
-            <CardHeader className="px-4 pt-4 pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium">Earnings</CardTitle>
-              <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
-                <Link href="/dashboard/seller/earnings">
-                  View details <ChevronRight className="ml-1 h-3 w-3" />
-                </Link>
-              </Button>
-            </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
-                {[
-                  { label: "Gross sales", value: fmt(earnings?.total_sales), icon: Wallet, color: "text-emerald-600" },
-                  { label: "Platform fee", value: fmt(earnings?.total_commission), icon: ArrowDownRight, color: "text-red-500" },
-                  { label: "Available", value: fmt(earnings?.available_balance), icon: DollarSign, color: "text-primary" },
-                  { label: "Withdrawn", value: fmt(earnings?.total_payouts), icon: Clock, color: "text-muted-foreground" },
-                ].map(({ label, value, icon: Icon, color }) => (
-                  <div key={label}>
-                    <p className="text-xs text-muted-foreground">{label}</p>
-                    {loading ? (
-                      <Skeleton className="mt-1 h-5 w-20" />
-                    ) : (
-                      <p className={`mt-0.5 text-sm font-semibold ${color}`}>{value}</p>
-                    )}
-                  </div>
-                ))}
-              </div>
-              <div className="mt-4 flex gap-2">
-                <Button size="sm" className="h-8 text-xs" asChild>
-                  <Link href="/dashboard/seller/earnings/request-payout">
-                    <ArrowUpRight className="mr-1 h-3.5 w-3.5" />Request Payout
-                  </Link>
-                </Button>
-                <Button size="sm" variant="outline" className="h-8 text-xs" asChild>
-                  <Link href="/dashboard/seller/earnings/payout-history">
-                    <BarChart3 className="mr-1 h-3.5 w-3.5" />Payout history
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
+          <div className="rounded-3xl bg-brand-950 p-6 sm:p-8">
+            <div className="mb-6 flex items-center justify-between">
+              <h2 className="text-lg font-semibold text-white">Earnings</h2>
+              <Link
+                href="/dashboard/seller/earnings"
+                className="inline-flex items-center gap-1 text-sm font-medium text-brand-200 transition-colors hover:text-white"
+              >
+                View details <ChevronRight className="h-3.5 w-3.5" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-2 gap-5 md:grid-cols-4">
+              {[
+                { label: "Gross sales", value: fmt(earnings?.total_sales), color: "text-white" },
+                { label: "Platform fee", value: fmt(earnings?.total_commission), color: "text-brand-200" },
+                { label: "Available", value: fmt(earnings?.available_balance), color: "text-brand-300" },
+                { label: "Withdrawn", value: fmt(earnings?.total_payouts), color: "text-brand-200" },
+              ].map(({ label, value, color }) => (
+                <div key={label} className="rounded-2xl bg-white/5 p-4">
+                  <p className="text-xs text-brand-200/70">{label}</p>
+                  {loading ? (
+                    <Skeleton className="mt-1 h-5 w-20 bg-white/10" />
+                  ) : (
+                    <p className={`mt-1 text-lg font-semibold ${color}`}>{value}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-6 flex flex-wrap gap-3">
+              <Link
+                href="/dashboard/seller/earnings/request-payout"
+                className="inline-flex items-center gap-1.5 rounded-full bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+              >
+                <ArrowUpRight className="h-3.5 w-3.5" />Request Payout
+              </Link>
+              <Link
+                href="/dashboard/seller/earnings/payout-history"
+                className="inline-flex items-center gap-1.5 rounded-full border border-brand-300/40 px-6 py-2.5 text-sm font-medium text-brand-100 transition-colors hover:bg-white/10"
+              >
+                <BarChart3 className="h-3.5 w-3.5" />Payout history
+              </Link>
+            </div>
+          </div>
         )}
 
         {/* Recent orders + top products */}
         <div className="grid gap-4 md:grid-cols-2">
           {/* Recent orders */}
           <Card className="shadow-none">
-            <CardHeader className="px-4 pt-4 pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium">Recent Orders</CardTitle>
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-0.5" asChild>
+            <CardHeader className="flex flex-row items-center justify-between px-5 pb-3 pt-5">
+              <CardTitle className="text-base font-semibold text-ink">Recent Orders</CardTitle>
+              <Button size="sm" variant="ghost" className="h-7 gap-0.5 text-xs" asChild>
                 <Link href="/dashboard/seller/orders">All <ChevronRight className="h-3 w-3" /></Link>
               </Button>
             </CardHeader>
@@ -316,9 +319,9 @@ export default function SellerDashboard() {
 
           {/* Top products */}
           <Card className="shadow-none">
-            <CardHeader className="px-4 pt-4 pb-3 flex flex-row items-center justify-between">
-              <CardTitle className="text-sm font-medium">Top Products</CardTitle>
-              <Button size="sm" variant="ghost" className="h-7 text-xs gap-0.5" asChild>
+            <CardHeader className="flex flex-row items-center justify-between px-5 pb-3 pt-5">
+              <CardTitle className="text-base font-semibold text-ink">Top Products</CardTitle>
+              <Button size="sm" variant="ghost" className="h-7 gap-0.5 text-xs" asChild>
                 <Link href="/dashboard/seller/inventory">All <ChevronRight className="h-3 w-3" /></Link>
               </Button>
             </CardHeader>
@@ -331,7 +334,7 @@ export default function SellerDashboard() {
                 <div className="divide-y">
                   {analytics.top_products.map((p, i) => (
                     <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted text-[10px] font-medium">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-medium text-brand-700">
                         {i + 1}
                       </span>
                       <div className="min-w-0 flex-1">

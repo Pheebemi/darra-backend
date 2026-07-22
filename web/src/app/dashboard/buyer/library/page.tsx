@@ -132,7 +132,7 @@ export default function BuyerLibraryPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold">My Library</h1>
+            <h1 className="text-2xl font-semibold text-ink">My Library</h1>
             <p className="text-sm text-muted-foreground">
               {items.length} {items.length === 1 ? "item" : "items"} purchased
             </p>
@@ -176,7 +176,7 @@ export default function BuyerLibraryPage() {
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-lg border bg-card py-14 text-center">
+          <div className="rounded-3xl border border-gray-100 bg-white py-14 text-center">
             <Package className="mx-auto h-10 w-10 text-muted-foreground/40" />
             <p className="mt-3 text-sm font-medium">Library is empty</p>
             <p className="text-xs text-muted-foreground">Products you purchase will appear here</p>
@@ -190,7 +190,7 @@ export default function BuyerLibraryPage() {
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {/* Download products */}
             {(filter === "all" || filter === "products") && downloadItems.map((item) => (
-              <div key={item.id} className="rounded-lg border bg-card overflow-hidden flex flex-col">
+              <div key={item.id} className="rounded-3xl border border-gray-100 bg-white overflow-hidden flex flex-col">
                 <div className="relative h-36 bg-muted shrink-0">
                   {item.product.cover_image_url ? (
                     <SafeImage
@@ -236,7 +236,7 @@ export default function BuyerLibraryPage() {
             {/* QR access tickets */}
             {(filter === "all" || filter === "access") && accessItems.map((item) =>
               item.event_tickets?.map((ticket) => (
-                <div key={ticket.id} className="rounded-lg border bg-card overflow-hidden flex flex-col">
+                <div key={ticket.id} className="rounded-3xl border border-gray-100 bg-white overflow-hidden flex flex-col">
                   {/* QR preview */}
                   <div className="relative h-36 bg-muted/50 flex items-center justify-center shrink-0">
                     {ticket.qr_code_url ? (
@@ -290,7 +290,7 @@ export default function BuyerLibraryPage() {
                           </DialogHeader>
                           <div className="space-y-4">
                             {/* Ticket image or QR */}
-                            <div className="rounded-lg border bg-muted/30 flex items-center justify-center p-4">
+                            <div className="rounded-2xl border border-gray-100 bg-brand-50/50 flex items-center justify-center p-4">
                               {ticket.ticket_png_url ? (
                                 <SafeImage
                                   src={getImageUrl(ticket.ticket_png_url)}

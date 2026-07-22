@@ -87,14 +87,16 @@ export default function BuyerDashboard() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-6 max-w-5xl">
+      <div className="mx-auto max-w-5xl space-y-8 p-6 sm:p-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold">Welcome back, {user?.full_name?.split(" ")[0] || "there"}</h1>
-            <p className="text-sm text-muted-foreground">Your digital library</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">My Library</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
+              Welcome back, {user?.full_name?.split(" ")[0] || "there"}
+            </h1>
           </div>
-          <Button size="sm" asChild>
+          <Button asChild>
             <Link href="/products">
               <ShoppingBag className="mr-1.5 h-3.5 w-3.5" />
               Browse Products
@@ -103,37 +105,37 @@ export default function BuyerDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 md:grid-cols-3">
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <Card className="shadow-none">
-            <CardHeader className="px-4 pt-4 pb-1">
-              <span className="text-xs text-muted-foreground">Purchased</span>
+            <CardHeader className="px-5 pb-1 pt-5">
+              <span className="text-xs text-gray-600">Purchased</span>
             </CardHeader>
-            <CardContent className="px-4 pb-4">
+            <CardContent className="px-5 pb-5">
               {loading ? <Skeleton className="h-7 w-12" /> : (
-                <p className="text-xl font-semibold">{library.length}</p>
+                <p className="text-2xl font-semibold text-ink">{library.length}</p>
               )}
-              <p className="text-xs text-muted-foreground">products</p>
+              <p className="text-xs text-gray-600">products</p>
             </CardContent>
           </Card>
 
           <Card className="shadow-none">
-            <CardHeader className="px-4 pt-4 pb-1">
-              <span className="text-xs text-muted-foreground">Library</span>
+            <CardHeader className="px-5 pb-1 pt-5">
+              <span className="text-xs text-gray-600">Library</span>
             </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <p className="text-xl font-semibold">Access</p>
+            <CardContent className="px-5 pb-5">
+              <p className="text-2xl font-semibold text-ink">Access</p>
               <Button variant="link" className="h-auto p-0 text-xs" asChild>
                 <Link href="/dashboard/buyer/library">View all →</Link>
               </Button>
             </CardContent>
           </Card>
 
-          <Card className="shadow-none col-span-2 md:col-span-1">
-            <CardHeader className="px-4 pt-4 pb-1">
-              <span className="text-xs text-muted-foreground">Discover</span>
+          <Card className="col-span-2 shadow-none md:col-span-1">
+            <CardHeader className="px-5 pb-1 pt-5">
+              <span className="text-xs text-gray-600">Discover</span>
             </CardHeader>
-            <CardContent className="px-4 pb-4">
-              <p className="text-sm text-muted-foreground mb-2">New products added daily</p>
+            <CardContent className="px-5 pb-5">
+              <p className="mb-2 text-sm text-gray-600">New products added daily</p>
               <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
                 <Link href="/products">Browse →</Link>
               </Button>
@@ -143,9 +145,9 @@ export default function BuyerDashboard() {
 
         {/* Recent library items */}
         <Card className="shadow-none">
-          <CardHeader className="px-4 pt-4 pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm font-medium">My Library</CardTitle>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-0.5" asChild>
+          <CardHeader className="flex flex-row items-center justify-between px-5 pb-3 pt-5">
+            <CardTitle className="text-base font-semibold text-ink">My Library</CardTitle>
+            <Button size="sm" variant="ghost" className="h-7 gap-0.5 text-xs" asChild>
               <Link href="/dashboard/buyer/library">All <ChevronRight className="h-3 w-3" /></Link>
             </Button>
           </CardHeader>
@@ -183,9 +185,9 @@ export default function BuyerDashboard() {
               </div>
             ) : (
               <div className="py-8 text-center">
-                <Library className="mx-auto h-8 w-8 text-muted-foreground/40" />
-                <p className="mt-2 text-sm font-medium">Library is empty</p>
-                <p className="text-xs text-muted-foreground">Products you purchase will appear here</p>
+                <img src="/illustrations/no-data.svg" alt="" className="mx-auto mb-4 h-28 w-auto" />
+                <p className="text-sm font-medium text-ink">Library is empty</p>
+                <p className="text-xs text-gray-600">Products you purchase will appear here</p>
                 <Button size="sm" className="mt-4 h-8 text-xs" asChild>
                   <Link href="/products">
                     <ShoppingBag className="mr-1.5 h-3.5 w-3.5" />Browse Products
@@ -198,43 +200,43 @@ export default function BuyerDashboard() {
 
         {/* Featured products */}
         <div>
-          <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-sm font-medium">Featured Products</h2>
-            <Button size="sm" variant="ghost" className="h-7 text-xs gap-0.5" asChild>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-base font-semibold text-ink">Featured Products</h2>
+            <Button size="sm" variant="ghost" className="h-7 gap-0.5 text-xs" asChild>
               <Link href="/products">All <ChevronRight className="h-3 w-3" /></Link>
             </Button>
           </div>
 
           {loading ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-40 w-full rounded-lg" />)}
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {[1, 2, 3].map((i) => <Skeleton key={i} className="h-44 w-full rounded-3xl" />)}
             </div>
           ) : featured.length > 0 ? (
-            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {featured.map((p) => (
                 <Link
                   key={p.id}
                   href={`/products/${p.id}`}
-                  className="group overflow-hidden rounded-lg border bg-card transition-colors hover:border-primary/40"
+                  className="group overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl"
                 >
-                  <div className="relative h-32 w-full bg-muted">
+                  <div className="relative h-32 w-full bg-brand-50">
                     {p.cover_image ? (
-                      <SafeImage src={p.cover_image} alt={p.title} fill className="object-cover" />
+                      <SafeImage src={p.cover_image} alt={p.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
                     ) : (
                       <div className="flex h-full items-center justify-center">
-                        <Package className="h-8 w-8 text-muted-foreground/30" />
+                        <Package className="h-8 w-8 text-brand-300" />
                       </div>
                     )}
                   </div>
-                  <div className="p-3">
-                    <p className="truncate text-sm font-medium">{p.title}</p>
-                    <p className="mt-0.5 text-xs text-primary font-medium">{fmt(p.price)}</p>
+                  <div className="p-4">
+                    <p className="truncate text-sm font-semibold text-gray-900 transition-colors group-hover:text-brand-500">{p.title}</p>
+                    <p className="mt-0.5 text-xs font-medium text-brand-500">{fmt(p.price)}</p>
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground">No products available yet.</p>
+            <p className="text-sm text-gray-600">No products available yet.</p>
           )}
         </div>
       </div>

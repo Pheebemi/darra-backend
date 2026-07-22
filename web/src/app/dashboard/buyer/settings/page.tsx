@@ -38,7 +38,7 @@ export default function BuyerSettingsPage() {
     <DashboardLayout>
       <div className="mx-auto max-w-2xl px-6 py-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
+          <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Settings</h1>
           <p className="mt-1 text-sm text-muted-foreground">Manage your account</p>
         </div>
 
@@ -51,8 +51,8 @@ export default function BuyerSettingsPage() {
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#3800ff]/10">
-                          <Icon className="h-6 w-6 text-[#3800ff]" />
+                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-brand-100">
+                          <Icon className="h-6 w-6 text-brand-500" />
                         </div>
                         <div>
                           <h3 className="font-semibold text-foreground">{item.title}</h3>

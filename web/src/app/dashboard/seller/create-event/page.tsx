@@ -145,11 +145,11 @@ function CreateEventInner() {
       setLocation(data.location || "");
       setSpeakers(data.speakers || "");
 
-      // Pre-fill ticket tiers if event type — map to local TicketType shape
+      // Pre-fill ticket tiers if event type â€” map to local TicketType shape
       if (data.ticket_tiers && Array.isArray(data.ticket_tiers)) {
         const mapped: TicketType[] = data.ticket_tiers.map((t: any) => ({
           id: t.id,
-          category: t.category || { id: t.id, name: t.name || "Tier", description: "", color: "#3800ff" },
+          category: t.category || { id: t.id, name: t.name || "Tier", description: "", color: "#5465FF" },
           price: t.price,
           quantity: t.quantity_available ?? t.quantity ?? 0,
         }));
@@ -321,7 +321,7 @@ function CreateEventInner() {
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <h1 className="text-lg font-semibold">
+          <h1 className="text-2xl font-semibold text-ink">
             {isEditing ? "Edit Product" : "Add Product"}
           </h1>
           <p className="text-sm text-muted-foreground">
@@ -379,7 +379,7 @@ function CreateEventInner() {
 
                       {productType !== "event" && (
                         <div className="space-y-1.5">
-                          <Label htmlFor="price" className="text-xs">Price (₦)</Label>
+                          <Label htmlFor="price" className="text-xs">Price (â‚¦)</Label>
                           <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" step="0.01" min="0" className="h-9" />
                         </div>
                       )}
@@ -435,7 +435,7 @@ function CreateEventInner() {
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Add form */}
-                    <div className="space-y-3 rounded-lg border bg-muted/40 p-3">
+                    <div className="space-y-3 rounded-2xl bg-brand-50 p-4">
                       <p className="text-xs font-medium">Add Ticket Type</p>
                       <div className="space-y-1.5">
                         <Label className="text-xs">Category</Label>
@@ -461,7 +461,7 @@ function CreateEventInner() {
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Price (₦) *</Label>
+                          <Label className="text-xs">Price (â‚¦) *</Label>
                           <Input type="number" value={newTicketPrice} onChange={(e) => setNewTicketPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" className="h-9" />
                         </div>
                         <div className="space-y-1.5">
@@ -483,7 +483,7 @@ function CreateEventInner() {
                             <div className="flex items-center gap-3">
                               <Badge className="text-[10px]" style={{ backgroundColor: t.category.color }}>{t.category.name}</Badge>
                               <div>
-                                <p className="text-sm font-semibold">₦{t.price.toLocaleString()}</p>
+                                <p className="text-sm font-semibold">â‚¦{t.price.toLocaleString()}</p>
                                 <p className="text-xs text-muted-foreground">{t.quantity} available</p>
                               </div>
                             </div>
@@ -494,7 +494,7 @@ function CreateEventInner() {
                         ))}
                       </div>
                     ) : (
-                      <div className="rounded-lg border border-dashed py-8 text-center">
+                      <div className="rounded-2xl border border-dashed border-brand-200 py-8 text-center">
                         <Ticket className="mx-auto h-7 w-7 text-muted-foreground/40" />
                         <p className="mt-2 text-xs text-muted-foreground">No ticket types yet</p>
                       </div>
@@ -514,7 +514,7 @@ function CreateEventInner() {
                     <div className="space-y-2">
                       <div>
                         <Label className="text-xs">Cover Image {!isEditing && "*"}</Label>
-                        <p className="text-xs text-muted-foreground">16:9 recommended · max 5MB</p>
+                        <p className="text-xs text-muted-foreground">16:9 recommended Â· max 5MB</p>
                       </div>
                       <div className="flex items-center gap-3">
                         <Input type="file" accept="image/*" onChange={handleCoverImageChange} className="h-9 cursor-pointer flex-1 text-xs" />
@@ -588,7 +588,7 @@ function CreateEventInner() {
                   {totalRevenue > 0 && (
                     <div className="flex justify-between border-t pt-2">
                       <span className="text-muted-foreground">Potential revenue</span>
-                      <span className="font-semibold text-primary">₦{totalRevenue.toLocaleString()}</span>
+                      <span className="font-semibold text-primary">â‚¦{totalRevenue.toLocaleString()}</span>
                     </div>
                   )}
                 </CardContent>
@@ -610,7 +610,7 @@ function CreateEventInner() {
                 ].map(({ label, done }) => (
                   <div key={label} className="flex items-center gap-2">
                     <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${done ? "bg-emerald-500 text-white" : "border text-muted-foreground"}`}>
-                      {done ? "✓" : ""}
+                      {done ? "âœ“" : ""}
                     </div>
                     <span className={`text-xs ${done ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>
                   </div>

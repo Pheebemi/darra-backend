@@ -231,7 +231,7 @@ export default function InventoryPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">My Products</h1>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">My Products</h1>
             <p className="mt-2 text-sm text-muted-foreground">
               {products.length} {products.length === 1 ? "product" : "products"}
             </p>
@@ -423,7 +423,7 @@ export default function InventoryPage() {
                     )}
                     <div className="mt-4 flex items-center justify-between">
                       <span className="text-lg font-bold">
-                        ₦{product.price.toLocaleString()}
+                        â‚¦{product.price.toLocaleString()}
                       </span>
                       <div className="flex gap-2">
                         <Button

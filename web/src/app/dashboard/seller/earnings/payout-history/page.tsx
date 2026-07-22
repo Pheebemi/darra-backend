@@ -197,7 +197,7 @@ export default function PayoutHistoryPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">Payout History</h1>
+              <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Payout History</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 View all your payout requests and their status
               </p>
@@ -219,7 +219,7 @@ export default function PayoutHistoryPage() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-2xl font-bold text-foreground">{payouts.length}</p>
+                <p className="text-2xl font-bold text-ink">{payouts.length}</p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">Total Payouts</p>
               </div>
             </CardContent>
@@ -227,7 +227,7 @@ export default function PayoutHistoryPage() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-ink">
                   {formatCurrency(calculateTotalAmount(payouts))}
                 </p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">Total Amount</p>
@@ -237,7 +237,7 @@ export default function PayoutHistoryPage() {
           <Card>
             <CardContent className="p-6">
               <div className="text-center">
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-ink">
                   {payouts.filter((p) => p.status === "completed").length}
                 </p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">Completed</p>
@@ -270,7 +270,7 @@ export default function PayoutHistoryPage() {
                     {/* Header */}
                     <div className="mb-4 flex items-start justify-between">
                       <div className="flex-1">
-                        <p className="text-2xl font-bold text-foreground">
+                        <p className="text-2xl font-bold text-ink">
                           {formatCurrency(payout.amount)}
                         </p>
                         <p className="mt-1 text-xs font-mono text-muted-foreground">

@@ -89,7 +89,7 @@ export default function OrdersPage() {
   };
 
   const formatCurrency = (amount: number | undefined | null) => {
-    if (!amount || isNaN(amount)) return "₦0";
+    if (!amount || isNaN(amount)) return "â‚¦0";
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
@@ -150,7 +150,7 @@ export default function OrdersPage() {
               </Link>
             </Button>
             <div>
-              <h1 className="text-3xl font-bold text-foreground">All Orders</h1>
+              <h1 className="text-2xl font-semibold text-ink sm:text-3xl">All Orders</h1>
               <p className="mt-1 text-sm text-muted-foreground">
                 View and manage all your orders
               </p>

@@ -99,7 +99,7 @@ export default function EarningsPage() {
   };
 
   const formatCurrency = (amount: number | undefined | null) => {
-    if (amount === undefined || amount === null) return "₦0";
+    if (amount === undefined || amount === null) return "â‚¦0";
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
@@ -138,7 +138,7 @@ export default function EarningsPage() {
       <DashboardLayout>
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Earnings</h1>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Earnings</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               View your earnings and payout information
             </p>
@@ -162,7 +162,7 @@ export default function EarningsPage() {
       <DashboardLayout>
         <div className="mx-auto max-w-6xl px-6 py-8">
           <div className="mb-8">
-            <h1 className="text-3xl font-bold text-foreground">Earnings</h1>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Earnings</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               View your earnings and payout information
             </p>
@@ -191,7 +191,7 @@ export default function EarningsPage() {
       <div className="mx-auto max-w-6xl px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Earnings</h1>
+          <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Earnings</h1>
           <p className="mt-1 text-sm text-muted-foreground">
             View your earnings and payout information
           </p>
@@ -244,7 +244,7 @@ export default function EarningsPage() {
 
         {/* Earnings Breakdown */}
         <div className="mb-6">
-          <h2 className="mb-4 text-xl font-bold text-foreground">Earnings Breakdown</h2>
+          <h2 className="mb-4 text-xl font-semibold text-ink">Earnings Breakdown</h2>
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {/* Total Sales */}
             <Card>
@@ -252,7 +252,7 @@ export default function EarningsPage() {
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
                   <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
                 </div>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-ink">
                   {formatCurrency(earnings.total_sales)}
                 </p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">
@@ -267,7 +267,7 @@ export default function EarningsPage() {
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
                   <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
                 </div>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-ink">
                   {formatCurrency(earnings.total_commission)}
                 </p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">
@@ -282,7 +282,7 @@ export default function EarningsPage() {
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/20">
                   <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 </div>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-ink">
                   {formatCurrency(earnings.total_payouts)}
                 </p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">
@@ -297,7 +297,7 @@ export default function EarningsPage() {
                 <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/20">
                   <Wallet className="h-5 w-5 text-amber-600 dark:text-amber-400" />
                 </div>
-                <p className="text-2xl font-bold text-foreground">
+                <p className="text-2xl font-bold text-ink">
                   {formatCurrency(earnings.available_balance)}
                 </p>
                 <p className="mt-1 text-sm font-medium text-muted-foreground">
@@ -310,7 +310,7 @@ export default function EarningsPage() {
 
         {/* Commission Structure */}
         <div className="mb-6">
-          <h2 className="mb-4 text-xl font-bold text-foreground">Commission Structure</h2>
+          <h2 className="mb-4 text-xl font-semibold text-ink">Commission Structure</h2>
           <Card>
             <CardContent className="p-6">
               <div className="mb-4 flex items-center gap-2">
@@ -337,7 +337,7 @@ export default function EarningsPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-sm font-medium text-muted-foreground">Example:</span>
                   <span className="text-sm font-semibold text-foreground">
-                    ₦1,500 sale → You earn ₦1,440
+                    â‚¦1,500 sale â†’ You earn â‚¦1,440
                   </span>
                 </div>
               </div>

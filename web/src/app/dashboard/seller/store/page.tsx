@@ -172,11 +172,11 @@ export default function SellerStorePage() {
         {/* Header */}
         <div className="mb-6 flex items-center justify-between gap-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3800ff]/10">
-              <Store className="h-5 w-5 text-[#3800ff]" />
+            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100">
+              <Store className="h-5 w-5 text-brand-500" />
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-foreground">My Store</h1>
+              <h1 className="text-2xl font-semibold text-ink">My Store</h1>
               <p className="text-sm text-muted-foreground">{profile?.brand_name}</p>
             </div>
           </div>
@@ -214,7 +214,7 @@ export default function SellerStorePage() {
               size="sm"
               onClick={handleToggle}
               disabled={toggling}
-              className={profile?.store_active ? "" : "bg-[#3800ff] text-white hover:bg-[#2d00d4]"}
+              className={profile?.store_active ? "" : "bg-brand-500 text-white hover:bg-brand-600"}
             >
               {toggling ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -232,11 +232,11 @@ export default function SellerStorePage() {
           <CardContent className="p-5">
             <h2 className="mb-3 text-base font-semibold text-foreground">Store Banner</h2>
             <p className="mb-3 text-xs text-muted-foreground">
-              Shown at the top of your public store page. Max {MAX_BANNER_KB} KB — keep it tight for fast loads.
+              Shown at the top of your public store page. Max {MAX_BANNER_KB} KB â€” keep it tight for fast loads.
             </p>
 
             {/* Preview */}
-            <div className="relative mb-3 h-32 w-full overflow-hidden rounded-xl border bg-gradient-to-br from-[#3800ff] to-[#7c3aed]">
+            <div className="relative mb-3 h-32 w-full overflow-hidden rounded-xl border bg-brand-950">
               {currentBanner && (
                 <img
                   src={currentBanner}
@@ -271,7 +271,7 @@ export default function SellerStorePage() {
               onChange={handleBannerChange}
             />
             <p className="text-[11px] text-muted-foreground">
-              Recommended: 1200×300 px · JPG or PNG · Max {MAX_BANNER_KB} KB
+              Recommended: 1200Ã—300 px Â· JPG or PNG Â· Max {MAX_BANNER_KB} KB
             </p>
           </CardContent>
         </Card>
@@ -321,7 +321,7 @@ export default function SellerStorePage() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="mt-5 bg-[#3800ff] text-white hover:bg-[#2d00d4]"
+              className="mt-5 bg-brand-500 text-white hover:bg-brand-600"
             >
               {saving ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
@@ -337,7 +337,7 @@ export default function SellerStorePage() {
           <Card>
             <CardContent className="p-5">
               <h2 className="mb-2 text-base font-semibold text-foreground">Your Store Link</h2>
-              <div className="flex items-center gap-3 rounded-xl border bg-muted px-4 py-3">
+              <div className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3">
                 <span className="flex-1 truncate text-sm text-muted-foreground">
                   {typeof window !== "undefined" ? window.location.origin : ""}/store/{profile.brand_slug}
                 </span>

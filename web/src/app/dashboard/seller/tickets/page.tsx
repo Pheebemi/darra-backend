@@ -29,7 +29,7 @@ interface Stats { total: number; valid: number; used: number }
 
 const fmt = (v: string | number) => {
   const n = typeof v === "string" ? parseFloat(v) : v;
-  if (isNaN(n)) return "₦0";
+  if (isNaN(n)) return "â‚¦0";
   return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 };
 
@@ -107,7 +107,7 @@ export default function SellerPurchasesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-lg font-semibold">Purchases</h1>
+            <h1 className="text-2xl font-semibold text-ink">Purchases</h1>
             <p className="text-sm text-muted-foreground">All purchases made on your products</p>
           </div>
           <Button size="sm" variant="outline" onClick={onRefresh} disabled={refreshing} className="h-8 text-xs">
@@ -199,7 +199,7 @@ export default function SellerPurchasesPage() {
                   {ticket.is_used && ticket.verified_by && (
                     <p className="mt-0.5 text-xs text-muted-foreground">
                       Verified by {ticket.verified_by.full_name}
-                      {ticket.verified_at ? ` · ${fmtDate(ticket.verified_at)}` : ""}
+                      {ticket.verified_at ? ` Â· ${fmtDate(ticket.verified_at)}` : ""}
                     </p>
                   )}
 
@@ -219,7 +219,7 @@ export default function SellerPurchasesPage() {
             ))}
           </div>
         ) : (
-          <div className="rounded-lg border bg-card py-12 text-center">
+          <div className="rounded-3xl border border-gray-100 bg-white py-12 text-center">
             <Package className="mx-auto h-8 w-8 text-muted-foreground/40" />
             <p className="mt-2 text-sm font-medium">No purchases found</p>
             <p className="text-xs text-muted-foreground">

@@ -271,7 +271,7 @@ export default function BankDetailsPage() {
             </Link>
           </Button>
           <div className="flex-1">
-            <h1 className="text-3xl font-bold text-foreground">Bank Accounts</h1>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Bank Accounts</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               {savedAccounts.length > 0
                 ? `You have ${savedAccounts.length} bank account${savedAccounts.length > 1 ? "s" : ""}`
@@ -288,7 +288,7 @@ export default function BankDetailsPage() {
         {savedAccounts.length === 0 && !showAddForm && (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="mb-4 text-6xl">🏦</div>
+              <div className="mb-4 text-6xl">ðŸ¦</div>
               <h3 className="mb-2 text-xl font-semibold">No Bank Accounts</h3>
               <p className="mb-6 text-center text-sm text-muted-foreground">
                 Add your bank account details to receive payments and withdrawals
@@ -463,7 +463,7 @@ export default function BankDetailsPage() {
 
                 {/* Account Name Preview */}
                 {accountName && (
-                  <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                  <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
                     <div className="flex items-center gap-2">
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                       <p className="font-medium text-foreground">Account Verified</p>
@@ -510,7 +510,7 @@ export default function BankDetailsPage() {
 
                 {/* Validation Help */}
                 {accountNumber.length > 0 && accountNumber.length !== 10 && (
-                  <div className="rounded-lg border border-amber-200 bg-amber-50 p-3">
+                  <div className="rounded-2xl border border-[#F7B500]/30 bg-[#FFF9E5] p-3">
                     <p className="text-sm text-amber-800">
                       Please enter a complete 10-digit account number
                     </p>

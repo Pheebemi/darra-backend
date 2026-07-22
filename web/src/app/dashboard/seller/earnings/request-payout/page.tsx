@@ -124,7 +124,7 @@ export default function RequestPayoutPage() {
   };
 
   const formatCurrency = (amount: number | undefined | null) => {
-    if (amount === undefined || amount === null) return "₦0";
+    if (amount === undefined || amount === null) return "â‚¦0";
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
@@ -147,7 +147,7 @@ export default function RequestPayoutPage() {
 
     const numAmount = parseFloat(amount);
     if (numAmount < 1000) {
-      toast.error("Minimum payout amount is ₦1,000");
+      toast.error("Minimum payout amount is â‚¦1,000");
       return false;
     }
 
@@ -247,7 +247,7 @@ export default function RequestPayoutPage() {
             </Link>
           </Button>
           <div>
-            <h1 className="text-3xl font-bold text-foreground">Request Payout</h1>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Request Payout</h1>
             <p className="mt-1 text-sm text-muted-foreground">
               Request a payout to your bank account
             </p>
@@ -263,7 +263,7 @@ export default function RequestPayoutPage() {
                 <h2 className="text-lg font-semibold text-foreground">Available Balance</h2>
               </div>
               <p className="text-4xl font-bold text-foreground">
-                {earnings ? formatCurrency(earnings.available_balance) : "₦0"}
+                {earnings ? formatCurrency(earnings.available_balance) : "â‚¦0"}
               </p>
               <p className="mt-2 text-sm text-muted-foreground">
                 This is the amount available for payout
@@ -278,8 +278,8 @@ export default function RequestPayoutPage() {
             <Label htmlFor="amount" className="mb-4 text-lg font-semibold">
               Payout Amount
             </Label>
-            <div className="flex items-center gap-2 rounded-lg border p-4">
-              <span className="text-2xl font-bold text-foreground">₦</span>
+            <div className="flex items-center gap-2 rounded-2xl border border-gray-100 p-4">
+              <span className="text-2xl font-bold text-ink">â‚¦</span>
               <Input
                 id="amount"
                 type="text"
@@ -291,8 +291,8 @@ export default function RequestPayoutPage() {
               />
             </div>
             <p className="mt-2 text-center text-xs text-muted-foreground">
-              Minimum: ₦1,000 • Maximum:{" "}
-              {earnings ? formatCurrency(earnings.available_balance) : "₦0"}
+              Minimum: â‚¦1,000 â€¢ Maximum:{" "}
+              {earnings ? formatCurrency(earnings.available_balance) : "â‚¦0"}
             </p>
           </CardContent>
         </Card>
@@ -423,11 +423,11 @@ export default function RequestPayoutPage() {
               <h3 className="text-lg font-semibold text-foreground">Important Information</h3>
             </div>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• Payouts are processed within 12-14 hours</li>
-              <li>• You'll receive a confirmation email once processed</li>
-              <li>• Minimum payout amount is ₦1,000</li>
-              <li>• Platform fee of 4% is already deducted from your sales</li>
-              <li>• You can track your payout status in Payout History</li>
+              <li>â€¢ Payouts are processed within 12-14 hours</li>
+              <li>â€¢ You'll receive a confirmation email once processed</li>
+              <li>â€¢ Minimum payout amount is â‚¦1,000</li>
+              <li>â€¢ Platform fee of 4% is already deducted from your sales</li>
+              <li>â€¢ You can track your payout status in Payout History</li>
             </ul>
           </CardContent>
         </Card>
