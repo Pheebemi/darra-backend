@@ -1,10 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { SafeImage } from "@/components/safe-image";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -43,6 +41,7 @@ interface TicketTier {
   description?: string;
   benefits?: string;
   is_sold_out: boolean;
+  category?: { name?: string };
 }
 
 interface Product {
@@ -181,47 +180,49 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   // ── EVENT LAYOUT ──────────────────────────────────────────────────────────
   if (isEvent) {
     return (
-      <div className="min-h-screen bg-background">
+      <div className="min-h-screen bg-page">
         {/* Hero */}
-        <div className="relative h-64 w-full overflow-hidden bg-[#3800ff]/10 sm:h-80">
+        <div className="relative h-64 w-full overflow-hidden bg-brand-950 sm:h-80">
           {coverSrc ? (
             <img src={coverSrc} alt={product.title} className="h-full w-full object-cover" />
           ) : (
-            <div className="flex h-full items-center justify-center bg-linear-to-br from-[#3800ff] to-[#7c3aed]">
-              <Package className="h-16 w-16 text-white/30" />
+            <div className="flex h-full items-center justify-center">
+              <Package className="h-16 w-16 text-brand-500/40" />
             </div>
           )}
-          <div className="absolute inset-0 bg-linear-to-t from-black/60 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-ink-dark/80 to-transparent" />
           <div className="absolute bottom-0 left-0 right-0 p-6">
-            <Badge className="mb-2 bg-[#3800ff] text-white text-xs uppercase tracking-wider">Event</Badge>
-            <h1 className="text-2xl font-bold text-white sm:text-3xl">{product.title}</h1>
-            <p className="mt-1 text-sm text-white/80">by {product.seller_name}</p>
+            <span className="mb-2 inline-block rounded-full bg-brand-500 px-3 py-1 text-xs font-medium uppercase tracking-wider text-white">
+              Event
+            </span>
+            <h1 className="text-3xl font-semibold text-white sm:text-4xl">{product.title}</h1>
+            <p className="mt-1 text-sm text-brand-100">by {product.seller_name}</p>
           </div>
           <button
             onClick={() => router.back()}
-            className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-black/40 px-3 py-1.5 text-sm text-white backdrop-blur-sm hover:bg-black/60"
+            className="absolute left-4 top-4 flex items-center gap-1.5 rounded-full bg-ink/50 px-4 py-2 text-sm text-white backdrop-blur-sm transition-colors hover:bg-ink/70"
           >
             <ArrowLeft className="h-4 w-4" /> Back
           </button>
         </div>
 
-        <div className="mx-auto max-w-4xl px-4 py-8 sm:px-6">
+        <div className="mx-auto max-w-7xl px-5 py-10 sm:px-16">
           <div className="grid gap-6 lg:grid-cols-3">
 
             {/* Left col — details */}
-            <div className="space-y-5 lg:col-span-2">
+            <div className="space-y-6 lg:col-span-2">
 
               {/* Date & Time */}
               {product.event_date && (
-                <div className="rounded-xl border bg-card p-5">
-                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Date & Time</h2>
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 flex-col items-center justify-center rounded-lg bg-[#3800ff]/10 text-[#3800ff]">
+                <div className="rounded-3xl border border-gray-100 bg-white p-6">
+                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-brand-500">Date & Time</h2>
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-500">
                       <Calendar className="h-5 w-5" />
                     </div>
                     <div>
-                      <p className="font-medium">{fmtDate(product.event_date)}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">
+                      <p className="font-medium text-gray-900">{fmtDate(product.event_date)}</p>
+                      <p className="mt-0.5 flex items-center gap-1 text-sm text-gray-600">
                         <Clock className="h-3.5 w-3.5" />
                         {fmtTime(product.event_date)}
                         {product.event_end_date && ` – ${fmtTime(product.event_end_date)}`}
@@ -233,20 +234,20 @@ export default function ProductDetailClient({ product }: { product: Product }) {
 
               {/* Location */}
               {(product.venue_name || product.location) && (
-                <div className="rounded-xl border bg-card p-5">
-                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Location</h2>
-                  <div className="flex items-start gap-3">
-                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-[#3800ff]/10 text-[#3800ff]">
+                <div className="rounded-3xl border border-gray-100 bg-white p-6">
+                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-brand-500">Location</h2>
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-brand-100 text-brand-500">
                       <MapPin className="h-5 w-5" />
                     </div>
                     <div className="flex-1">
-                      {product.venue_name && <p className="font-medium">{product.venue_name}</p>}
-                      {product.location && <p className="text-sm text-muted-foreground mt-0.5">{product.location}</p>}
+                      {product.venue_name && <p className="font-medium text-gray-900">{product.venue_name}</p>}
+                      {product.location && <p className="mt-0.5 text-sm text-gray-600">{product.location}</p>}
                     </div>
                   </div>
                   {/* OSM map embed */}
                   {(product.location || product.venue_name) && (
-                    <div className="mt-4 overflow-hidden rounded-lg border">
+                    <div className="mt-5 overflow-hidden rounded-2xl border border-gray-100">
                       {mapCoords ? (
                         <>
                           <iframe
@@ -259,7 +260,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                             href={`https://www.openstreetmap.org/?mlat=${mapCoords.lat}&mlon=${mapCoords.lon}#map=15/${mapCoords.lat}/${mapCoords.lon}`}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="flex items-center justify-center gap-1.5 bg-muted py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                            className="flex items-center justify-center gap-1.5 bg-brand-50 py-2 text-xs text-gray-600 transition-colors hover:text-brand-600"
                           >
                             <ExternalLink className="h-3 w-3" /> View larger map
                           </a>
@@ -269,7 +270,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                           href={osmUrl || "#"}
                           target="_blank"
                           rel="noopener noreferrer"
-                          className="flex h-24 w-full items-center justify-center gap-2 bg-[#e8deff] text-[#3800ff] hover:bg-[#d4c9ff] transition-colors text-sm font-medium"
+                          className="flex h-24 w-full items-center justify-center gap-2 bg-brand-100 text-sm font-medium text-brand-500 transition-colors hover:bg-brand-200"
                         >
                           <MapPin className="h-4 w-4" />
                           View on OpenStreetMap
@@ -282,29 +283,29 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               )}
 
               {/* About */}
-              <div className="rounded-xl border bg-card p-5">
-                <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">About this event</h2>
+              <div className="rounded-3xl border border-gray-100 bg-white p-6">
+                <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-brand-500">About this event</h2>
                 {product.description_html ? (
                   <div
-                    className="text-sm text-muted-foreground leading-relaxed [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-foreground [&_p]:mb-2"
+                    className="text-sm leading-relaxed text-gray-600 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-ink [&_p]:mb-2"
                     dangerouslySetInnerHTML={{ __html: product.description_html }}
                   />
                 ) : (
-                  <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{product.description}</p>
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-600">{product.description}</p>
                 )}
               </div>
 
               {/* Speakers */}
               {speakers.length > 0 && (
-                <div className="rounded-xl border bg-card p-5">
-                  <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-muted-foreground">Speakers</h2>
-                  <div className="space-y-2">
+                <div className="rounded-3xl border border-gray-100 bg-white p-6">
+                  <h2 className="mb-4 text-sm font-semibold uppercase tracking-widest text-brand-500">Speakers</h2>
+                  <div className="space-y-3">
                     {speakers.map((s, i) => (
                       <div key={i} className="flex items-center gap-3">
-                        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-[#3800ff]/10">
-                          <Mic2 className="h-4 w-4 text-[#3800ff]" />
+                        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-100">
+                          <Mic2 className="h-4 w-4 text-brand-500" />
                         </div>
-                        <span className="text-sm font-medium">{s}</span>
+                        <span className="text-sm font-medium text-gray-900">{s}</span>
                       </div>
                     ))}
                   </div>
@@ -316,25 +317,25 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             <div className="space-y-4">
               {/* Ticket tiers */}
               {product.ticket_tiers && product.ticket_tiers.length > 0 && (
-                <div className="rounded-xl border bg-card p-5">
-                  <h3 className="mb-3 text-sm font-semibold">Tickets</h3>
+                <div className="rounded-3xl border border-gray-100 bg-white p-6">
+                  <h3 className="mb-4 text-lg font-semibold text-ink">Tickets</h3>
                   <div className="space-y-2">
                     {product.ticket_tiers.map((tier) => (
                       <div
                         key={tier.id}
-                        className={`rounded-lg border p-3 ${tier.is_sold_out ? "opacity-50 bg-muted/40" : "bg-background"}`}
+                        className={`rounded-2xl border p-4 ${tier.is_sold_out ? "border-gray-100 bg-gray-50 opacity-50" : "border-gray-100 bg-page-soft"}`}
                       >
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-sm font-medium">{tier.category?.name || tier.name}</p>
+                            <p className="text-sm font-medium text-gray-900">{tier.category?.name || tier.name}</p>
                             {tier.description && tier.description !== `${tier.category?.name} tickets` && (
-                              <p className="text-xs text-muted-foreground">{tier.description}</p>
+                              <p className="text-xs text-gray-600">{tier.description}</p>
                             )}
-                            <p className="mt-0.5 text-xs text-muted-foreground">
+                            <p className="mt-0.5 text-xs text-gray-600">
                               {tier.is_sold_out ? "Sold out" : `${tier.remaining_quantity} left`}
                             </p>
                           </div>
-                          <p className="text-sm font-bold text-[#3800ff]">₦{Number(tier.price).toLocaleString()}</p>
+                          <p className="text-sm font-bold text-brand-500">₦{Number(tier.price).toLocaleString()}</p>
                         </div>
                       </div>
                     ))}
@@ -343,44 +344,44 @@ export default function ProductDetailClient({ product }: { product: Product }) {
               )}
 
               {/* Buy */}
-              <div className="rounded-xl border bg-card p-5 space-y-2">
+              <div className="space-y-2 rounded-3xl border border-gray-100 bg-white p-6">
                 <Dialog open={showTicketModal} onOpenChange={setShowTicketModal}>
                   <Button
-                    className="w-full bg-[#3800ff] text-white hover:bg-[#2d00d4]"
+                    className="w-full rounded-full bg-brand-500 py-6 text-white hover:bg-brand-600 focus-visible:ring-brand-300 active:bg-brand-700"
                     onClick={handleAddToCart}
                     disabled={product.is_ticket_event && availableTiers.length === 0}
                   >
                     <ShoppingCart className="mr-1.5 h-4 w-4" />
                     {product.is_ticket_event ? "Get Tickets" : `Add to Cart — ₦${Number(product.price).toLocaleString()}`}
                   </Button>
-                  <DialogContent className="max-w-md">
+                  <DialogContent className="max-w-md rounded-3xl">
                     <DialogHeader>
-                      <DialogTitle>Select Tickets</DialogTitle>
+                      <DialogTitle className="text-ink">Select Tickets</DialogTitle>
                       <DialogDescription>Choose quantities for {product.title}</DialogDescription>
                     </DialogHeader>
                     <div className="max-h-[50vh] space-y-2 overflow-y-auto">
                       {availableTiers.map((tier) => {
                         const qty = selectedTiers[tier.id] || 0;
                         return (
-                          <div key={tier.id} className="rounded-lg border bg-background p-3">
-                            <div className="flex items-start justify-between mb-3">
+                          <div key={tier.id} className="rounded-2xl border border-gray-100 bg-page-soft p-4">
+                            <div className="mb-3 flex items-start justify-between">
                               <div>
-                                <p className="text-sm font-medium">{tier.category?.name || tier.name}</p>
+                                <p className="text-sm font-medium text-gray-900">{tier.category?.name || tier.name}</p>
                                 {tier.description && tier.description !== `${tier.category?.name} tickets` && (
-                                  <p className="text-xs text-muted-foreground">{tier.description}</p>
+                                  <p className="text-xs text-gray-600">{tier.description}</p>
                                 )}
-                                <p className="mt-0.5 text-xs text-muted-foreground">{tier.remaining_quantity} available</p>
+                                <p className="mt-0.5 text-xs text-gray-600">{tier.remaining_quantity} available</p>
                               </div>
-                              <p className="text-sm font-bold text-[#3800ff]">₦{Number(tier.price).toLocaleString()}</p>
+                              <p className="text-sm font-bold text-brand-500">₦{Number(tier.price).toLocaleString()}</p>
                             </div>
                             <div className="flex items-center gap-2">
                               <button onClick={() => updateTierQuantity(tier.id, -1)} disabled={qty === 0}
-                                className="flex h-7 w-7 items-center justify-center rounded border text-muted-foreground hover:border-[#3800ff] hover:text-[#3800ff] disabled:opacity-40">
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-500 disabled:opacity-40">
                                 <Minus className="h-3 w-3" />
                               </button>
                               <span className="w-7 text-center text-sm font-medium">{qty}</span>
                               <button onClick={() => updateTierQuantity(tier.id, 1)} disabled={qty >= tier.remaining_quantity}
-                                className="flex h-7 w-7 items-center justify-center rounded border text-muted-foreground hover:border-[#3800ff] hover:text-[#3800ff] disabled:opacity-40">
+                                className="flex h-8 w-8 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-500 disabled:opacity-40">
                                 <Plus className="h-3 w-3" />
                               </button>
                             </div>
@@ -388,33 +389,33 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                         );
                       })}
                     </div>
-                    <div className="flex items-center justify-between border-t pt-4">
+                    <div className="flex items-center justify-between border-t border-gray-100 pt-4">
                       <div>
-                        <p className="text-xs text-muted-foreground">{totalSelectedTickets} ticket{totalSelectedTickets !== 1 ? "s" : ""} selected</p>
-                        <p className="text-lg font-bold">₦{getTotalPrice().toLocaleString()}</p>
+                        <p className="text-xs text-gray-600">{totalSelectedTickets} ticket{totalSelectedTickets !== 1 ? "s" : ""} selected</p>
+                        <p className="text-lg font-bold text-ink">₦{getTotalPrice().toLocaleString()}</p>
                       </div>
                       <Button onClick={handleAddSelectedTiersToCart} disabled={!hasSelectedTiers}
-                        className="bg-[#3800ff] text-white hover:bg-[#2d00d4]" size="sm">
+                        className="rounded-full bg-brand-500 text-white hover:bg-brand-600" size="sm">
                         Add to Cart
                       </Button>
                     </div>
                   </DialogContent>
                 </Dialog>
-                <Button variant="outline" className="w-full" asChild>
+                <Button variant="outline" className="w-full rounded-full border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white" asChild>
                   <Link href="/cart">View Cart</Link>
                 </Button>
               </div>
 
               {/* Trust */}
-              <div className="grid grid-cols-3 gap-2 rounded-xl border bg-card p-3">
+              <div className="grid grid-cols-3 gap-2 rounded-3xl border border-gray-100 bg-white p-4">
                 {[
-                  { icon: Shield, label: "Secure", color: "text-emerald-500" },
-                  { icon: Zap, label: "Instant", color: "text-[#3800ff]" },
-                  { icon: CheckCircle, label: "Verified", color: "text-emerald-500" },
+                  { icon: Shield, label: "Secure", color: "text-[#00B42A]" },
+                  { icon: Zap, label: "Instant", color: "text-brand-500" },
+                  { icon: CheckCircle, label: "Verified", color: "text-[#00B42A]" },
                 ].map(({ icon: Icon, label, color }) => (
                   <div key={label} className="flex flex-col items-center gap-1 text-center">
                     <Icon className={`h-4 w-4 ${color}`} />
-                    <span className="text-xs text-muted-foreground">{label}</span>
+                    <span className="text-xs text-gray-600">{label}</span>
                   </div>
                 ))}
               </div>
@@ -431,68 +432,73 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     : "Digital";
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      <button
-        onClick={() => router.back()}
-        className="group mb-6 inline-flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
-      >
-        <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" /> Back
-      </button>
+    <div className="min-h-screen bg-page">
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-16">
+        <button
+          onClick={() => router.back()}
+          className="group mb-8 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-brand-500"
+        >
+          <ArrowLeft className="h-4 w-4 transition-transform group-hover:-translate-x-0.5" /> Back
+        </button>
 
-      <div className="grid gap-8 md:grid-cols-2">
-        <div className="space-y-3">
-          <div className="relative aspect-square w-full overflow-hidden rounded-xl border bg-muted">
-            {coverSrc ? (
-              <img src={coverSrc} alt={product.title} className="h-full w-full object-cover" />
-            ) : (
-              <div className="flex h-full flex-col items-center justify-center gap-2">
-                <Package className="h-14 w-14 text-muted-foreground/30" />
-                <span className="text-xs font-medium uppercase tracking-widest text-muted-foreground/40">{typeLabel}</span>
-              </div>
-            )}
-            <span className="absolute left-3 top-3 rounded-md bg-background/80 px-2 py-0.5 text-xs font-medium backdrop-blur-sm">{typeLabel}</span>
-          </div>
-          <div className="grid grid-cols-3 gap-2 rounded-xl border bg-card p-3">
-            {[
-              { icon: Shield, label: "Secure", color: "text-emerald-500" },
-              { icon: Zap, label: "Instant", color: "text-[#3800ff]" },
-              { icon: CheckCircle, label: "Verified", color: "text-emerald-500" },
-            ].map(({ icon: Icon, label, color }) => (
-              <div key={label} className="flex flex-col items-center gap-1 text-center">
-                <Icon className={`h-4 w-4 ${color}`} />
-                <span className="text-xs text-muted-foreground">{label}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="rounded-xl border bg-card p-5">
-            <h1 className="mb-1 text-xl font-semibold">{product.title}</h1>
-            <div className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground">
-              <User className="h-3.5 w-3.5" />
-              <span>by {product.seller_name}</span>
+        <div className="grid gap-8 md:grid-cols-2">
+          <div className="space-y-4">
+            <div className="relative aspect-square w-full overflow-hidden rounded-3xl border border-gray-100 bg-brand-50">
+              {coverSrc ? (
+                <img src={coverSrc} alt={product.title} className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full flex-col items-center justify-center gap-3">
+                  <Package className="h-14 w-14 text-brand-300" />
+                  <span className="text-xs font-medium uppercase tracking-widest text-brand-400">{typeLabel}</span>
+                </div>
+              )}
+              <span className="absolute left-4 top-4 rounded-full bg-white/85 px-3 py-1 text-xs font-medium text-ink backdrop-blur-sm">{typeLabel}</span>
             </div>
-            <Separator className="my-4" />
-            <h2 className="mb-2 text-sm font-medium">About this product</h2>
-            {product.description_html ? (
-              <div
-                className="text-sm text-muted-foreground leading-relaxed [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-foreground [&_p]:mb-2"
-                dangerouslySetInnerHTML={{ __html: product.description_html }}
-              />
-            ) : (
-              <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">{product.description}</p>
-            )}
+            <div className="grid grid-cols-3 gap-2 rounded-3xl border border-gray-100 bg-white p-4">
+              {[
+                { icon: Shield, label: "Secure", color: "text-[#00B42A]" },
+                { icon: Zap, label: "Instant", color: "text-brand-500" },
+                { icon: CheckCircle, label: "Verified", color: "text-[#00B42A]" },
+              ].map(({ icon: Icon, label, color }) => (
+                <div key={label} className="flex flex-col items-center gap-1 text-center">
+                  <Icon className={`h-4 w-4 ${color}`} />
+                  <span className="text-xs text-gray-600">{label}</span>
+                </div>
+              ))}
+            </div>
           </div>
 
-          <div className="rounded-xl border bg-card p-5 space-y-2">
-            <Button className="w-full bg-[#3800ff] text-white hover:bg-[#2d00d4]" onClick={handleAddToCart}>
-              <ShoppingCart className="mr-1.5 h-4 w-4" />
-              Add to Cart — ₦{Number(product.price).toLocaleString()}
-            </Button>
-            <Button variant="outline" className="w-full" asChild>
-              <Link href="/cart">View Cart</Link>
-            </Button>
+          <div className="space-y-4">
+            <div className="rounded-3xl border border-gray-100 bg-white p-6">
+              <h1 className="mb-1 text-2xl font-semibold text-ink sm:text-3xl">{product.title}</h1>
+              <div className="mb-4 flex items-center gap-1.5 text-sm text-gray-600">
+                <User className="h-3.5 w-3.5" />
+                <span>by {product.seller_name}</span>
+              </div>
+              <Separator className="my-4" />
+              <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-500">About this product</h2>
+              {product.description_html ? (
+                <div
+                  className="text-sm leading-relaxed text-gray-600 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-ink [&_p]:mb-2"
+                  dangerouslySetInnerHTML={{ __html: product.description_html }}
+                />
+              ) : (
+                <p className="whitespace-pre-wrap text-sm leading-relaxed text-gray-600">{product.description}</p>
+              )}
+            </div>
+
+            <div className="space-y-2 rounded-3xl border border-gray-100 bg-white p-6">
+              <Button
+                className="w-full rounded-full bg-brand-500 py-6 text-white hover:bg-brand-600 focus-visible:ring-brand-300 active:bg-brand-700"
+                onClick={handleAddToCart}
+              >
+                <ShoppingCart className="mr-1.5 h-4 w-4" />
+                Add to Cart — ₦{Number(product.price).toLocaleString()}
+              </Button>
+              <Button variant="outline" className="w-full rounded-full border-brand-500 text-brand-500 hover:bg-brand-500 hover:text-white" asChild>
+                <Link href="/cart">View Cart</Link>
+              </Button>
+            </div>
           </div>
         </div>
       </div>

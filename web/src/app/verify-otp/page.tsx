@@ -2,10 +2,9 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth/auth-context";
 import { toast } from "sonner";
-import { ArrowLeft, RotateCcw, ShoppingBag, CheckCircle } from "lucide-react";
+import { ArrowLeft, RotateCcw, MailCheck } from "lucide-react";
 
 function VerifyOTPInner() {
   const searchParams = useSearchParams();
@@ -107,32 +106,32 @@ function VerifyOTPInner() {
   if (!email) return null;
 
   return (
-    <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-background px-4 py-12">
+    <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-page px-5 py-12">
       <div className="w-full max-w-sm">
         {/* Logo */}
         <div className="mb-8 flex justify-center">
-          <div className="flex items-center gap-2">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-              <ShoppingBag className="h-3.5 w-3.5 text-primary-foreground" />
+          <div className="flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
+              <span className="text-lg font-bold text-white">D</span>
             </div>
-            <span className="font-semibold">Darra</span>
+            <span className="text-lg font-semibold text-ink">Darra</span>
           </div>
         </div>
 
         {/* Card */}
-        <div className="rounded-xl border bg-card p-8 shadow-sm">
+        <div className="rounded-3xl border border-gray-100 bg-white p-8 shadow-sm">
           <div className="mb-6 text-center">
-            <div className="mb-4 flex justify-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-primary/10 text-primary">
-                <CheckCircle className="h-6 w-6" />
+            <div className="mb-5 flex justify-center">
+              <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100 text-brand-500">
+                <MailCheck className="h-7 w-7" />
               </div>
             </div>
-            <h1 className="mb-1 text-xl font-semibold">Check your email</h1>
-            <p className="text-sm text-muted-foreground">
+            <h1 className="mb-1 text-2xl font-semibold text-ink">Check your email</h1>
+            <p className="text-sm text-gray-600">
               {isLogin ? "Enter the code we sent to log you in" : "Enter the code to verify your account"}
             </p>
-            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full border bg-muted px-3 py-1">
-              <span className="text-xs font-medium text-muted-foreground truncate max-w-[180px]">{email}</span>
+            <div className="mt-3 inline-flex items-center gap-1.5 rounded-full bg-brand-50 px-4 py-1.5">
+              <span className="max-w-[180px] truncate text-xs font-medium text-brand-700">{email}</span>
             </div>
           </div>
 
@@ -151,36 +150,40 @@ function VerifyOTPInner() {
                   onKeyDown={(e) => handleKeyDown(i, e)}
                   disabled={isLoading}
                   autoFocus={i === 0}
-                  className={`h-12 w-11 rounded-lg border text-center text-lg font-semibold outline-none transition-all disabled:opacity-50 ${
+                  className={`h-13 w-11 rounded-xl border text-center text-lg font-semibold outline-none transition-all disabled:opacity-50 ${
                     digit
-                      ? "border-primary bg-primary/5 text-primary"
-                      : "border-input bg-background text-foreground focus:border-ring focus:ring-2 focus:ring-ring/30"
+                      ? "border-brand-500 bg-brand-50 text-brand-600"
+                      : "border-gray-200 bg-white text-ink focus:border-brand-300 focus:ring focus:ring-brand-300"
                   }`}
                 />
               ))}
             </div>
-            <p className="mb-5 text-center text-xs text-muted-foreground">
+            <p className="mb-6 text-center text-xs text-gray-500">
               6-digit code · expires in 10 minutes
             </p>
 
-            <Button type="submit" className="w-full" disabled={isLoading || otp.length !== 6}>
+            <button
+              type="submit"
+              className="w-full rounded-full bg-brand-500 px-6 py-3.5 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300 active:bg-brand-700 disabled:opacity-60"
+              disabled={isLoading || otp.length !== 6}
+            >
               {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Verifying...
                 </span>
               ) : "Verify code"}
-            </Button>
+            </button>
 
             <div className="mt-4 text-center">
               {cooldown > 0 ? (
-                <p className="text-xs text-muted-foreground">Resend in <span className="font-medium text-foreground">{cooldown}s</span></p>
+                <p className="text-xs text-gray-500">Resend in <span className="font-medium text-ink">{cooldown}s</span></p>
               ) : (
                 <button
                   type="button"
                   onClick={handleResend}
                   disabled={isLoading || isResending}
-                  className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground disabled:opacity-50 transition-colors"
+                  className="inline-flex items-center gap-1.5 text-xs font-medium text-brand-500 transition-colors hover:text-brand-600 disabled:opacity-50"
                 >
                   <RotateCcw className={`h-3 w-3 ${isResending ? "animate-spin" : ""}`} />
                   {isResending ? "Sending..." : "Didn't get it? Resend"}
@@ -190,10 +193,10 @@ function VerifyOTPInner() {
           </form>
         </div>
 
-        <div className="mt-5 text-center">
+        <div className="mt-6 text-center">
           <Link
             href={isLogin ? "/login" : "/register"}
-            className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-600 transition-colors hover:text-brand-500"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
             Back to {isLogin ? "sign in" : "register"}
@@ -207,9 +210,9 @@ function VerifyOTPInner() {
 export default function VerifyOTPPage() {
   return (
     <Suspense fallback={
-      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-background">
-        <div className="flex h-12 w-12 items-center justify-center rounded-xl border bg-primary/10 text-primary animate-pulse">
-          <CheckCircle className="h-6 w-6" />
+      <div className="flex min-h-[calc(100dvh-4rem)] items-center justify-center bg-page">
+        <div className="flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-brand-100 text-brand-500">
+          <MailCheck className="h-7 w-7" />
         </div>
       </div>
     }>
