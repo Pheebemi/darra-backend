@@ -1,6 +1,21 @@
 from django.db import models
+from django.conf import settings
+from django.core.files.storage import FileSystemStorage
 from users.models import User
 # from cloudinary_storage.storage import MediaCloudinaryStorage  # Commented out for local storage
+
+
+def private_product_storage():
+    """
+    Storage for paid product files. Points at PRIVATE_MEDIA_ROOT, which sits
+    outside MEDIA_ROOT so the web server never serves these files directly —
+    buyers can only get them via the authenticated download endpoint.
+
+    This is a callable (not an instance) on purpose: Django serialises the
+    reference rather than the resolved absolute path, so the same migration
+    works on local and on the server where BASE_DIR differs.
+    """
+    return FileSystemStorage(location=settings.PRIVATE_MEDIA_ROOT)
 
 class TicketCategory(models.Model):
     """Different types of tickets (VIP, Regular, Premium, etc.)"""
@@ -59,7 +74,12 @@ class Product(models.Model):
     description_html = models.TextField(blank=True)  # Rich text HTML content
     price = models.DecimalField(max_digits=10, decimal_places=2)
     product_type = models.CharField(max_length=10, choices=ProductType.choices)
-    file = models.FileField(upload_to='products/files/', blank=True, null=True)
+    file = models.FileField(
+        upload_to='products/files/',
+        storage=private_product_storage,
+        blank=True,
+        null=True,
+    )
     cover_image = models.ImageField(upload_to='products/covers/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 

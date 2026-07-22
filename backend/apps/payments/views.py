@@ -710,16 +710,16 @@ def send_digital_product_to_email(request, library_item_id):
             }, status=status.HTTP_400_BAD_REQUEST)
         
         # Check if product has a file
-        if not library_item.product.file_url:
+        if not library_item.product.file:
             return Response({
                 'message': 'No file available for this product'
             }, status=status.HTTP_400_BAD_REQUEST)
-        
+
         # Send email with product file
         success = send_digital_product_email(
             user=request.user,
             product=library_item.product,
-            file_url=library_item.product.file_url
+            file_url=library_item.product.file.name
         )
         
         if success:
