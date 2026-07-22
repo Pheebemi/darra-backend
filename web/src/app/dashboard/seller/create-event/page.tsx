@@ -350,24 +350,29 @@ function CreateEventInner() {
               <TabsContent value="details" className="space-y-4">
                 <Card className="shadow-none">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Basic Information</CardTitle>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
+                        <Settings className="h-5 w-5 text-brand-500" />
+                      </div>
+                      <CardTitle className="text-lg font-semibold text-ink">Basic Information</CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="title" className="text-xs">Title *</Label>
-                      <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" className="h-9" />
+                      <Label htmlFor="title" className="text-sm font-medium text-gray-900">Title *</Label>
+                      <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" className="h-11" />
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="description" className="text-xs">Description</Label>
+                      <Label htmlFor="description" className="text-sm font-medium text-gray-900">Description</Label>
                       <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your product..." rows={4} />
                     </div>
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <Label htmlFor="productType" className="text-xs">Product Type</Label>
+                        <Label htmlFor="productType" className="text-sm font-medium text-gray-900">Product Type</Label>
                         <Select value={productType} onValueChange={setProductType}>
-                          <SelectTrigger className="h-9">
+                          <SelectTrigger className="h-11 w-full">
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
                           <SelectContent>
@@ -380,8 +385,8 @@ function CreateEventInner() {
 
                       {productType !== "event" && (
                         <div className="space-y-1.5">
-                          <Label htmlFor="price" className="text-xs">Price (₦)</Label>
-                          <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" step="0.01" min="0" className="h-9" />
+                          <Label htmlFor="price" className="text-sm font-medium text-gray-900">Price (₦)</Label>
+                          <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" step="0.01" min="0" className="h-11" />
                         </div>
                       )}
                     </div>
@@ -390,34 +395,34 @@ function CreateEventInner() {
                       <div className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="space-y-1.5">
-                            <Label htmlFor="eventDate" className="text-xs">Start Date *</Label>
-                            <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="h-9" />
+                            <Label htmlFor="eventDate" className="text-sm font-medium text-gray-900">Start Date *</Label>
+                            <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="h-11" />
                           </div>
                           <div className="space-y-1.5">
-                            <Label htmlFor="eventTime" className="text-xs">Start Time *</Label>
-                            <Input id="eventTime" type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className="h-9" />
+                            <Label htmlFor="eventTime" className="text-sm font-medium text-gray-900">Start Time *</Label>
+                            <Input id="eventTime" type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className="h-11" />
                           </div>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="space-y-1.5">
-                            <Label htmlFor="eventEndDate" className="text-xs">End Date</Label>
-                            <Input id="eventEndDate" type="date" value={eventEndDate} onChange={(e) => setEventEndDate(e.target.value)} min={eventDate || new Date().toISOString().split("T")[0]} className="h-9" />
+                            <Label htmlFor="eventEndDate" className="text-sm font-medium text-gray-900">End Date</Label>
+                            <Input id="eventEndDate" type="date" value={eventEndDate} onChange={(e) => setEventEndDate(e.target.value)} min={eventDate || new Date().toISOString().split("T")[0]} className="h-11" />
                           </div>
                           <div className="space-y-1.5">
-                            <Label htmlFor="eventEndTime" className="text-xs">End Time</Label>
-                            <Input id="eventEndTime" type="time" value={eventEndTime} onChange={(e) => setEventEndTime(e.target.value)} className="h-9" />
+                            <Label htmlFor="eventEndTime" className="text-sm font-medium text-gray-900">End Time</Label>
+                            <Input id="eventEndTime" type="time" value={eventEndTime} onChange={(e) => setEventEndTime(e.target.value)} className="h-11" />
                           </div>
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="venueName" className="text-xs">Venue Name</Label>
-                          <Input id="venueName" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="e.g. Taraba State Event Centre" className="h-9" />
+                          <Label htmlFor="venueName" className="text-sm font-medium text-gray-900">Venue Name</Label>
+                          <Input id="venueName" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="e.g. Taraba State Event Centre" className="h-11" />
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="location" className="text-xs">Address / Location</Label>
-                          <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Jalingo, Taraba State, Nigeria" className="h-9" />
+                          <Label htmlFor="location" className="text-sm font-medium text-gray-900">Address / Location</Label>
+                          <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Jalingo, Taraba State, Nigeria" className="h-11" />
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="speakers" className="text-xs">Speakers / Guests</Label>
+                          <Label htmlFor="speakers" className="text-sm font-medium text-gray-900">Speakers / Guests</Label>
                           <Textarea id="speakers" value={speakers} onChange={(e) => setSpeakers(e.target.value)} placeholder={"One speaker per line:\nJohn Doe\nJane Smith"} rows={3} />
                           <p className="text-[11px] text-muted-foreground">Enter one speaker or guest per line</p>
                         </div>
@@ -431,20 +436,27 @@ function CreateEventInner() {
               <TabsContent value="tickets" className="space-y-4">
                 <Card className="shadow-none">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Ticket Configuration</CardTitle>
-                    <CardDescription className="text-xs">Add ticket tiers with different prices and quantities</CardDescription>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
+                        <Ticket className="h-5 w-5 text-brand-500" />
+                      </div>
+                      <div>
+                        <CardTitle className="text-lg font-semibold text-ink">Ticket Configuration</CardTitle>
+                        <CardDescription className="text-sm text-gray-600">Add ticket tiers with different prices and quantities</CardDescription>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Add form */}
                     <div className="space-y-3 rounded-2xl bg-brand-50 p-4">
                       <p className="text-xs font-medium">Add Ticket Type</p>
                       <div className="space-y-1.5">
-                        <Label className="text-xs">Category</Label>
+                        <Label className="text-sm font-medium text-gray-900">Category</Label>
                         {categoriesLoading ? (
                           <Skeleton className="h-9 w-full" />
                         ) : (
                           <Select value={selectedTicketCategory?.toString() || ""} onValueChange={(v) => setSelectedTicketCategory(parseInt(v))}>
-                            <SelectTrigger className="h-9">
+                            <SelectTrigger className="h-11 w-full">
                               <SelectValue placeholder="Select category" />
                             </SelectTrigger>
                             <SelectContent>
@@ -462,12 +474,12 @@ function CreateEventInner() {
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Price (₦) *</Label>
-                          <Input type="number" value={newTicketPrice} onChange={(e) => setNewTicketPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" className="h-9" />
+                          <Label className="text-sm font-medium text-gray-900">Price (₦) *</Label>
+                          <Input type="number" value={newTicketPrice} onChange={(e) => setNewTicketPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" className="h-11" />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-xs">Quantity *</Label>
-                          <Input type="number" value={newTicketQuantity} onChange={(e) => setNewTicketQuantity(e.target.value)} placeholder="0" min="1" className="h-9" />
+                          <Label className="text-sm font-medium text-gray-900">Quantity *</Label>
+                          <Input type="number" value={newTicketQuantity} onChange={(e) => setNewTicketQuantity(e.target.value)} placeholder="0" min="1" className="h-11" />
                         </div>
                       </div>
                       <Button size="sm" className="w-full h-8 text-xs" onClick={addTicketType} disabled={!selectedTicketCategory || !newTicketPrice || !newTicketQuantity}>
@@ -508,29 +520,51 @@ function CreateEventInner() {
               <TabsContent value="media" className="space-y-4">
                 <Card className="shadow-none">
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-sm font-medium">Media & Files</CardTitle>
+                    <div className="flex items-center gap-3">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
+                        <ImageIcon className="h-5 w-5 text-brand-500" />
+                      </div>
+                      <CardTitle className="text-lg font-semibold text-ink">Media & Files</CardTitle>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Cover image */}
                     <div className="space-y-2">
                       <div>
-                        <Label className="text-xs">Cover Image {!isEditing && "*"}</Label>
-                        <p className="text-xs text-muted-foreground">16:9 recommended · max 5MB</p>
+                        <Label className="text-sm font-medium text-gray-900">Cover Image {!isEditing && "*"}</Label>
+                        <p className="text-xs text-gray-600">16:9 recommended · max 5MB</p>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <Input type="file" accept="image/*" onChange={handleCoverImageChange} className="h-9 cursor-pointer flex-1 text-xs" />
-                        {coverImagePreview && (
-                          <div className="relative h-16 w-16 shrink-0">
-                            <img src={coverImagePreview} alt="Preview" className="h-full w-full rounded-md border object-cover" />
-                            <button
-                              className="absolute -right-1.5 -top-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-destructive text-white"
-                              onClick={() => { setCoverImage(null); setCoverImagePreview(null); setExistingCoverUrl(null); }}
-                            >
-                              <X className="h-2.5 w-2.5" />
-                            </button>
-                          </div>
-                        )}
-                      </div>
+                      {/* Dropzone-style preview/upload */}
+                      <label className="relative block cursor-pointer">
+                        <input type="file" accept="image/*" onChange={handleCoverImageChange} className="sr-only" />
+                        <div className="relative h-44 w-full overflow-hidden rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/50 transition-colors hover:border-brand-400 hover:bg-brand-50">
+                          {coverImagePreview ? (
+                            <img src={coverImagePreview} alt="Preview" className="h-full w-full object-cover" />
+                          ) : (
+                            <div className="flex h-full flex-col items-center justify-center gap-2">
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100">
+                                <ImageIcon className="h-6 w-6 text-brand-500" />
+                              </div>
+                              <p className="text-sm font-medium text-ink">Click to upload cover image</p>
+                              <p className="text-xs text-gray-500">JPG or PNG · up to 5MB</p>
+                            </div>
+                          )}
+                          {coverImagePreview && (
+                            <span className="absolute bottom-2 right-2 rounded-full bg-ink/70 px-3 py-1 text-xs font-medium text-white backdrop-blur-sm">
+                              Change
+                            </span>
+                          )}
+                        </div>
+                      </label>
+                      {coverImagePreview && (
+                        <button
+                          type="button"
+                          className="text-xs font-medium text-[#b3261e] hover:underline"
+                          onClick={() => { setCoverImage(null); setCoverImagePreview(null); setExistingCoverUrl(null); }}
+                        >
+                          Remove image
+                        </button>
+                      )}
                       {isEditing && existingCoverUrl && !coverImage && (
                         <p className="text-xs text-muted-foreground">Current image shown above. Upload a new one to replace it.</p>
                       )}
@@ -539,7 +573,7 @@ function CreateEventInner() {
                     {/* Product file */}
                     {productType !== "event" && (
                       <div className="space-y-2">
-                        <Label className="text-xs">Product File {!isEditing && "*"}</Label>
+                        <Label className="text-sm font-medium text-gray-900">Product File {!isEditing && "*"}</Label>
                         <Input
                           type="file"
                           onChange={handleFileChange}
