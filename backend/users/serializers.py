@@ -9,15 +9,18 @@ from .models import BankDetail
 User = get_user_model()
 
 
-def run_password_validators(value):
+def run_password_validators(value, user=None):
     """
     Run Django's configured AUTH_PASSWORD_VALIDATORS (min length, common
     passwords, numeric-only, attribute similarity) and surface any failures
     as a single DRF validation error. This is what actually blocks weak
     passwords like 'password' or '12345678' — a bare length check does not.
+
+    Pass `user` where one is known so UserAttributeSimilarityValidator can
+    also reject passwords derived from their email or name.
     """
     try:
-        django_validate_password(value)
+        django_validate_password(value, user=user)
     except DjangoValidationError as exc:
         raise serializers.ValidationError(list(exc.messages))
     return value
@@ -90,11 +93,15 @@ class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
 class PasswordResetConfirmSerializer(serializers.Serializer):
-    token = serializers.CharField()
+    # The token comes from the URL, not the body. It used to be a required
+    # field here too, which meant a request carrying only the new password
+    # failed validation for a reason the caller could not see.
     password = serializers.CharField(write_only=True)
 
     def validate_password(self, value):
-        return run_password_validators(value)
+        # Pass the user so UserAttributeSimilarityValidator can reject
+        # passwords that look like their own email or name.
+        return run_password_validators(value, user=self.context.get('user'))
 
 class UserProfileSerializer(serializers.ModelSerializer):
     about = serializers.CharField(required=False, allow_blank=True)
