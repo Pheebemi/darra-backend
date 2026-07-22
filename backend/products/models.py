@@ -1,8 +1,26 @@
+import logging
+import os
+
 from django.db import models
 from django.conf import settings
+from django.core.exceptions import SuspiciousFileOperation
 from django.core.files.storage import FileSystemStorage
 from users.models import User
 # from cloudinary_storage.storage import MediaCloudinaryStorage  # Commented out for local storage
+
+logger = logging.getLogger(__name__)
+
+
+def media_url_for(filefield):
+    """
+    Public /media/ URL for a FileField, or None if it's empty.
+
+    Only for genuinely public assets such as cover images. Paid product files
+    must never go through here — they are not served by URL at all.
+    """
+    if not filefield:
+        return None
+    return f"{settings.MEDIA_URL}{filefield.name}"
 
 
 def private_product_storage():
@@ -100,47 +118,102 @@ class Product(models.Model):
 
     @property
     def cover_image_url(self):
-        if self.cover_image:
-            from django.conf import settings
-            return f"{settings.MEDIA_URL}{self.cover_image.name}"
-        return None
+        return media_url_for(self.cover_image)
+
+    def _legacy_public_path(self):
+        """
+        Path to this file under the old public MEDIA_ROOT, if it is still
+        sitting there, else None.
+
+        Anything found here is a file that has NOT yet been moved by
+        `manage.py move_product_files_private` — which means it is still being
+        served publicly and can be downloaded without paying. Callers get a
+        loud warning so this state is visible instead of silently permanent.
+        """
+        if not self.file:
+            return None
+
+        # Contain the join. self.file.name comes from the database; an absolute
+        # or '../'-containing value would otherwise escape MEDIA_ROOT and be
+        # streamed to the user by the download endpoint.
+        media_root = os.path.abspath(settings.MEDIA_ROOT)
+        candidate = os.path.abspath(os.path.join(media_root, self.file.name))
+        try:
+            contained = os.path.commonpath([media_root, candidate]) == media_root
+        except ValueError:
+            # Different drives on Windows — definitely not contained.
+            contained = False
+
+        if not contained:
+            logger.error(
+                "Product %s has a file name that escapes MEDIA_ROOT (%r); refusing to serve it.",
+                self.pk, self.file.name,
+            )
+            return None
+
+        if not os.path.exists(candidate):
+            return None
+
+        logger.warning(
+            "Product %s file %r is still in public MEDIA_ROOT and is currently "
+            "downloadable WITHOUT PURCHASE at %s%s. Run "
+            "'manage.py move_product_files_private' to close this.",
+            self.pk, self.file.name, settings.MEDIA_URL, self.file.name,
+        )
+        return candidate
 
     def resolve_file_path(self):
         """
         Absolute on-disk path of the product file, or None if it isn't there.
 
-        Product files moved from MEDIA_ROOT to PRIVATE_MEDIA_ROOT so the web
-        server can no longer serve them directly. Files uploaded before that
-        change may still be sitting under MEDIA_ROOT until
-        `manage.py move_product_files_private` has run, so the old location is
-        checked as a fallback. That keeps downloads working regardless of
-        whether the code reload or the file move happens first.
+        Prefers the private location, falling back to the pre-migration public
+        one so downloads keep working whether the code reload or the file move
+        happens first. Filesystem storage only — use open_file() if the backend
+        might not be local.
 
         NOTE: there is deliberately no `file_url` here. Building a public
         /media/ URL for a paid file is what allowed it to be downloaded
         without buying. Delivery goes through the authenticated
         /payments/library/<id>/download/ endpoint only.
         """
-        import os
-        from django.conf import settings
-
         if not self.file:
             return None
 
         try:
             private_path = self.file.path
-        except (ValueError, NotImplementedError):
+        except (ValueError, NotImplementedError, SuspiciousFileOperation):
+            # SuspiciousFileOperation: Django's safe_join rejected the stored
+            # name because it escapes the storage root. Treat as "not there"
+            # rather than letting it 500 out of the download endpoint.
             private_path = None
 
         if private_path and os.path.exists(private_path):
             return private_path
 
-        legacy_path = os.path.join(settings.MEDIA_ROOT, self.file.name)
-        if os.path.exists(legacy_path):
-            return legacy_path
+        return self._legacy_public_path()
+
+    def open_file(self):
+        """
+        Open the product file for reading and return the file object, or None.
+
+        Works for any storage backend: tries the configured storage first (which
+        is all a remote backend like S3/Cloudinary supports), then falls back to
+        the legacy on-disk location for files not yet moved. Caller closes it.
+        """
+        if not self.file:
+            return None
+
+        try:
+            return self.file.storage.open(self.file.name, 'rb')
+        except (FileNotFoundError, OSError, ValueError, NotImplementedError,
+                SuspiciousFileOperation):
+            pass
+
+        legacy_path = self._legacy_public_path()
+        if legacy_path:
+            return open(legacy_path, 'rb')
 
         return None
-
 
     @property
     def is_ticket_event(self):
