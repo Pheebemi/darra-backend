@@ -46,12 +46,12 @@ interface TicketType {
   quantity: number;
 }
 
+// Sellers can currently only list ebooks (PDF / DOCX) and event tickets.
+// The backend still accepts the older types (mp3, zip, video, png) so existing
+// products keep working — they're just no longer offered for new listings.
 const PRODUCT_TYPES = [
-  { label: "PDF", value: "pdf" },
-  { label: "MP3", value: "mp3" },
-  { label: "DOCX", value: "docx" },
-  { label: "ZIP", value: "zip" },
-  { label: "Video", value: "video" },
+  { label: "eBook (PDF)", value: "pdf" },
+  { label: "eBook (DOCX)", value: "docx" },
   { label: "Event / Ticket", value: "event" },
 ];
 
@@ -577,7 +577,7 @@ function CreateEventInner() {
                         <Input
                           type="file"
                           onChange={handleFileChange}
-                          accept={productType === "pdf" ? ".pdf" : productType === "mp3" ? ".mp3" : productType === "docx" ? ".docx" : productType === "zip" ? ".zip" : productType === "video" ? "video/*" : "*"}
+                          accept={productType === "pdf" ? ".pdf" : productType === "docx" ? ".docx" : "*"}
                           className="h-9 cursor-pointer text-xs"
                         />
                         {file && (
