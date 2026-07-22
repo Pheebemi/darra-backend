@@ -21,8 +21,13 @@ FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TEST_your_test_encryption_key_here
 # Payment provider (paystack or flutterwave)
 PAYMENT_PROVIDER=paystack
 
-# Base URL
+# Base URL of the API (Django itself) — also used to build admin links
 BASE_URL=http://localhost:8000
+
+# Optional. Who gets admin alerts (e.g. a seller requested a payout).
+# Leave blank and alerts go to every active superuser in the database, which
+# means adding/removing an admin needs no config change. Comma-separated.
+ADMIN_ALERT_EMAILS=
 
 # Cloudinary settings
 CLOUDINARY_CLOUD_NAME=your_cloud_name

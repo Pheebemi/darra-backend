@@ -422,6 +422,101 @@ def _send_payout_email(payout_request, state):
         return False
 
 
+def get_admin_notification_emails():
+    """
+    Addresses that should receive operational alerts.
+
+    Prefers settings.ADMIN_ALERT_EMAILS when it is set, otherwise every active
+    superuser in the database. Sourcing from the database on purpose: admins
+    change, and an address baked into config goes stale silently — the alert
+    just stops reaching anyone. Promote someone to superuser and they start
+    getting alerts; remove them and they stop.
+    """
+    configured = getattr(settings, 'ADMIN_ALERT_EMAILS', None) or []
+    if configured:
+        return list(dict.fromkeys(configured))
+
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+    emails = (
+        User.objects
+        .filter(is_superuser=True, is_active=True)
+        .exclude(email='')
+        .values_list('email', flat=True)
+    )
+    return list(dict.fromkeys(emails))
+
+
+def send_payout_admin_alert_email(payout_request):
+    """Alert admins that a seller is waiting on a payout."""
+    try:
+        recipients = get_admin_notification_emails()
+        if not recipients:
+            print(
+                "WARNING: payout requested but no admin recipients found. "
+                "Set ADMIN_ALERT_EMAILS or mark a user as superuser."
+            )
+            return False
+
+        seller = payout_request.seller
+        bank = payout_request.bank_details
+        seller_name = seller.full_name or seller.email
+        amount = f"{payout_request.amount:,.2f}"
+        meta = payout_request._meta
+        admin_url = (
+            f"{settings.BASE_URL}/admin/{meta.app_label}/{meta.model_name}/"
+            f"{payout_request.pk}/change/"
+        )
+        requested_at = payout_request.created_at.strftime('%B %d, %Y at %I:%M %p') \
+            if payout_request.created_at else 'just now'
+
+        context = {
+            'seller_name': seller_name,
+            'seller_email': seller.email,
+            'amount': amount,
+            'bank_name': bank.bank_name,
+            'account_number': bank.account_number,
+            'account_name': bank.account_name,
+            'reference': payout_request.transfer_reference,
+            'requested_at': requested_at,
+            'admin_url': admin_url,
+        }
+
+        request_factory = RequestFactory()
+        request = request_factory.get('/')
+        request.user = AnonymousUser()
+        html_message = render_to_string(
+            'users/email/payout_admin_alert.html', context, request=request
+        )
+
+        plain_message = (
+            f"{seller_name} requested a payout.\n\n"
+            f"Amount: NGN {amount}\n"
+            f"Seller: {seller_name} ({seller.email})\n"
+            f"Bank: {bank.bank_name}\n"
+            f"Account: {bank.account_number}\n"
+            f"Account name: {bank.account_name}\n"
+            f"Reference: {payout_request.transfer_reference}\n"
+            f"Requested: {requested_at}\n\n"
+            f"Check the account name matches the seller before sending money.\n\n"
+            f"Open in admin: {admin_url}\n"
+        )
+
+        send_mail(
+            subject=f"Payout request - NGN {amount} from {seller_name}",
+            message=plain_message,
+            html_message=html_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipients,
+            fail_silently=False,
+        )
+        print(f"Payout admin alert sent to {', '.join(recipients)}")
+        return True
+    except Exception as e:
+        print(f"Error sending payout admin alert: {str(e)}")
+        return False
+
+
 def send_payout_requested_email(payout_request):
     """Notify seller their payout request was received"""
     return _send_payout_email(payout_request, 'requested')
