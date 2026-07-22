@@ -4,8 +4,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import {
   CreditCard,
   User,
@@ -84,58 +82,45 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-4xl px-6 py-8">
+      <div className="mx-auto max-w-4xl p-6 sm:p-8">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-foreground">Settings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Account</p>
+          <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Settings</h1>
+          <p className="mt-1 text-sm text-gray-600">
             Manage your account settings and preferences
           </p>
         </div>
 
-        <div className="space-y-4">
+        <div className="grid gap-4 sm:grid-cols-2">
           {settingsItems.map((item) => {
             const Icon = item.icon;
             const isDisabled = item.disabled;
 
+            const inner = (
+              <div className={`group flex h-full items-center justify-between rounded-3xl border border-gray-100 bg-white p-6 transition-shadow duration-300 ${isDisabled ? "opacity-60" : "hover:shadow-xl"}`}>
+                <div className="flex items-center gap-4">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-100">
+                    <Icon className="h-6 w-6 text-brand-500" />
+                  </div>
+                  <div>
+                    <h3 className={`font-semibold text-ink ${isDisabled ? "" : "transition-colors group-hover:text-brand-500"}`}>
+                      {item.title}
+                      {isDisabled && <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-[10px] font-medium text-gray-500">Soon</span>}
+                    </h3>
+                    <p className="text-sm text-gray-600">{item.description}</p>
+                  </div>
+                </div>
+                <ArrowRight className={`h-5 w-5 shrink-0 text-gray-400 ${isDisabled ? "" : "transition-transform group-hover:translate-x-0.5 group-hover:text-brand-500"}`} />
+              </div>
+            );
+
             if (isDisabled) {
-              return (
-                <Card key={item.href} className="opacity-60">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                          <Icon className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground">{item.title}</h3>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
-              );
+              return <div key={item.href}>{inner}</div>;
             }
 
             return (
               <Link key={item.href} href={item.href}>
-                <Card className="transition-colors hover:bg-accent">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="flex h-12 w-12 items-center justify-center rounded-full bg-primary/10">
-                          <Icon className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-foreground">{item.title}</h3>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                        </div>
-                      </div>
-                      <ArrowRight className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                  </CardContent>
-                </Card>
+                {inner}
               </Link>
             );
           })}

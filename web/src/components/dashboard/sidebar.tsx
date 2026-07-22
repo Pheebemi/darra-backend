@@ -12,9 +12,7 @@ import {
   DollarSign,
   Settings,
   LogOut,
-  ShoppingBag,
   Library,
-  TrendingUp,
   ShoppingBag as BrowseIcon,
   TicketCheck,
   User,
@@ -73,10 +71,10 @@ function NavLink({
       href={item.href}
       onClick={onClick}
       className={cn(
-        "flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors",
+        "flex items-center gap-3 rounded-full px-4 py-2.5 text-sm transition-colors",
         isActive
-          ? "bg-primary/10 text-primary font-medium"
-          : "text-muted-foreground hover:bg-accent hover:text-foreground"
+          ? "bg-brand-500 font-medium text-white"
+          : "text-brand-200/80 hover:bg-white/10 hover:text-white"
       )}
     >
       <Icon className="h-4 w-4 shrink-0" />
@@ -92,44 +90,44 @@ export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
   const bottomNav = userType === "seller" ? sellerBottom : buyerBottom;
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full flex-col bg-ink-dark">
       {/* Logo */}
-      <div className="flex h-14 items-center border-b px-4">
-        <Link href="/" className="flex items-center gap-2 font-semibold" onClick={onNavigate}>
-          <div className="flex h-6 w-6 items-center justify-center rounded-md bg-primary">
-            <ShoppingBag className="h-3.5 w-3.5 text-primary-foreground" />
+      <div className="flex h-16 items-center px-5">
+        <Link href="/" className="flex items-center gap-2.5" onClick={onNavigate}>
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500">
+            <span className="text-base font-bold text-white">D</span>
           </div>
-          <span className="text-sm">Darra</span>
+          <span className="text-base font-semibold text-white">Darra</span>
         </Link>
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-0.5">
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
         {nav.map((item) => (
           <NavLink key={item.href} item={item} onClick={onNavigate} />
         ))}
       </nav>
 
       {/* Bottom */}
-      <div className="border-t px-3 py-3 space-y-0.5">
+      <div className="space-y-1 border-t border-white/10 px-3 py-4">
         {bottomNav.map((item) => (
           <NavLink key={item.href} item={item} onClick={onNavigate} />
         ))}
 
         {/* User row */}
-        <div className="mt-2 flex items-center gap-2.5 rounded-md px-2.5 py-2">
-          <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
-            <User className="h-3.5 w-3.5" />
+        <div className="mt-2 flex items-center gap-3 rounded-2xl bg-white/5 px-4 py-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-brand-500/30 text-brand-200">
+            <User className="h-4 w-4" />
           </div>
           <div className="min-w-0 flex-1">
-            <p className="truncate text-xs font-medium leading-none">{user?.full_name || "User"}</p>
-            <p className="truncate text-[11px] text-muted-foreground">{user?.email}</p>
+            <p className="truncate text-xs font-medium leading-none text-white">{user?.full_name || "User"}</p>
+            <p className="mt-1 truncate text-[11px] text-brand-200/60">{user?.email}</p>
           </div>
         </div>
 
         <button
           onClick={() => { logout(); onNavigate?.(); }}
-          className="flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="flex w-full items-center gap-3 rounded-full px-4 py-2.5 text-sm text-brand-200/80 transition-colors hover:bg-white/10 hover:text-white"
         >
           <LogOut className="h-4 w-4 shrink-0" />
           Logout

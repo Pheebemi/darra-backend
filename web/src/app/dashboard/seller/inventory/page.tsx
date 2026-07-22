@@ -231,8 +231,9 @@ export default function InventoryPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-foreground">My Products</h1>
-            <p className="mt-2 text-sm text-muted-foreground">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Catalog</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">My Products</h1>
+            <p className="mt-1 text-sm text-gray-600">
               {products.length} {products.length === 1 ? "product" : "products"}
             </p>
           </div>
@@ -245,14 +246,14 @@ export default function InventoryPage() {
         </div>
 
         {/* Search and Filter Section */}
-        <div className="mb-6 flex gap-4">
+        <div className="mb-6 flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
             <Input
               placeholder="Search products, descriptions..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              className="pl-10"
+              className="h-11 rounded-full pl-11"
             />
             {search.length > 0 && (
               <Button
@@ -370,7 +371,7 @@ export default function InventoryPage() {
               return (
                 <Card
                   key={product.id}
-                  className="cursor-pointer overflow-hidden transition-shadow hover:shadow-lg"
+                  className="group cursor-pointer overflow-hidden pt-0 transition-shadow duration-300 hover:shadow-xl"
                   onClick={() => handleProductPress(product)}
                 >
                   {product.cover_image && (
@@ -403,7 +404,7 @@ export default function InventoryPage() {
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </div>
-                    <CardTitle className="line-clamp-2">{product.title}</CardTitle>
+                    <CardTitle className="line-clamp-2 text-ink transition-colors group-hover:text-brand-500">{product.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="mb-4 line-clamp-3 text-sm text-muted-foreground">
@@ -422,7 +423,7 @@ export default function InventoryPage() {
                       </div>
                     )}
                     <div className="mt-4 flex items-center justify-between">
-                      <span className="text-lg font-bold">
+                      <span className="text-lg font-bold text-ink">
                         ₦{product.price.toLocaleString()}
                       </span>
                       <div className="flex gap-2">
@@ -456,11 +457,15 @@ export default function InventoryPage() {
         ) : (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <Package className="mb-4 h-16 w-16 text-muted-foreground" />
-              <h2 className="mb-2 text-xl font-semibold">
+              <img
+                src={hasActiveFilters ? "/illustrations/web-search.svg" : "/illustrations/blank-canvas.svg"}
+                alt=""
+                className="mb-6 h-32 w-auto"
+              />
+              <h2 className="mb-1 text-xl font-semibold text-ink">
                 {hasActiveFilters ? "No products found" : "No products yet"}
               </h2>
-              <p className="mb-6 text-center text-muted-foreground">
+              <p className="mb-6 text-center text-gray-600">
                 {hasActiveFilters
                   ? "Try adjusting your search or filter criteria"
                   : "Create your first product to start selling"}

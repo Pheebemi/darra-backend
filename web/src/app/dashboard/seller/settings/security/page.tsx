@@ -61,15 +61,17 @@ export default function SellerSecurityPage() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-2xl px-6 py-8">
-        <div className="mb-6 flex items-center gap-3">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard/seller/settings"><ArrowLeft className="h-4 w-4" /></Link>
-          </Button>
-          <div>
-            <h1 className="text-2xl font-bold text-foreground">Change Password</h1>
-            <p className="text-sm text-muted-foreground">Update your account password</p>
-          </div>
+      <div className="mx-auto max-w-2xl p-6 sm:p-8">
+        <div className="mb-8">
+          <Link
+            href="/dashboard/seller/settings"
+            className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-brand-500"
+          >
+            <ArrowLeft className="h-4 w-4" /> Settings
+          </Link>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Security</p>
+          <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Change Password</h1>
+          <p className="mt-1 text-sm text-gray-600">Update your account password</p>
         </div>
 
         <Card>
@@ -123,7 +125,7 @@ export default function SellerSecurityPage() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="bg-[#3800ff] text-white hover:bg-[#2d00d4]"
+              className="bg-brand-500 text-white hover:bg-brand-600"
             >
               {saving ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</> : <><Save className="mr-2 h-4 w-4" /> Update Password</>}
             </Button>

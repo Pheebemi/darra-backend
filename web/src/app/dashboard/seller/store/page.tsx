@@ -170,15 +170,11 @@ export default function SellerStorePage() {
     <DashboardLayout>
       <div className="mx-auto max-w-3xl px-6 py-8">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#3800ff]/10">
-              <Store className="h-5 w-5 text-[#3800ff]" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">My Store</h1>
-              <p className="text-sm text-muted-foreground">{profile?.brand_name}</p>
-            </div>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Storefront</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">My Store</h1>
+            <p className="mt-1 text-sm text-gray-600">{profile?.brand_name}</p>
           </div>
           {profile?.brand_slug && (
             <Button variant="outline" size="sm" asChild>
@@ -193,16 +189,18 @@ export default function SellerStorePage() {
         <Card className="mb-6">
           <CardContent className="flex items-center justify-between p-5">
             <div className="flex items-center gap-3">
-              {profile?.store_active ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              ) : (
-                <XCircle className="h-5 w-5 text-muted-foreground" />
-              )}
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${profile?.store_active ? "bg-[#EBFBF0]" : "bg-gray-100"}`}>
+                {profile?.store_active ? (
+                  <CheckCircle2 className="h-5 w-5 text-[#00B42A]" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-gray-500" />
+                )}
+              </div>
               <div>
-                <p className="font-semibold text-foreground">
+                <p className="font-semibold text-ink">
                   Store is {profile?.store_active ? "Open" : "Closed"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-600">
                   {profile?.store_active
                     ? "Customers can browse and buy your products"
                     : "Your store is hidden from customers"}
@@ -214,7 +212,7 @@ export default function SellerStorePage() {
               size="sm"
               onClick={handleToggle}
               disabled={toggling}
-              className={profile?.store_active ? "" : "bg-[#3800ff] text-white hover:bg-[#2d00d4]"}
+              className={profile?.store_active ? "" : "bg-brand-500 text-white hover:bg-brand-600"}
             >
               {toggling ? (
                 <Loader2 className="h-4 w-4 animate-spin" />
@@ -236,7 +234,7 @@ export default function SellerStorePage() {
             </p>
 
             {/* Preview */}
-            <div className="relative mb-3 h-32 w-full overflow-hidden rounded-xl border bg-gradient-to-br from-[#3800ff] to-[#7c3aed]">
+            <div className="relative mb-3 h-32 w-full overflow-hidden rounded-xl border bg-brand-950">
               {currentBanner && (
                 <img
                   src={currentBanner}
@@ -321,7 +319,7 @@ export default function SellerStorePage() {
             <Button
               onClick={handleSave}
               disabled={saving}
-              className="mt-5 bg-[#3800ff] text-white hover:bg-[#2d00d4]"
+              className="mt-5 bg-brand-500 text-white hover:bg-brand-600"
             >
               {saving ? (
                 <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Saving...</>
@@ -337,7 +335,7 @@ export default function SellerStorePage() {
           <Card>
             <CardContent className="p-5">
               <h2 className="mb-2 text-base font-semibold text-foreground">Your Store Link</h2>
-              <div className="flex items-center gap-3 rounded-xl border bg-muted px-4 py-3">
+              <div className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3">
                 <span className="flex-1 truncate text-sm text-muted-foreground">
                   {typeof window !== "undefined" ? window.location.origin : ""}/store/{profile.brand_slug}
                 </span>

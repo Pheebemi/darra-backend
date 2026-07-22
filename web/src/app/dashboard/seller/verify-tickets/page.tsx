@@ -4,11 +4,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import {
   Dialog,
   DialogContent,
@@ -343,123 +340,151 @@ export default function VerifyTicketsPage() {
       <div className="mx-auto max-w-4xl px-6 py-8">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/seller">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold text-foreground">
-                Verify Tickets
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Scan QR codes to verify event tickets
-              </p>
-            </div>
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Events</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
+              Verify Tickets
+            </h1>
           </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/seller">
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Back
+            </Link>
+          </Button>
         </div>
 
         {/* Scanner Section */}
         {!scanning && !scanned && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="mb-8 flex flex-col items-center">
-                <QrCode className="mb-4 h-24 w-24 text-primary" />
-                <h2 className="mb-2 text-2xl font-semibold">Ready to scan</h2>
-                <p className="text-center text-muted-foreground">
-                  Point camera at a ticket QR code
-                </p>
+          <div className="rounded-3xl bg-brand-950 p-8 sm:p-12">
+            <div className="flex flex-col items-center">
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-brand-500/20">
+                <QrCode className="h-12 w-12 text-brand-300" />
               </div>
+              <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">Ready to scan</h2>
+              <p className="mb-8 text-center text-brand-200">
+                Point camera at a ticket QR code
+              </p>
 
-              <div className="flex w-full max-w-md flex-col gap-4">
-                <Button onClick={startScanning} size="lg" className="w-full">
-                  <Camera className="mr-2 h-5 w-5" />
-                  Start Scanning
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setShowManualEntry(true)}
-                  size="lg"
-                  className="w-full"
+              <div className="flex w-full max-w-md flex-col gap-3">
+                <button
+                  onClick={startScanning}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-8 py-4 text-lg font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300"
                 >
-                  <Keyboard className="mr-2 h-5 w-5" />
+                  <Camera className="h-5 w-5" />
+                  Start Scanning
+                </button>
+
+                <button
+                  onClick={() => setShowManualEntry(true)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-brand-300/40 px-6 py-3 font-medium text-brand-100 transition-colors hover:bg-white/10"
+                >
+                  <Keyboard className="h-5 w-5" />
                   Enter Ticket ID Manually
-                </Button>
+                </button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Scanning View */}
         {scanning && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="relative">
-                <div id="qr-reader" className="w-full rounded-lg" />
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="border-2 border-primary rounded-lg w-64 h-64" />
+          <div className="overflow-hidden rounded-3xl bg-brand-950 p-6 sm:p-8">
+            {/* Status row */}
+            <div className="mb-5 flex items-center justify-center gap-2">
+              <span className="relative flex h-2.5 w-2.5">
+                <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-brand-400 opacity-75" />
+                <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-brand-400" />
+              </span>
+              <p className="text-sm font-medium text-brand-100">Camera active — looking for a QR code</p>
+            </div>
+
+            {/* Camera viewport */}
+            <div className="relative mx-auto max-w-md">
+              <div id="qr-reader" className="w-full overflow-hidden rounded-2xl [&_video]:rounded-2xl" />
+              {/* Corner brackets */}
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="relative h-56 w-56">
+                  <span className="absolute left-0 top-0 h-8 w-8 rounded-tl-lg border-l-4 border-t-4 border-brand-400" />
+                  <span className="absolute right-0 top-0 h-8 w-8 rounded-tr-lg border-r-4 border-t-4 border-brand-400" />
+                  <span className="absolute bottom-0 left-0 h-8 w-8 rounded-bl-lg border-b-4 border-l-4 border-brand-400" />
+                  <span className="absolute bottom-0 right-0 h-8 w-8 rounded-br-lg border-b-4 border-r-4 border-brand-400" />
                 </div>
-                <p className="mt-4 text-center text-sm text-muted-foreground">
-                  Position QR code within frame
-                </p>
               </div>
-              <Button
+            </div>
+
+            <p className="mt-5 text-center text-sm text-brand-200">
+              Position the ticket's QR code inside the frame
+            </p>
+
+            <div className="mx-auto mt-5 flex max-w-md flex-col gap-2">
+              <button
                 onClick={stopScanning}
-                variant="destructive"
-                className="mt-4 w-full"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-white/10 px-6 py-3 font-medium text-white transition-colors hover:bg-white/20"
               >
-                <X className="mr-2 h-4 w-4" />
+                <X className="h-4 w-4" />
                 Stop Scanning
-              </Button>
-            </CardContent>
-          </Card>
+              </button>
+              <button
+                onClick={() => { stopScanning(); setShowManualEntry(true); }}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full px-6 py-2.5 text-sm font-medium text-brand-200 transition-colors hover:text-white"
+              >
+                <Keyboard className="h-4 w-4" />
+                Enter ID manually instead
+              </button>
+            </div>
+          </div>
         )}
 
         {/* Manual Entry Dialog */}
         <Dialog open={showManualEntry} onOpenChange={setShowManualEntry}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Enter Ticket ID</DialogTitle>
+              <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100">
+                <Keyboard className="h-7 w-7 text-brand-500" />
+              </div>
+              <DialogTitle className="text-center text-xl text-ink">Enter Ticket ID</DialogTitle>
+              <p className="text-center text-sm text-gray-600">
+                Type or paste the ID printed on the ticket
+              </p>
             </DialogHeader>
             <div className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="ticketId">Ticket ID</Label>
-                <Input
-                  id="ticketId"
-                  placeholder="Enter ticket ID..."
-                  value={manualTicketId}
-                  onChange={(e) => setManualTicketId(e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleManualVerify();
-                    }
-                  }}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowManualEntry(false)}
-                  className="flex-1"
-                >
-                  Cancel
-                </Button>
-                <Button
+              <Input
+                id="ticketId"
+                placeholder="e.g. TKT-1A2B3C4D"
+                value={manualTicketId}
+                onChange={(e) => setManualTicketId(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleManualVerify();
+                  }
+                }}
+                className="h-13 rounded-2xl bg-brand-50 text-center font-mono text-base tracking-wide focus-visible:ring-brand-300"
+              />
+              <div className="flex flex-col gap-2">
+                <button
                   onClick={handleManualVerify}
                   disabled={loading || !manualTicketId.trim()}
-                  className="flex-1"
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-6 py-3 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300 disabled:opacity-50"
                 >
                   {loading ? (
                     <>
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                      Loading...
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Looking up ticket...
                     </>
                   ) : (
-                    "Verify"
+                    <>
+                      <CheckCircle2 className="h-4 w-4" />
+                      Verify Ticket
+                    </>
                   )}
+                </button>
+                <Button
+                  variant="ghost"
+                  onClick={() => setShowManualEntry(false)}
+                  className="w-full"
+                >
+                  Cancel
                 </Button>
               </div>
             </div>
@@ -468,210 +493,174 @@ export default function VerifyTicketsPage() {
 
         {/* Ticket Details Modal */}
         <Dialog open={showTicketModal} onOpenChange={setShowTicketModal}>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle>Ticket Details</DialogTitle>
-            </DialogHeader>
-
+          <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto p-0">
             {ticketDetails && (
-              <div className="space-y-6">
-                {/* Event Information */}
-                <div>
-                  <h3 className="mb-3 text-lg font-semibold">
-                    Event Information
-                  </h3>
-                  <div className="space-y-2 rounded-lg border p-4">
-                    <h4 className="text-xl font-bold">
-                      {ticketDetails.event.title}
-                    </h4>
-                    <p className="text-sm text-muted-foreground">
-                      {formatDate(ticketDetails.event.event_date)}
-                    </p>
+              <div>
+                {/* Ticket header — dark stub */}
+                <div className="rounded-t-3xl bg-brand-950 p-6">
+                  <DialogHeader>
+                    <DialogTitle className="sr-only">Ticket Details</DialogTitle>
+                  </DialogHeader>
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-widest text-brand-300">
+                        Event Ticket
+                      </p>
+                      <h4 className="mt-1 text-2xl font-bold text-white">
+                        {ticketDetails.event.title}
+                      </h4>
+                      <p className="mt-1 text-sm text-brand-200">
+                        {formatDate(ticketDetails.event.event_date)}
+                      </p>
+                    </div>
+                    <span className={`inline-flex shrink-0 items-center rounded-full px-4 py-1.5 text-sm font-semibold ${
+                      ticketDetails.is_used
+                        ? "bg-red-50 text-[#b3261e]"
+                        : "bg-[#EBFBF0] text-[#00B42A]"
+                    }`}>
+                      {ticketDetails.is_used ? (
+                        <XCircle className="mr-1.5 h-4 w-4" />
+                      ) : (
+                        <CheckCircle2 className="mr-1.5 h-4 w-4" />
+                      )}
+                      {ticketDetails.is_used ? "Used" : "Valid"}
+                    </span>
                   </div>
-                </div>
 
-                {/* Buyer Information */}
-                <div>
-                  <h3 className="mb-3 text-lg font-semibold">
-                    Buyer Information
-                  </h3>
-                  <div className="space-y-2 rounded-lg border p-4">
-                    <div className="flex items-center gap-2">
-                      <User className="h-4 w-4 text-muted-foreground" />
-                      <span className="font-medium">
+                  {/* Buyer chip */}
+                  <div className="mt-5 flex items-center gap-3 rounded-2xl bg-white/5 p-3">
+                    <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-brand-500/30">
+                      <User className="h-4 w-4 text-brand-200" />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-white">
                         {ticketDetails.buyer.full_name}
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm text-muted-foreground">
+                      </p>
+                      <p className="truncate text-xs text-brand-200/70">
                         {ticketDetails.buyer.email}
-                      </span>
+                      </p>
                     </div>
                   </div>
                 </div>
 
-                {/* Ticket Information */}
-                <div>
-                  <h3 className="mb-3 text-lg font-semibold">
-                    Ticket Information
-                  </h3>
-                  <div className="space-y-3 rounded-lg border p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Ticket ID:
-                      </span>
-                      <span className="font-mono text-sm font-medium">
-                        {ticketDetails.ticket_id}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Quantity:
-                      </span>
-                      <span className="font-medium">
-                        {ticketDetails.quantity}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Status:
-                      </span>
-                      <Badge
-                        className={
-                          ticketDetails.is_used
-                            ? "bg-red-500"
-                            : "bg-green-500"
-                        }
-                      >
-                        {ticketDetails.is_used ? (
-                          <XCircle className="mr-1 h-3 w-3" />
-                        ) : (
-                          <CheckCircle2 className="mr-1 h-3 w-3" />
-                        )}
-                        {ticketDetails.is_used ? "Used" : "Valid"}
-                      </Badge>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Reference:
-                      </span>
-                      <span className="font-mono text-sm font-medium">
-                        {ticketDetails.purchase_reference}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-muted-foreground">
-                        Amount:
-                      </span>
-                      <span className="font-bold text-primary">
+                {/* Body */}
+                <div className="space-y-5 p-6">
+                  {/* Info tiles */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="rounded-2xl bg-brand-50 p-4">
+                      <p className="text-xs text-gray-600">Amount</p>
+                      <p className="mt-0.5 text-lg font-bold text-brand-600">
                         {formatCurrency(ticketDetails.payment_amount)}
-                      </span>
+                      </p>
                     </div>
-
+                    <div className="rounded-2xl bg-brand-50 p-4">
+                      <p className="text-xs text-gray-600">Quantity</p>
+                      <p className="mt-0.5 text-lg font-bold text-ink">
+                        {ticketDetails.quantity}
+                      </p>
+                    </div>
                     {ticketDetails.ticket_tier && (
                       <>
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Category:
-                          </span>
-                          <Badge
-                            variant="secondary"
+                        <div className="rounded-2xl bg-brand-50 p-4">
+                          <p className="text-xs text-gray-600">Category</p>
+                          <span
+                            className="mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-semibold"
                             style={{
                               backgroundColor: `${ticketDetails.ticket_tier.category.color}20`,
                               color: ticketDetails.ticket_tier.category.color,
                             }}
                           >
                             {ticketDetails.ticket_tier.category.name}
-                          </Badge>
+                          </span>
                         </div>
-
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Ticket Tier:
-                          </span>
-                          <span className="font-medium">
+                        <div className="rounded-2xl bg-brand-50 p-4">
+                          <p className="text-xs text-gray-600">Tier</p>
+                          <p className="mt-0.5 text-sm font-semibold text-ink">
                             {ticketDetails.ticket_tier.name}
-                          </span>
+                          </p>
                         </div>
                       </>
                     )}
                   </div>
-                </div>
 
-                {/* Usage Information */}
-                {ticketDetails.is_used && (
-                  <div>
-                    <h3 className="mb-3 text-lg font-semibold">
-                      Usage Information
-                    </h3>
-                    <div className="space-y-2 rounded-lg border p-4">
-                      {ticketDetails.used_at && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Used at:
-                          </span>
-                          <span className="text-sm font-medium">
-                            {formatDate(ticketDetails.used_at)}
-                          </span>
-                        </div>
-                      )}
-                      {ticketDetails.verified_by && (
-                        <div className="flex items-center justify-between">
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Verified by:
-                          </span>
-                          <span className="text-sm font-medium">
-                            {ticketDetails.verified_by.full_name}
-                          </span>
-                        </div>
-                      )}
+                  {/* References */}
+                  <div className="space-y-2 rounded-2xl border border-dashed border-brand-200 p-4">
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-xs text-gray-600">Ticket ID</span>
+                      <span className="truncate font-mono text-xs font-medium text-ink">
+                        {ticketDetails.ticket_id}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between gap-4">
+                      <span className="text-xs text-gray-600">Reference</span>
+                      <span className="truncate font-mono text-xs font-medium text-ink">
+                        {ticketDetails.purchase_reference}
+                      </span>
                     </div>
                   </div>
-                )}
 
-                {/* Action Buttons */}
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setShowTicketModal(false);
-                      resetScanner();
-                    }}
-                    className="flex-1"
-                  >
-                    Close
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      resetScanner();
-                      startScanning();
-                    }}
-                    className="flex-1"
-                  >
-                    <Scan className="mr-2 h-4 w-4" />
-                    Scan Again
-                  </Button>
-                  {!ticketDetails.is_used && (
-                    <Button
-                      onClick={verifyTicket}
-                      disabled={verifying}
-                      className="flex-1"
-                    >
-                      {verifying ? (
-                        <>
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                          Verifying...
-                        </>
-                      ) : (
-                        "Verify Ticket"
+                  {/* Usage Information */}
+                  {ticketDetails.is_used && (
+                    <div className="rounded-2xl bg-page-warm p-4">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500">
+                        Usage
+                      </p>
+                      {ticketDetails.used_at && (
+                        <p className="text-sm text-gray-600">
+                          Used at <span className="font-medium text-ink">{formatDate(ticketDetails.used_at)}</span>
+                        </p>
                       )}
-                    </Button>
+                      {ticketDetails.verified_by && (
+                        <p className="text-sm text-gray-600">
+                          Verified by <span className="font-medium text-ink">{ticketDetails.verified_by.full_name}</span>
+                        </p>
+                      )}
+                    </div>
                   )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col gap-2 sm:flex-row">
+                    {!ticketDetails.is_used && (
+                      <button
+                        onClick={verifyTicket}
+                        disabled={verifying}
+                        className="inline-flex flex-1 items-center justify-center gap-2 rounded-full bg-brand-500 px-6 py-3 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300 disabled:opacity-50"
+                      >
+                        {verifying ? (
+                          <>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            Verifying...
+                          </>
+                        ) : (
+                          <>
+                            <CheckCircle2 className="h-4 w-4" />
+                            Verify Ticket
+                          </>
+                        )}
+                      </button>
+                    )}
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        resetScanner();
+                        startScanning();
+                      }}
+                      className="flex-1 py-5"
+                    >
+                      <Scan className="mr-2 h-4 w-4" />
+                      Scan Again
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      onClick={() => {
+                        setShowTicketModal(false);
+                        resetScanner();
+                      }}
+                      className="flex-1 py-5"
+                    >
+                      Close
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
