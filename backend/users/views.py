@@ -260,6 +260,14 @@ class RequestOTPView(APIView):
 
 class PasswordResetRequestView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [AuthenticationRateThrottle]
+
+    # Same response whether or not the address exists, so this endpoint can't
+    # be used to discover which emails have accounts.
+    GENERIC_RESPONSE = (
+        "If an account exists with this email, you will receive password "
+        "reset instructions shortly."
+    )
 
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
@@ -267,55 +275,76 @@ class PasswordResetRequestView(APIView):
             email = serializer.validated_data['email']
             try:
                 user = User.objects.get(email=email)
-                # Generate password reset token
                 token = default_token_generator.make_token(user)
-                
                 uid = urlsafe_base64_encode(force_bytes(user.pk))
-                
-                # Update the reset URL to match your URL pattern
-                reset_url = f"http://127.0.0.1:8000/api/auth/reset-password-confirm/{uid}/{token}/"
-                
-                # Send password reset email
+
+                # Point at the FRONTEND reset page, not the API. This used to
+                # be hardcoded to 127.0.0.1 and to a path that wasn't even
+                # routed, so every reset link in production was dead.
+                reset_url = f"{settings.FRONTEND_URL}/reset-password/{uid}/{token}"
+
                 send_password_reset_email(email, reset_url)
-                
-                return Response({
-                    "message": "Password reset instructions sent to your email."
-                })
             except User.DoesNotExist:
-                # Return success even if user doesn't exist (security)
-                return Response({
-                    "message": "If an account exists with this email, you will receive password reset instructions."
-                })
+                pass
+
+            return Response({"message": self.GENERIC_RESPONSE})
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
+    throttle_classes = [AuthenticationRateThrottle]
 
     def post(self, request, uidb64, token):
         try:
-            # Decode the user ID
             uid = force_str(urlsafe_base64_decode(uidb64))
             user = User.objects.get(pk=uid)
-            
-            # Verify the token
-            if default_token_generator.check_token(user, token):
-                serializer = PasswordResetConfirmSerializer(data=request.data)
-                if serializer.is_valid():
-                    # Set new password
-                    user.set_password(serializer.validated_data['password'])
-                    user.save()
-                    return Response({
-                        "message": "Password reset successful."
-                    })
-                return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            else:
-                return Response({
-                    "message": "Invalid or expired reset link."
-                }, status=status.HTTP_400_BAD_REQUEST)
         except (TypeError, ValueError, OverflowError, User.DoesNotExist):
             return Response({
                 "message": "Invalid reset link."
             }, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({
+                "message": "This reset link is invalid or has expired. Please request a new one."
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+        serializer = PasswordResetConfirmSerializer(
+            data=request.data, context={'user': user}
+        )
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(serializer.validated_data['password'])
+        # Someone resetting their password may be doing so because the account
+        # was compromised, so drop every existing session.
+        try:
+            for outstanding in OutstandingToken.objects.filter(user_id=user.id):
+                BlacklistedToken.objects.get_or_create(token=outstanding)
+        except Exception as e:
+            print(f"Warning: could not blacklist tokens after reset: {e}")
+
+        # A user who can prove control of their email is verified by definition;
+        # otherwise an unverified account could reset and still not log in.
+        if not user.is_verified:
+            user.is_verified = True
+        user.save()
+
+        return Response({
+            "message": "Password reset successful. You can now sign in."
+        })
+
+    def get(self, request, uidb64, token):
+        """Lets the reset page check the link before showing the form."""
+        try:
+            uid = force_str(urlsafe_base64_decode(uidb64))
+            user = User.objects.get(pk=uid)
+        except (TypeError, ValueError, OverflowError, User.DoesNotExist):
+            return Response({'valid': False}, status=status.HTTP_400_BAD_REQUEST)
+
+        if not default_token_generator.check_token(user, token):
+            return Response({'valid': False}, status=status.HTTP_400_BAD_REQUEST)
+
+        return Response({'valid': True, 'email': user.email})
 
 class UserProfileView(APIView):
     permission_classes = [IsAuthenticated]
