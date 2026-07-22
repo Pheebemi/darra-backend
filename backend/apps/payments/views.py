@@ -719,7 +719,6 @@ def send_digital_product_to_email(request, library_item_id):
         success = send_digital_product_email(
             user=request.user,
             product=library_item.product,
-            file_url=library_item.product.file.name
         )
         
         if success:
@@ -759,13 +758,17 @@ def download_product_file(request, library_item_id):
     if not product.file:
         return Response({'message': 'No file attached to this product.'}, status=404)
 
-    # Resolves the private location, falling back to the pre-migration public
-    # one so downloads keep working while files are still being moved.
-    file_path = product.resolve_file_path()
-    if not file_path:
+    # Opens from the configured (private) storage, falling back to the
+    # pre-migration public location so downloads keep working while files are
+    # still being moved. Works for remote backends too.
+    file_handle = product.open_file()
+    if file_handle is None:
         return Response({'message': 'File not found on server.'}, status=404)
 
-    ext = os.path.splitext(file_path)[1].lower()
+    # Derive the name from the stored field, not the resolved path, so it is
+    # identical regardless of which location the file came from.
+    filename = os.path.basename(product.file.name)
+    ext = os.path.splitext(filename)[1].lower()
     content_types = {
         '.pdf': 'application/pdf',
         '.mp3': 'audio/mpeg',
@@ -775,9 +778,8 @@ def download_product_file(request, library_item_id):
         '.png': 'image/png',
     }
     content_type = content_types.get(ext, 'application/octet-stream')
-    filename = os.path.basename(file_path)
 
-    response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+    response = FileResponse(file_handle, content_type=content_type)
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 

@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import Product, TicketCategory, TicketTier
+from .models import Product, TicketCategory, TicketTier, media_url_for
 
 class TicketCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -62,26 +62,16 @@ class ProductSerializer(serializers.ModelSerializer):
 
 
     def get_cover_image_url(self, obj):
-        """Get cover image URL from local storage"""
-        if obj.cover_image:
-            try:
-                from django.conf import settings
-                return f"{settings.MEDIA_URL}{obj.cover_image.name}"
-            except:
-                return None
-        return None
-    
+        """Public URL of the cover image (covers are meant to be public)."""
+        return media_url_for(obj.cover_image)
+
     def get_thumbnail_url(self, obj):
-        """Get thumbnail URL for cover image"""
-        if obj.cover_image:
-            try:
-                from django.conf import settings
-                # For now, return the same URL as cover image
-                # In production, you might want to generate thumbnails
-                return f"{settings.MEDIA_URL}{obj.cover_image.name}"
-            except:
-                return None
-        return None
+        """
+        Same URL as the cover for now — there is no separate thumbnail
+        rendition. Kept as its own field so one can be introduced without
+        changing the API shape.
+        """
+        return media_url_for(obj.cover_image)
 
 class ProductCreateSerializer(serializers.ModelSerializer):
     ticket_category_id = serializers.IntegerField(write_only=True, required=False, allow_null=True)
