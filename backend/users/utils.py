@@ -147,6 +147,7 @@ def send_event_ticket_email(user, product, tickets):
             'total_amount': sum(ticket.purchase.unit_price for ticket in tickets),
             'payment_reference': tickets[0].purchase.payment.reference if tickets else 'N/A',
             'ticket_ids': [str(ticket.ticket_id) for ticket in tickets],
+            'library_url': f"{settings.FRONTEND_URL}/dashboard/buyer/library",
         }
         
         # Render the HTML email with RequestContext
@@ -537,8 +538,13 @@ def send_payout_completed_email(payout_request):
     return _send_payout_email(payout_request, 'completed')
 
 
-def send_digital_product_email(user, product, file_url):
-    """Send digital product file via email to user"""
+def send_digital_product_email(user, product):
+    """
+    Email the purchased digital product to the buyer as an attachment.
+
+    The file is read via product.open_file(), so no URL is needed or accepted —
+    an earlier signature took a `file_url` that the function no longer used.
+    """
     try:
         # Create a request with anonymous user to avoid context processor conflicts
         request_factory = RequestFactory()
@@ -596,32 +602,24 @@ def send_digital_product_email(user, product, file_url):
             'X-Frame-Options': 'DENY',
         }
         
-        # Download and attach the product file
+        # Attach the product file
         try:
-            print(f"DEBUG: Attempting to download file from: {file_url}")
-            
-            # Check if this is a local file path or URL
-            if file_url.startswith('http'):
-                # This is a URL from the old Cloudinary system
-                print(f"DEBUG: Detected URL from old system: {file_url}")
-                print(f"DEBUG: This product needs to be re-uploaded to work with the new system")
-                return False
-            
-            # This is a local file path - read it directly
             if not product.file:
                 print(f"DEBUG: No file field found for product")
                 return False
-                
-            # Read the file from local storage. resolve_file_path() handles the
-            # private location plus the legacy MEDIA_ROOT fallback for files
-            # that have not been moved yet.
-            resolved_path = product.resolve_file_path()
-            if not resolved_path:
-                print(f"DEBUG: Product file missing on disk: {product.file.name}")
+
+
+            # open_file() handles the private location, the legacy MEDIA_ROOT
+            # fallback for files not yet moved, and remote storage backends.
+            file_handle = product.open_file()
+            if file_handle is None:
+                print(f"DEBUG: Product file could not be opened: {product.file.name}")
                 return False
 
-            with open(resolved_path, 'rb') as f:
-                file_content = f.read()
+            try:
+                file_content = file_handle.read()
+            finally:
+                file_handle.close()
             
             # Get file extension from the file name
             file_extension = product.file.name.split('.')[-1].lower() if '.' in product.file.name else 'file'

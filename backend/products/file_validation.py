@@ -63,13 +63,63 @@ def validate_file_type(file, product_type):
     else:
         # Use extension-based validation as fallback
         actual_mime = get_mime_from_extension(file.name)
-    
+
     # Validate MIME type
     if actual_mime != expected_mime:
         raise ValidationError(
             f"Invalid file type. Expected {expected_mime} for {product_type}, got {actual_mime}"
         )
-    
+
+    # Always check the file's own signature bytes as well. Without python-magic
+    # the check above only trusts the filename, so renaming anything to .pdf
+    # would pass. Magic-byte checking needs no extra dependency and cannot be
+    # fooled by the extension.
+    validate_magic_bytes(file_content, product_type)
+
+    return True
+
+
+# Leading bytes each supported format must start with. A file claiming to be
+# one of these but not starting with the right signature is rejected.
+MAGIC_SIGNATURES = {
+    'pdf': [b'%PDF-'],
+    # DOCX/ZIP are both ZIP containers: "PK\x03\x04", or an empty/spanned archive.
+    'docx': [b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08'],
+    'zip': [b'PK\x03\x04', b'PK\x05\x06', b'PK\x07\x08'],
+    'png': [b'\x89PNG\r\n\x1a\n'],
+    'jpg': [b'\xff\xd8\xff'],
+    'jpeg': [b'\xff\xd8\xff'],
+    # MP3 is either an ID3 tag or a raw frame sync (0xFF 0xFB/0xF3/0xF2).
+    'mp3': [b'ID3', b'\xff\xfb', b'\xff\xf3', b'\xff\xf2'],
+}
+
+
+def validate_magic_bytes(file_content, product_type):
+    """
+    Verify the file's leading bytes match what its declared type requires.
+
+    Args:
+        file_content: first bytes of the file (at least 8)
+        product_type: declared product type
+
+    Returns:
+        bool: True if valid or the type has no known signature; raises
+        ValidationError if the signature clearly does not match.
+    """
+    signatures = MAGIC_SIGNATURES.get(product_type)
+    if not signatures:
+        # No signature defined for this type (e.g. video) — nothing to assert.
+        return True
+
+    if not file_content:
+        raise ValidationError("File appears to be empty.")
+
+    if not any(file_content.startswith(sig) for sig in signatures):
+        raise ValidationError(
+            f"File content does not look like a valid {product_type.upper()} file. "
+            "The file may be corrupted or renamed from another format."
+        )
+
     return True
 
 def validate_file_size(file, product_type):

@@ -10,8 +10,14 @@ from django.utils import timezone
 from datetime import timedelta
 from django.db import transaction
 from django.conf import settings
+from decimal import Decimal, InvalidOperation
+import hashlib
+import hmac
+import logging
 import requests
 import json
+
+logger = logging.getLogger(__name__)
 
 from .models import Payment, Purchase, UserLibrary, SellerCommission, PayoutRequest, SellerEarnings
 from .serializers import (
@@ -23,7 +29,7 @@ from .serializers import (
     CreatePayoutRequestSerializer,
     SellerEarningsSerializer
 )
-from .services import PaystackService, PaymentService, PayoutService
+from .services import PaystackService, FlutterwaveService, PaymentService, PayoutService
 from .services import PaymentProviderFactory  # Import the factory
 from core.throttling import PaymentRateThrottle, WebhookRateThrottle  # Import rate limiting
 from users.utils import send_digital_product_email
@@ -309,97 +315,161 @@ def payment_status(request, reference):
             'error': str(e)
         }, status=status.HTTP_400_BAD_REQUEST)
 
+def _flutterwave_signature_ok(request):
+    """
+    Flutterwave echoes the "Secret hash" configured on their webhook dashboard
+    in the verif-hash header. If we have no hash configured we cannot
+    authenticate anything, so we fail closed.
+    """
+    expected = getattr(settings, 'FLUTTERWAVE_SECRET_HASH', '') or ''
+    if not expected:
+        logger.error(
+            "FLUTTERWAVE_SECRET_HASH is not configured; rejecting webhook. "
+            "Set it in .env and on the Flutterwave dashboard."
+        )
+        return False
+
+    received = request.headers.get('verif-hash', '') or ''
+    return bool(received) and hmac.compare_digest(str(received), str(expected))
+
+
+def _paystack_signature_ok(request, raw_body):
+    """
+    Paystack signs the raw request body with HMAC-SHA512 keyed on the secret
+    key and sends it in x-paystack-signature.
+    """
+    secret = (getattr(settings, 'PAYSTACK_SECRET_KEY', '') or '').encode()
+    received = request.headers.get('x-paystack-signature', '') or ''
+    if not secret or not received:
+        return False
+
+    computed = hmac.new(secret, raw_body, hashlib.sha512).hexdigest()
+    return hmac.compare_digest(received, computed)
+
+
+def _amounts_match(expected, actual):
+    """Compare money values tolerantly (providers vary in type and precision)."""
+    try:
+        return abs(Decimal(str(expected)) - Decimal(str(actual))) < Decimal('0.01')
+    except (InvalidOperation, TypeError, ValueError):
+        return False
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([WebhookRateThrottle])
 def payment_webhook(request):
-    """Handle payment webhook notifications from both Paystack and Flutterwave"""
+    """
+    Handle payment webhook notifications from Paystack and Flutterwave.
+
+    This endpoint is unauthenticated by necessity, so it is defended twice:
+
+      1. The provider's signature over the request is verified, proving the
+         call really came from them.
+      2. The payment is then re-verified by calling the provider's own API.
+         The status and amount in the request body are NEVER trusted — only
+         what the provider tells us directly.
+
+    Either check alone would stop a forged "payment successful" callback; both
+    together mean a leaked secret hash still is not enough to grant a product.
+    """
     try:
+        # Must be read before request.data — once DRF parses the stream the
+        # raw body is no longer available, and the HMAC is over raw bytes.
+        raw_body = request.body
         webhook_data = request.data
-        print(f"DEBUG: Received webhook data: {webhook_data}")
-        
+
         # Determine payment provider from webhook data
         reference = None
         provider = None
 
         # Paystack webhook format (reference lives under data.reference)
-        if 'data' in webhook_data and 'reference' in webhook_data.get('data', {}):
-            reference = webhook_data.get('data', {}).get('reference')
+        if isinstance(webhook_data, dict) and webhook_data.get('data', {}).get('reference'):
+            reference = webhook_data['data']['reference']
             provider = 'paystack'
 
         # Flutterwave webhook formats:
         # - Some deliveries put tx_ref at the root
         # - Others nest tx_ref under data.tx_ref (common)
-        if not provider:
-            if 'tx_ref' in webhook_data:
+        if not provider and isinstance(webhook_data, dict):
+            if webhook_data.get('tx_ref'):
                 reference = webhook_data.get('tx_ref')
                 provider = 'flutterwave'
-            elif 'data' in webhook_data and webhook_data.get('data', {}).get('tx_ref'):
-                reference = webhook_data.get('data', {}).get('tx_ref')
+            elif webhook_data.get('data', {}).get('tx_ref'):
+                reference = webhook_data['data']['tx_ref']
                 provider = 'flutterwave'
 
         if not provider or not reference:
-            print("DEBUG: Unknown webhook format or missing reference")
+            logger.warning("Webhook with unknown format or missing reference")
             return HttpResponse(status=400)
-        
-        print(f"DEBUG: Processing {provider} webhook for reference: {reference}")
-        
-        # Get payment and verify status
-        payment = get_object_or_404(Payment, reference=reference)
-        
-        # Check payment status based on provider
+
+        # --- 1. Authenticate the caller ---------------------------------
         if provider == 'paystack':
-            status_value = webhook_data.get('data', {}).get('status')
-            is_successful = status_value == 'success'
-        else:  # Flutterwave
-            status_value = webhook_data.get('status') or webhook_data.get('data', {}).get('status')
-            # Accept both 'success' and 'successful' to cover sandbox/live differences
-            is_successful = status_value in ['success', 'successful']
-        
-        if is_successful:
-            print(f"DEBUG: {provider} webhook indicates successful payment")
-            try:
-                PaymentService.process_successful_payment(payment)
-                print(f"DEBUG: Payment processed via webhook, new status: {payment.status}")
-            except Exception as e:
-                print(f"DEBUG: Error processing webhook: {str(e)}")
-                return HttpResponse(status=500)
+            signature_ok = _paystack_signature_ok(request, raw_body)
         else:
-            print(f"DEBUG: {provider} webhook indicates payment status: {webhook_data.get('data', {}).get('status') if provider == 'paystack' else webhook_data.get('status')}")
-        
+            signature_ok = _flutterwave_signature_ok(request)
+
+        if not signature_ok:
+            logger.error(
+                "Rejected %s webhook for reference %s: signature verification failed.",
+                provider, reference,
+            )
+            return HttpResponse(status=401)
+
+        payment = get_object_or_404(Payment, reference=reference)
+
+        # Nothing to do if we already processed this one (providers retry).
+        if payment.status == Payment.PaymentStatus.SUCCESS:
+            logger.info("Webhook for already-processed payment %s; ignoring.", reference)
+            return HttpResponse(status=200)
+
+        # --- 2. Ask the provider directly, never trust the body ----------
+        try:
+            if provider == 'paystack':
+                service = PaystackService()
+                result = service.verify_payment(reference)
+                data = (result or {}).get('data', {}) or {}
+                is_successful = data.get('status') == 'success'
+                # Paystack reports amounts in kobo.
+                provider_amount = Decimal(str(data.get('amount', 0))) / Decimal('100')
+            else:
+                service = FlutterwaveService()
+                result = service.verify_payment(reference)
+                data = (result or {}).get('data', {}) or {}
+                is_successful = data.get('status') in ('success', 'successful')
+                provider_amount = data.get('amount', 0)
+        except Exception as e:
+            # Could not confirm with the provider — do not grant anything.
+            # Returning 5xx makes the provider retry later.
+            logger.error("Could not verify %s payment %s: %s", provider, reference, e)
+            return HttpResponse(status=502)
+
+        if not is_successful:
+            logger.info("Provider reports payment %s is not successful; ignoring.", reference)
+            return HttpResponse(status=200)
+
+        if not _amounts_match(payment.amount, provider_amount):
+            logger.error(
+                "Amount mismatch for payment %s: expected %s, provider reported %s. "
+                "Refusing to process.",
+                reference, payment.amount, provider_amount,
+            )
+            return HttpResponse(status=409)
+
+        try:
+            PaymentService.process_successful_payment(payment)
+        except Exception as e:
+            logger.exception("Error processing verified payment %s: %s", reference, e)
+            return HttpResponse(status=500)
+
         return HttpResponse(status=200)
     except Exception as e:
-        print(f"DEBUG: Error processing webhook: {str(e)}")
+        logger.exception("Unhandled error in payment webhook: %s", e)
         return HttpResponse(status=500)
 
-# Debug endpoint to test checkout
-@api_view(['POST'])
-@permission_classes([AllowAny])
-def debug_checkout(request):
-    """Debug endpoint to see what data is being sent to checkout"""
-    print(f"DEBUG: Debug checkout endpoint called")
-    print(f"DEBUG: Request method: {request.method}")
-    print(f"DEBUG: Request headers: {dict(request.headers)}")
-    print(f"DEBUG: Request data: {request.data}")
-    print(f"DEBUG: Request data type: {type(request.data)}")
-    print(f"DEBUG: Request user: {request.user}")
-    
-    # Test the serializer
-    serializer = CheckoutSerializer(data=request.data)
-    if serializer.is_valid():
-        print(f"DEBUG: Serializer is valid: {serializer.validated_data}")
-        return Response({
-            'status': 'success',
-            'message': 'Checkout data is valid',
-            'data': serializer.validated_data
-        })
-    else:
-        print(f"DEBUG: Serializer errors: {serializer.errors}")
-        return Response({
-            'status': 'error',
-            'message': 'Checkout data validation failed',
-            'errors': serializer.errors
-        }, status=400)
+# NOTE: the AllowAny `debug_checkout` endpoint that used to live here was
+# removed. It logged full request headers — including Authorization bearer
+# tokens — to the server log, and was reachable by anyone in production.
 
 # New endpoints for seller earnings and payouts
 
@@ -727,7 +797,6 @@ def send_digital_product_to_email(request, library_item_id):
         success = send_digital_product_email(
             user=request.user,
             product=library_item.product,
-            file_url=library_item.product.file.name
         )
         
         if success:
@@ -767,13 +836,17 @@ def download_product_file(request, library_item_id):
     if not product.file:
         return Response({'message': 'No file attached to this product.'}, status=404)
 
-    # Resolves the private location, falling back to the pre-migration public
-    # one so downloads keep working while files are still being moved.
-    file_path = product.resolve_file_path()
-    if not file_path:
+    # Opens from the configured (private) storage, falling back to the
+    # pre-migration public location so downloads keep working while files are
+    # still being moved. Works for remote backends too.
+    file_handle = product.open_file()
+    if file_handle is None:
         return Response({'message': 'File not found on server.'}, status=404)
 
-    ext = os.path.splitext(file_path)[1].lower()
+    # Derive the name from the stored field, not the resolved path, so it is
+    # identical regardless of which location the file came from.
+    filename = os.path.basename(product.file.name)
+    ext = os.path.splitext(filename)[1].lower()
     content_types = {
         '.pdf': 'application/pdf',
         '.mp3': 'audio/mpeg',
@@ -783,9 +856,8 @@ def download_product_file(request, library_item_id):
         '.png': 'image/png',
     }
     content_type = content_types.get(ext, 'application/octet-stream')
-    filename = os.path.basename(file_path)
 
-    response = FileResponse(open(file_path, 'rb'), content_type=content_type)
+    response = FileResponse(file_handle, content_type=content_type)
     response['Content-Disposition'] = f'attachment; filename="{filename}"'
     return response
 

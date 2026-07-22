@@ -18,11 +18,23 @@ FLUTTERWAVE_SECRET_KEY=FLWSECK_TEST_your_test_secret_key_here
 FLUTTERWAVE_PUBLIC_KEY=FLWPUBK_TEST_your_test_public_key_here
 FLUTTERWAVE_ENCRYPTION_KEY=FLWSECK_TEST_your_test_encryption_key_here
 
+# REQUIRED for Flutterwave webhooks. Set the same value here and in the
+# "Secret hash" box on the Flutterwave dashboard webhook settings page.
+# Flutterwave sends it back in the verif-hash header; without it every
+# Flutterwave webhook is rejected, because there is no way to tell a real
+# callback from a forged one.
+FLUTTERWAVE_SECRET_HASH=pick-a-long-random-string
+
 # Payment provider (paystack or flutterwave)
 PAYMENT_PROVIDER=paystack
 
 # Base URL of the API (Django itself) — also used to build admin links
 BASE_URL=http://localhost:8000
+
+# Public address of the FRONTEND. Used for links inside emails (receipts,
+# sale alerts, ticket emails). Must be set in production or buyers get links
+# pointing at the wrong site.
+FRONTEND_URL=http://localhost:3000
 
 # Optional. Who gets admin alerts (e.g. a seller requested a payout).
 # Leave blank and alerts go to every active superuser in the database, which

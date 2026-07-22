@@ -13,6 +13,7 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 from pathlib import Path
 from datetime import timedelta
 import os
+from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -25,11 +26,34 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('DJANGO_SECRET_KEY', 'django-insecure-your-secret-key-here')
+# SECRET_KEY signs sessions and password-reset tokens. A known or guessable
+# value means anyone can forge a password-reset link for any account, so in
+# production a missing or placeholder key is a hard failure rather than a
+# silent fallback.
+_INSECURE_DEFAULT_SECRET_KEY = 'django-insecure-your-secret-key-here'
+# `or` rather than a getenv default so an env var set to an empty string is
+# treated as missing instead of silently becoming an empty signing key.
+SECRET_KEY = os.getenv('DJANGO_SECRET_KEY') or _INSECURE_DEFAULT_SECRET_KEY
 
 # SECURITY WARNING: don't run with debug turned on in production!
 # For PythonAnywhere, set DEBUG=False by default
 DEBUG = os.getenv('DEBUG', 'False') == 'True'
+
+if not DEBUG:
+    if SECRET_KEY == _INSECURE_DEFAULT_SECRET_KEY:
+        raise ImproperlyConfigured(
+            "DJANGO_SECRET_KEY is not set. Refusing to start with the public "
+            "placeholder key in production — it would let anyone forge password "
+            "reset links. Generate one with:\n"
+            "  python -c \"from django.core.management.utils import "
+            "get_random_secret_key; print(get_random_secret_key())\"\n"
+            "then add it to .env as DJANGO_SECRET_KEY."
+        )
+    if SECRET_KEY.startswith('django-insecure-'):
+        print(
+            "WARNING: DJANGO_SECRET_KEY still looks like a development key "
+            "('django-insecure-...'). Replace it with a freshly generated one."
+        )
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -301,6 +325,10 @@ PAYSTACK_PUBLIC_KEY = os.getenv('PAYSTACK_PUBLIC_KEY', 'pk_test_your_test_public
 FLUTTERWAVE_SECRET_KEY = os.getenv('FLUTTERWAVE_SECRET_KEY', 'FLWSECK_TEST_your_test_secret_key_here')
 FLUTTERWAVE_PUBLIC_KEY = os.getenv('FLUTTERWAVE_PUBLIC_KEY', 'FLWPUBK_TEST_your_test_public_key_here')
 FLUTTERWAVE_ENCRYPTION_KEY = os.getenv('FLUTTERWAVE_ENCRYPTION_KEY', 'FLWSECK_TEST_your_test_encryption_key_here')
+# The "Secret hash" you set on the Flutterwave dashboard webhook page.
+# Flutterwave sends it back in the verif-hash header so we can prove a webhook
+# actually came from them. Without it, webhooks are rejected.
+FLUTTERWAVE_SECRET_HASH = os.getenv('FLUTTERWAVE_SECRET_HASH', '')
 
 # Payment provider selection (can be 'paystack' or 'flutterwave')
 PAYMENT_PROVIDER = os.getenv('PAYMENT_PROVIDER', 'paystack')
@@ -345,6 +373,25 @@ SECURE_REFERRER_POLICY = 'strict-origin-when-cross-origin'
 # Additional Security Headers
 SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = 'require-corp'
+
+# Cookie / transport security. Only enforced outside DEBUG so local http
+# development keeps working.
+# PythonAnywhere (and most PaaS) terminate TLS at a proxy and forward the
+# original scheme in X-Forwarded-Proto. Django needs this to know the request
+# was really HTTPS — without it, SECURE_SSL_REDIRECT causes a redirect loop.
+SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+SESSION_COOKIE_SECURE = not DEBUG
+CSRF_COOKIE_SECURE = not DEBUG
+SESSION_COOKIE_HTTPONLY = True
+CSRF_COOKIE_HTTPONLY = False  # JS must read the CSRF token to send it back
+SESSION_COOKIE_SAMESITE = 'Lax'
+CSRF_COOKIE_SAMESITE = 'Lax'
+
+# Kept env-toggleable: if the proxy ever stops sending X-Forwarded-Proto this
+# is the switch to flip before the site becomes unreachable.
+SECURE_SSL_REDIRECT = os.getenv(
+    'SECURE_SSL_REDIRECT', 'False' if DEBUG else 'True'
+) == 'True'
 
 # Celery Configuration
 # Check if Redis is available for Celery

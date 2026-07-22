@@ -1,44 +1,44 @@
 import { NextResponse } from "next/server";
+import { getValidAccessToken } from "@/lib/auth/get-access-token";
 
+const BACKEND =
+  process.env.NEXT_PUBLIC_API_BASE_URL?.replace("/api", "") ||
+  "http://localhost:8000";
+
+/**
+ * Bank list for the seller payout form.
+ *
+ * This used to call Flutterwave directly using a LIVE secret key stored in the
+ * frontend environment — a credential that can move money, deployed to a host
+ * that only needed a dropdown. The call now goes through Django, which already
+ * holds the key and caches the result, so the frontend needs no payment
+ * credentials at all.
+ */
 export async function GET() {
   try {
-    const secretKey = process.env.FLUTTERWAVE_SECRET_KEY;
+    const accessToken = await getValidAccessToken();
+    if (!accessToken) {
+      return NextResponse.json({ message: "Not authenticated" }, { status: 401 });
+    }
 
-    if (!secretKey) {
+    const res = await fetch(`${BACKEND}/api/auth/banks/`, {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok) {
       return NextResponse.json(
-        { message: "Flutterwave secret key not configured" },
-        { status: 500 }
+        { message: data?.message || "Failed to fetch banks" },
+        { status: res.status }
       );
     }
 
-    const response = await fetch("https://api.flutterwave.com/v3/banks/NG", {
-      headers: {
-        Authorization: `Bearer ${secretKey}`,
-      },
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.message || `Failed to fetch banks (${response.status})`);
-    }
-
-    const data = await response.json();
-
-    if (data.status !== "success") {
-      throw new Error(data.message || "Failed to fetch banks from Flutterwave");
-    }
-
-    // Normalize to { name, code } shape the frontend expects
-    const banks = (data.data || []).map((b: any) => ({
-      name: b.name,
-      code: b.code,
-    }));
-
-    return NextResponse.json(banks);
+    return NextResponse.json(data);
   } catch (error: any) {
-    console.error("Banks API Error:", error);
+    console.error("Banks API Error:", error?.message || error);
     return NextResponse.json(
-      { message: error.message || "Failed to fetch banks" },
+      { message: "Failed to fetch banks" },
       { status: 500 }
     );
   }
