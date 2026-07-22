@@ -44,6 +44,9 @@ interface LibraryItem {
     price: number;
     product_type: string;
     cover_image_url?: string;
+    has_file?: boolean;
+    // Legacy field: older backends still send file_url. Kept only so the
+    // Download button keeps working if the frontend deploys before the API.
     file_url?: string;
     created_at: string;
   };
@@ -215,7 +218,7 @@ export default function BuyerLibraryPage() {
                     Purchased {fmtDate(item.added_at)}
                   </p>
                   <div className="mt-auto pt-3">
-                    {item.product.file_url ? (
+                    {(item.product.has_file ?? Boolean(item.product.file_url)) ? (
                       <Button
                         size="sm" variant="outline" className="w-full h-8 text-xs"
                         disabled={downloading === item.id}

@@ -3,182 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>New Sale Notification - Darra</title>
-    <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            max-width: 600px;
-            margin: 0 auto;
-            padding: 20px;
-            background-color: #f8f9fa;
-        }
-        .header {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            color: white;
-            padding: 30px;
-            text-align: center;
-            border-radius: 10px 10px 0 0;
-        }
-        .header h1 {
-            margin: 0;
-            font-size: 28px;
-            font-weight: 600;
-        }
-        .content {
-            background: white;
-            padding: 30px;
-            border-radius: 0 0 10px 10px;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-        }
-        .sale-details {
-            background: #f8f9fa;
-            padding: 20px;
-            border-radius: 8px;
-            margin: 20px 0;
-        }
-        .sale-row {
-            display: flex;
-            justify-content: space-between;
-            margin: 10px 0;
-            padding: 8px 0;
-            border-bottom: 1px solid #e9ecef;
-        }
-        .sale-row:last-child {
-            border-bottom: none;
-            font-weight: bold;
-            font-size: 18px;
-            color: #28a745;
-        }
-        .product-item {
-            background: white;
-            border: 1px solid #e9ecef;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 15px 0;
-        }
-        .product-title {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 8px;
-        }
-        .product-details {
-            color: #666;
-            font-size: 14px;
-        }
-        .customer-info {
-            background: #e8f5e8;
-            border: 1px solid #c3e6c3;
-            border-radius: 8px;
-            padding: 20px;
-            margin: 20px 0;
-        }
-        .customer-info h3 {
-            color: #28a745;
-            margin-top: 0;
-        }
-        .footer {
-            text-align: center;
-            margin-top: 30px;
-            padding-top: 20px;
-            border-top: 1px solid #e9ecef;
-            color: #666;
-            font-size: 14px;
-        }
-        .congratulations {
-            text-align: center;
-            margin: 20px 0;
-            font-size: 18px;
-            color: #28a745;
-            font-weight: 600;
-        }
-        .earnings-highlight {
-            background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
-            color: #333;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            margin: 20px 0;
-            font-weight: 600;
-        }
-    </style>
+    <title>You made a sale</title>
 </head>
-<body>
-    <div class="header">
-        <h1>💰 New Sale!</h1>
-        <p>Congratulations on your sale on Darra</p>
-    </div>
-    
-    <div class="content">
-        <div class="congratulations">
-            🎉 Congratulations, {{ seller_name }}! You have a new sale!
+<body style="margin:0; padding:24px; background:#f4f4f5; font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif; color:#1b1b1f;">
+    <div style="max-width:520px; margin:0 auto; background:#ffffff; border:1px solid #e4e4e7; border-radius:8px; padding:32px;">
+
+        <p style="margin:0 0 24px; font-size:18px; font-weight:600; color:#5465FF;">Darra</p>
+
+        <p style="margin:0 0 4px; font-size:16px;">Hi {{ seller_name }},</p>
+        <p style="margin:0 0 24px; font-size:15px; line-height:1.5; color:#52525b;">
+            You made a sale.
+        </p>
+
+        <div style="background:#f4f4f5; border-radius:6px; padding:16px; margin-bottom:24px;">
+            <p style="margin:0 0 2px; font-size:13px; color:#71717a;">Your earnings from this sale</p>
+            <p style="margin:0; font-size:24px; font-weight:600;">&#8358;{{ total_earnings|floatformat:2 }}</p>
         </div>
-        
-        <div class="earnings-highlight">
-            <h3>Total Earnings: ₦{{ total_earnings|floatformat:2 }}</h3>
-            <p>This amount will be added to your account balance</p>
-        </div>
-        
-        <div class="sale-details">
-            <h3>Sale Details</h3>
-            <div class="sale-row">
-                <span>Order Reference:</span>
-                <span>{{ payment_reference }}</span>
-            </div>
-            <div class="sale-row">
-                <span>Sale Date:</span>
-                <span>{{ sale_date }}</span>
-            </div>
-            <div class="sale-row">
-                <span>Payment Status:</span>
-                <span style="color: #28a745; font-weight: 600;">{{ payment_status }}</span>
-            </div>
-        </div>
-        
-        <div class="customer-info">
-            <h3>Customer Information</h3>
-            <div class="sale-row">
-                <span>Name:</span>
-                <span>{{ customer_name }}</span>
-            </div>
-            <div class="sale-row">
-                <span>Email:</span>
-                <span>{{ customer_email }}</span>
-            </div>
-        </div>
-        
-        <h3>Products Sold</h3>
-        {% for purchase in purchases %}
-        <div class="product-item">
-            <div class="product-title">{{ purchase.product.title }}</div>
-            <div class="product-details">
-                <div class="sale-row">
-                    <span>Type:</span>
-                    <span>{{ purchase.product.product_type|title }}</span>
-                </div>
-                <div class="sale-row">
-                    <span>Quantity:</span>
-                    <span>{{ purchase.quantity }}</span>
-                </div>
-                <div class="sale-row">
-                    <span>Unit Price:</span>
-                    <span>₦{{ purchase.unit_price|floatformat:2 }}</span>
-                </div>
-                <div class="sale-row">
-                    <span>Total:</span>
-                    <span>₦{{ purchase.total_price|floatformat:2 }}</span>
-                </div>
-            </div>
-        </div>
-        {% endfor %}
-        
-        <div class="footer">
-            <p>Keep creating amazing content! Your customers love your products.</p>
-            <p>You can view your sales analytics in your seller dashboard.</p>
-            <p>&copy; 2024 Darra. All rights reserved.</p>
-        </div>
+
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="font-size:14px; border-top:1px solid #e4e4e7;">
+            {% for purchase in purchases %}
+            <tr>
+                <td style="padding:12px 0; border-bottom:1px solid #f4f4f5;">
+                    {{ purchase.product.title }}
+                    <span style="color:#71717a;">&times; {{ purchase.quantity }}</span>
+                </td>
+                <td style="padding:12px 0; text-align:right; border-bottom:1px solid #f4f4f5; white-space:nowrap;">
+                    &#8358;{{ purchase.total_price|floatformat:2 }}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+
+        <table role="presentation" cellpadding="0" cellspacing="0" width="100%" style="font-size:14px; margin-top:20px;">
+            <tr>
+                <td style="padding:6px 0; color:#71717a;">Buyer</td>
+                <td style="padding:6px 0; text-align:right;">{{ customer_name }}</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 0; color:#71717a;">Email</td>
+                <td style="padding:6px 0; text-align:right;">{{ customer_email }}</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 0; color:#71717a;">Reference</td>
+                <td style="padding:6px 0; text-align:right;">{{ payment_reference }}</td>
+            </tr>
+            <tr>
+                <td style="padding:6px 0; color:#71717a;">Date</td>
+                <td style="padding:6px 0; text-align:right;">{{ sale_date }}</td>
+            </tr>
+        </table>
+
+        <p style="margin:24px 0 0;">
+            <a href="{{ dashboard_url }}" style="display:inline-block; background:#5465FF; color:#ffffff; text-decoration:none; padding:11px 22px; border-radius:999px; font-size:14px; font-weight:500;">
+                View your dashboard
+            </a>
+        </p>
+
+        <p style="margin:32px 0 0; padding-top:20px; border-top:1px solid #e4e4e7; font-size:13px; color:#a1a1aa;">
+            Darra
+        </p>
     </div>
 </body>
-</html> 
+</html>

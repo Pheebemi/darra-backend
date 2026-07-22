@@ -22,7 +22,13 @@ class ProductSerializer(serializers.ModelSerializer):
     ticket_tiers = TicketTierSerializer(many=True, read_only=True)
     is_ticket_event = serializers.ReadOnlyField()
     
-    # Cloudinary optimized URLs
+    # NOTE: the paid product file itself is deliberately NOT exposed here.
+    # `file` and a public `file_url` would let anyone who can view a product
+    # download it without paying, since media is served directly by the web
+    # server. Buyers receive the file only through the authenticated
+    # /payments/library/<id>/download/ endpoint. `has_file` is a safe boolean
+    # the UI can use to decide whether to show a Download button.
+    has_file = serializers.SerializerMethodField()
     file_url = serializers.SerializerMethodField()
     cover_image_url = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
@@ -31,22 +37,36 @@ class ProductSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'id', 'title', 'description', 'description_html', 'price', 'product_type',
-            'file', 'cover_image', 'file_url', 'cover_image_url', 'thumbnail_url',
+            'cover_image', 'has_file', 'file_url', 'cover_image_url', 'thumbnail_url',
             'created_at', 'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
             'seller_name', 'seller_id', 'ticket_category', 'ticket_tiers', 'is_ticket_event'
         ]
         read_only_fields = ['owner', 'created_at']
-    
+
+    def get_has_file(self, obj):
+        """Whether a downloadable file exists — safe to expose publicly."""
+        return bool(obj.file)
+
     def get_file_url(self, obj):
-        """Get file URL from local storage"""
-        if obj.file:
-            try:
-                from django.conf import settings
-                return f"{settings.MEDIA_URL}{obj.file.name}"
-            except:
-                return None
-        return None
-    
+        """
+        Only the product's own seller ever sees a direct file URL. For everyone
+        else this stays None so the paid asset can't be fetched without buying.
+        """
+        if not obj.file:
+            return None
+
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        if not (user and user.is_authenticated and obj.owner_id == user.id):
+            return None
+
+        try:
+            from django.conf import settings
+            return f"{settings.MEDIA_URL}{obj.file.name}"
+        except Exception:
+            return None
+
+
     def get_cover_image_url(self, obj):
         """Get cover image URL from local storage"""
         if obj.cover_image:

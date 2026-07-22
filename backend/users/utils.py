@@ -70,6 +70,7 @@ def send_purchase_receipt_email(payment, purchases):
             'total_amount': payment.amount,
             'customer': payment.user,  # Add explicit customer variable
             'buyer': payment.user,  # Add explicit buyer variable
+            'library_url': f"{settings.FRONTEND_URL}/dashboard/buyer/library",
         }
         
 
@@ -87,35 +88,30 @@ def send_purchase_receipt_email(payment, purchases):
         html_message = render_to_string('users/email/purchase_receipt.html', context, request=request)
         
         # Create plain text version
-        plain_message = f"""
-        Thank you for your purchase on Darra!
-        
-        Order Reference: {payment.reference}
-        Order Date: {order_date}
-        Total Amount: ₦{payment.amount}
-        
-        Products Purchased:
-        """
-        
+        customer_name = context['customer_name']
+        plain_message = (
+            f"Hi {customer_name},\n\n"
+            "Your payment went through. Here's your receipt.\n\n"
+            f"Reference: {payment.reference}\n"
+            f"Date: {order_date}\n\n"
+        )
+
         for purchase in purchases:
-            plain_message += f"""
-        - {purchase.product.title} ({purchase.product.product_type})
-          Quantity: {purchase.quantity}
-          Price: ₦{purchase.unit_price}
-          Total: ₦{purchase.total_price}
-        """
-        
-        plain_message += """
-        
-        Your products are now available in your library.
-        If you have any questions, please contact our support team.
-        
-        Thank you for choosing Darra!
-        """
+            plain_message += (
+                f"{purchase.product.title} x {purchase.quantity} — "
+                f"NGN {purchase.total_price}\n"
+            )
+
+        plain_message += (
+            f"\nTotal: NGN {payment.amount}\n\n"
+            "Your purchase is in your library, ready to download:\n"
+            f"{context['library_url']}\n\n"
+            "Questions? Just reply to this email.\n"
+        )
         
         # Send the email
         send_mail(
-            subject=f'Purchase Receipt - {payment.reference}',
+            subject=f'Your receipt - {payment.reference}',
             message=plain_message,
             html_message=html_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
@@ -259,6 +255,7 @@ def send_seller_notification_email(payment, purchases):
                 'customer_email': payment.user.email,
                 'purchases': seller_purchases_list,
                 'total_earnings': total_earnings,
+                'dashboard_url': f"{settings.FRONTEND_URL}/dashboard/seller",
             }
             
 
@@ -272,40 +269,29 @@ def send_seller_notification_email(payment, purchases):
             html_message = render_to_string('users/email/seller_notification.html', context, request=request)
             
             # Create plain text version
-            plain_message = f"""
-            Congratulations! You have a new sale on Darra!
-            
-            Sale Details:
-            Order Reference: {payment.reference}
-            Sale Date: {sale_date}
-            Total Earnings: ₦{total_earnings}
-            
-            Customer Information:
-            Name: {payment.user.full_name or payment.user.email}
-            Email: {payment.user.email}
-            
-            Products Sold:
-            """
-            
+            plain_message = (
+                f"Hi {context['seller_name']},\n\n"
+                "You made a sale.\n\n"
+                f"Your earnings from this sale: NGN {total_earnings}\n\n"
+            )
+
             for purchase in seller_purchases_list:
-                plain_message += f"""
-            - {purchase.product.title} ({purchase.product.product_type})
-              Quantity: {purchase.quantity}
-              Unit Price: ₦{purchase.unit_price}
-              Total: ₦{purchase.total_price}
-            """
-            
-            plain_message += """
-            
-            Keep creating amazing content! Your customers love your products.
-            You can view your sales analytics in your seller dashboard.
-            
-            Thank you for being part of Darra!
-            """
-            
+                plain_message += (
+                    f"{purchase.product.title} x {purchase.quantity} — "
+                    f"NGN {purchase.total_price}\n"
+                )
+
+            plain_message += (
+                f"\nBuyer: {payment.user.full_name or payment.user.email}\n"
+                f"Email: {payment.user.email}\n"
+                f"Reference: {payment.reference}\n"
+                f"Date: {sale_date}\n\n"
+                f"View your dashboard: {context['dashboard_url']}\n"
+            )
+
             # Send the email
             send_mail(
-                subject=f'New Sale Notification - {payment.reference}',
+                subject=f'You made a sale - {payment.reference}',
                 message=plain_message,
                 html_message=html_message,
                 from_email=settings.DEFAULT_FROM_EMAIL,

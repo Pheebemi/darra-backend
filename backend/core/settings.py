@@ -194,6 +194,12 @@ STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
+# Private media — paid product files (ebooks, etc.) live OUTSIDE MEDIA_ROOT so
+# the web server never serves them directly. They are only streamed to buyers
+# through the authenticated download endpoint after purchase. Cover images stay
+# in MEDIA_ROOT because they are meant to be public.
+PRIVATE_MEDIA_ROOT = os.path.join(BASE_DIR, 'private_media')
+
 # Local file storage configuration
 # No additional configuration needed - Django will use local storage by default
 
@@ -299,6 +305,10 @@ FLUTTERWAVE_ENCRYPTION_KEY = os.getenv('FLUTTERWAVE_ENCRYPTION_KEY', 'FLWSECK_TE
 # Payment provider selection (can be 'paystack' or 'flutterwave')
 PAYMENT_PROVIDER = os.getenv('PAYMENT_PROVIDER', 'paystack')
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
+
+# Public site address used for links inside emails (receipts, sale alerts).
+# This is the FRONTEND, not the API — set it in .env per environment.
+FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000').rstrip('/')
 
 # Currency settings
 CURRENCY = os.getenv('CURRENCY', 'NGN')
