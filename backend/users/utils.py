@@ -308,129 +308,139 @@ def send_seller_notification_email(payment, purchases):
         print(f"Error sending seller notification email: {str(e)}")
         return False
 
-def send_payout_requested_email(payout_request):
-    """Notify seller their payout request was received"""
+# The four payout emails differ only in wording and colour, so they share one
+# template and one sender rather than four near-identical copies.
+PAYOUT_EMAIL_STATES = {
+    'requested': {
+        'subject': 'Payout request received',
+        'message': 'We have received your payout request and it is queued for processing.',
+        'status_label': 'Requested',
+        'status_bg': '#F2F4FF',
+        'status_color': '#4B6BFB',
+        'amount_bg': '#f4f4f5',
+        'amount_color': '#1b1b1f',
+        'note': 'Payouts are normally sent within 12-14 hours.',
+        'note_bg': '#f4f4f5',
+    },
+    'processing': {
+        'subject': 'Payout processing',
+        'message': 'Your payout is being processed and is on its way to your bank.',
+        'status_label': 'Processing',
+        'status_bg': '#FFF9E5',
+        'status_color': '#B08600',
+        'amount_bg': '#f4f4f5',
+        'amount_color': '#1b1b1f',
+        'note': 'You will get another email once the transfer has been sent.',
+        'note_bg': '#f4f4f5',
+    },
+    'completed': {
+        'subject': 'Payout sent',
+        'message': 'Your payout has been sent to your bank account.',
+        'status_label': 'Sent',
+        'status_bg': '#EBFBF0',
+        'status_color': '#00B42A',
+        'amount_bg': '#EBFBF0',
+        'amount_color': '#00B42A',
+        'note': 'Funds usually reflect within a few minutes, though some banks take longer.',
+        'note_bg': '#f4f4f5',
+    },
+    'failed': {
+        'subject': 'Payout failed',
+        'message': 'Your payout could not be completed, so it was not sent.',
+        'status_label': 'Failed',
+        'status_bg': '#FEECEC',
+        'status_color': '#b3261e',
+        'amount_bg': '#f4f4f5',
+        'amount_color': '#1b1b1f',
+        'note': 'Your balance has not been deducted — the funds are still in your Darra '
+                'account. Check your bank details are correct and try again, or reply to '
+                'this email and we will sort it out.',
+        'note_bg': '#FEECEC',
+    },
+}
+
+
+def _send_payout_email(payout_request, state):
+    """Send one of the payout status emails. `state` keys PAYOUT_EMAIL_STATES."""
     try:
+        cfg = PAYOUT_EMAIL_STATES[state]
         seller = payout_request.seller
         bank = payout_request.bank_details
-        subject = f'Payout Request Received — ₦{payout_request.amount:,.2f}'
-        plain_message = (
-            f"Hi {seller.full_name or seller.email},\n\n"
-            f"We have received your payout request.\n\n"
-            f"Amount: ₦{payout_request.amount:,.2f}\n"
-            f"Bank: {bank.bank_name}\n"
-            f"Account Number: {bank.account_number}\n"
-            f"Account Name: {bank.account_name}\n"
-            f"Reference: {payout_request.transfer_reference}\n\n"
-            f"You will be paid within 12-14 hours.\n\n"
-            f"Thank you for being part of Darra!"
+        seller_name = seller.full_name or seller.email
+        amount = f"{payout_request.amount:,.2f}"
+
+        context = {
+            'seller_name': seller_name,
+            'amount': amount,
+            'bank_name': bank.bank_name,
+            'account_number': bank.account_number,
+            'account_name': bank.account_name,
+            'reference': payout_request.transfer_reference,
+            'payouts_url': f"{settings.FRONTEND_URL}/dashboard/seller/earnings/payout-history",
+            'headline': cfg['subject'],
+            'message': cfg['message'],
+            'status_label': cfg['status_label'],
+            'status_bg': cfg['status_bg'],
+            'status_color': cfg['status_color'],
+            'amount_bg': cfg['amount_bg'],
+            'amount_color': cfg['amount_color'],
+            'note': cfg['note'],
+            'note_bg': cfg['note_bg'],
+        }
+
+        request_factory = RequestFactory()
+        request = request_factory.get('/')
+        request.user = AnonymousUser()
+        html_message = render_to_string(
+            'users/email/payout_status.html', context, request=request
         )
+
+        plain_message = (
+            f"Hi {seller_name},\n\n"
+            f"{cfg['message']}\n\n"
+            f"Amount: NGN {amount}\n"
+            f"Status: {cfg['status_label']}\n"
+            f"Bank: {bank.bank_name}\n"
+            f"Account: {bank.account_number}\n"
+            f"Account name: {bank.account_name}\n"
+            f"Reference: {payout_request.transfer_reference}\n\n"
+            f"{cfg['note']}\n\n"
+            f"Payout history: {context['payouts_url']}\n"
+        )
+
         send_mail(
-            subject=subject,
+            subject=f"{cfg['subject']} - NGN {amount}",
             message=plain_message,
+            html_message=html_message,
             from_email=settings.DEFAULT_FROM_EMAIL,
             recipient_list=[seller.email],
             fail_silently=False,
         )
-        print(f"Payout requested email sent to {seller.email}")
+        print(f"Payout {state} email sent to {seller.email}")
         return True
     except Exception as e:
-        print(f"Error sending payout requested email: {str(e)}")
+        print(f"Error sending payout {state} email: {str(e)}")
         return False
+
+
+def send_payout_requested_email(payout_request):
+    """Notify seller their payout request was received"""
+    return _send_payout_email(payout_request, 'requested')
 
 
 def send_payout_processing_email(payout_request):
     """Notify seller their payout is being processed"""
-    try:
-        seller = payout_request.seller
-        bank = payout_request.bank_details
-        subject = f'Payout Processing — ₦{payout_request.amount:,.2f}'
-        plain_message = (
-            f"Hi {seller.full_name or seller.email},\n\n"
-            f"Your payout is currently being processed.\n\n"
-            f"Amount: ₦{payout_request.amount:,.2f}\n"
-            f"Bank: {bank.bank_name}\n"
-            f"Account Number: {bank.account_number}\n"
-            f"Account Name: {bank.account_name}\n"
-            f"Reference: {payout_request.transfer_reference}\n\n"
-            f"Funds will be sent to your account shortly.\n\n"
-            f"Thank you for being part of Darra!"
-        )
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[seller.email],
-            fail_silently=False,
-        )
-        print(f"Payout processing email sent to {seller.email}")
-        return True
-    except Exception as e:
-        print(f"Error sending payout processing email: {str(e)}")
-        return False
+    return _send_payout_email(payout_request, 'processing')
 
 
 def send_payout_failed_email(payout_request):
     """Notify seller their payout failed"""
-    try:
-        seller = payout_request.seller
-        bank = payout_request.bank_details
-        subject = f'Payout Failed — ₦{payout_request.amount:,.2f}'
-        plain_message = (
-            f"Hi {seller.full_name or seller.email},\n\n"
-            f"Unfortunately your payout could not be processed at this time.\n\n"
-            f"Amount: ₦{payout_request.amount:,.2f}\n"
-            f"Bank: {bank.bank_name}\n"
-            f"Account Number: {bank.account_number}\n"
-            f"Account Name: {bank.account_name}\n"
-            f"Reference: {payout_request.transfer_reference}\n\n"
-            f"Please contact our support team and we will resolve this as soon as possible.\n"
-            f"Your funds remain safe in your Darra account.\n\n"
-            f"Thank you for your patience."
-        )
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[seller.email],
-            fail_silently=False,
-        )
-        print(f"Payout failed email sent to {seller.email}")
-        return True
-    except Exception as e:
-        print(f"Error sending payout failed email: {str(e)}")
-        return False
+    return _send_payout_email(payout_request, 'failed')
 
 
 def send_payout_completed_email(payout_request):
     """Notify seller their payout has been processed"""
-    try:
-        seller = payout_request.seller
-        bank = payout_request.bank_details
-        subject = f'Payout Sent — ₦{payout_request.amount:,.2f}'
-        plain_message = (
-            f"Hi {seller.full_name or seller.email},\n\n"
-            f"Great news! Your payout has been processed and sent.\n\n"
-            f"Amount: ₦{payout_request.amount:,.2f}\n"
-            f"Bank: {bank.bank_name}\n"
-            f"Account Number: {bank.account_number}\n"
-            f"Account Name: {bank.account_name}\n"
-            f"Reference: {payout_request.transfer_reference}\n\n"
-            f"Please allow a few minutes for the funds to reflect in your account.\n\n"
-            f"Thank you for being part of Darra!"
-        )
-        send_mail(
-            subject=subject,
-            message=plain_message,
-            from_email=settings.DEFAULT_FROM_EMAIL,
-            recipient_list=[seller.email],
-            fail_silently=False,
-        )
-        print(f"Payout completed email sent to {seller.email}")
-        return True
-    except Exception as e:
-        print(f"Error sending payout completed email: {str(e)}")
-        return False
+    return _send_payout_email(payout_request, 'completed')
 
 
 def send_digital_product_email(user, product):
