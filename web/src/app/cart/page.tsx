@@ -5,9 +5,8 @@ import Link from "next/link";
 import { SafeImage } from "@/components/safe-image";
 import { useCart } from "@/lib/cart/cart-context";
 import { useAuth } from "@/lib/auth/auth-context";
-import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, Plus, Minus, ShoppingCart, ArrowRight, Shield, Zap, Package, CreditCard } from "lucide-react";
+import { Trash2, Plus, Minus, ArrowRight, Shield, Zap, Package, CreditCard } from "lucide-react";
 import { toast } from "sonner";
 
 export default function CartPage() {
@@ -60,169 +59,178 @@ export default function CartPage() {
 
   if (items.length === 0) {
     return (
-      <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center px-4">
+      <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center bg-page px-5">
         <div className="text-center">
-          <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-xl border bg-muted">
-            <ShoppingCart className="h-5 w-5 text-muted-foreground" />
-          </div>
-          <h2 className="mb-1 text-base font-semibold">Your cart is empty</h2>
-          <p className="mb-5 text-sm text-muted-foreground">Add products to get started</p>
-          <Button size="sm" asChild>
-            <Link href="/products">
-              Browse Products
-              <ArrowRight className="ml-1.5 h-3.5 w-3.5" />
-            </Link>
-          </Button>
+          <img src="/illustrations/empty-cart.svg" alt="" className="mx-auto mb-6 h-44 w-auto" />
+          <h2 className="mb-1 text-2xl font-semibold text-ink">Your cart is empty</h2>
+          <p className="mb-6 text-gray-600">Add products to get started</p>
+          <Link
+            href="/products"
+            className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300"
+          >
+            Browse Products
+            <ArrowRight className="h-4 w-4" />
+          </Link>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <div>
-          <h1 className="text-lg font-semibold">Cart</h1>
-          <p className="text-sm text-muted-foreground">{totalItems} {totalItems === 1 ? "item" : "items"}</p>
+    <div className="min-h-screen bg-page">
+      <div className="mx-auto max-w-7xl px-5 py-10 sm:px-16">
+        {/* Header */}
+        <div className="mb-8 flex items-end justify-between">
+          <div>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">Checkout</p>
+            <h1 className="text-3xl font-semibold text-ink sm:text-4xl">Cart</h1>
+            <p className="mt-1 text-gray-600">{totalItems} {totalItems === 1 ? "item" : "items"}</p>
+          </div>
+          <button
+            onClick={clearCart}
+            className="text-sm font-medium text-gray-600 transition-colors hover:text-[#b3261e]"
+          >
+            Clear all
+          </button>
         </div>
-        <button
-          onClick={clearCart}
-          className="text-xs text-muted-foreground transition-colors hover:text-destructive"
-        >
-          Clear all
-        </button>
-      </div>
 
-      <div className="grid gap-6 lg:grid-cols-3">
-        {/* Items */}
-        <div className="space-y-2 lg:col-span-2">
-          {items.map((item, index) => {
-            const price = item.tier?.price || item.product?.price || 0;
-            const itemTotal = price * item.quantity;
+        <div className="grid gap-6 lg:grid-cols-3">
+          {/* Items */}
+          <div className="space-y-3 lg:col-span-2">
+            {items.map((item, index) => {
+              const price = item.tier?.price || item.product?.price || 0;
+              const itemTotal = price * item.quantity;
 
-            return (
-              <div
-                key={`${item.productId}-${item.tierId || "none"}-${index}`}
-                className="flex gap-3 rounded-lg border bg-card p-3"
+              return (
+                <div
+                  key={`${item.productId}-${item.tierId || "none"}-${index}`}
+                  className="flex gap-4 rounded-3xl border border-gray-100 bg-white p-4"
+                >
+                  {/* Cover */}
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-brand-50">
+                    {item.product?.cover_image ? (
+                      <SafeImage
+                        src={item.product.cover_image}
+                        alt={item.product.title}
+                        fill
+                        className="object-cover"
+                      />
+                    ) : (
+                      <div className="flex h-full items-center justify-center">
+                        <Package className="h-6 w-6 text-brand-300" />
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Info */}
+                  <div className="flex min-w-0 flex-1 flex-col justify-between">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-gray-900">{item.product?.title || "Product"}</p>
+                        {item.tier && (
+                          <p className="text-sm text-gray-600">{item.tier.name}</p>
+                        )}
+                      </div>
+                      <p className="shrink-0 font-semibold text-brand-500">
+                        ₦{price.toLocaleString()}
+                      </p>
+                    </div>
+
+                    <div className="mt-2 flex items-center justify-between">
+                      {/* Quantity */}
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={() => updateQuantity(item.productId, item.tierId, item.quantity - 1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-500"
+                        >
+                          <Minus className="h-3 w-3" />
+                        </button>
+                        <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                        <button
+                          onClick={() => updateQuantity(item.productId, item.tierId, item.quantity + 1)}
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-500"
+                        >
+                          <Plus className="h-3 w-3" />
+                        </button>
+                      </div>
+
+                      <div className="flex items-center gap-4">
+                        <p className="font-semibold text-ink">₦{itemTotal.toLocaleString()}</p>
+                        <button
+                          onClick={() => removeItem(item.productId, item.tierId)}
+                          className="text-gray-400 transition-colors hover:text-[#b3261e]"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Order summary */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-20 space-y-4 rounded-3xl border border-gray-100 bg-white p-6">
+              <h2 className="text-xl font-semibold text-ink">Order Summary</h2>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
+                  <span className="text-gray-900">₦{total.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-gray-600">Processing fee</span>
+                  <span className="text-gray-600">Calculated at checkout</span>
+                </div>
+              </div>
+
+              <Separator />
+
+              <div className="flex justify-between font-semibold">
+                <span className="text-ink">Total</span>
+                <span className="text-brand-500">₦{total.toLocaleString()}</span>
+              </div>
+
+              {/* Payment method */}
+              <div className="flex items-center gap-2 rounded-2xl bg-brand-50 px-4 py-3">
+                <CreditCard className="h-4 w-4 shrink-0 text-brand-500" />
+                <span className="text-xs text-gray-600">Flutterwave · Secure checkout</span>
+              </div>
+
+              {/* Trust */}
+              <div className="flex justify-around text-xs text-gray-600">
+                <span className="flex items-center gap-1"><Shield className="h-3 w-3 text-brand-500" />Secure</span>
+                <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-brand-500" />Instant</span>
+                <span className="flex items-center gap-1"><Package className="h-3 w-3 text-brand-500" />Guaranteed</span>
+              </div>
+
+              <button
+                className="w-full rounded-full bg-brand-500 px-6 py-3.5 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300 active:bg-brand-700 disabled:opacity-60"
+                onClick={handleCheckout}
+                disabled={processing}
               >
-                {/* Cover */}
-                <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-md bg-muted">
-                  {item.product?.cover_image ? (
-                    <SafeImage
-                      src={item.product.cover_image}
-                      alt={item.product.title}
-                      fill
-                      className="object-cover"
-                    />
-                  ) : (
-                    <div className="flex h-full items-center justify-center">
-                      <Package className="h-5 w-5 text-muted-foreground/40" />
-                    </div>
-                  )}
-                </div>
+                {processing ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
+                    Processing...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-1.5">
+                    Pay now
+                    <ArrowRight className="h-4 w-4" />
+                  </span>
+                )}
+              </button>
 
-                {/* Info */}
-                <div className="flex flex-1 flex-col justify-between min-w-0">
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{item.product?.title || "Product"}</p>
-                      {item.tier && (
-                        <p className="text-xs text-muted-foreground">{item.tier.name}</p>
-                      )}
-                    </div>
-                    <p className="shrink-0 text-sm font-semibold text-primary">
-                      ₦{price.toLocaleString()}
-                    </p>
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between">
-                    {/* Quantity */}
-                    <div className="flex items-center gap-1.5">
-                      <button
-                        onClick={() => updateQuantity(item.productId, item.tierId, item.quantity - 1)}
-                        className="flex h-6 w-6 items-center justify-center rounded border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-                      >
-                        <Minus className="h-3 w-3" />
-                      </button>
-                      <span className="w-6 text-center text-xs font-medium">{item.quantity}</span>
-                      <button
-                        onClick={() => updateQuantity(item.productId, item.tierId, item.quantity + 1)}
-                        className="flex h-6 w-6 items-center justify-center rounded border text-muted-foreground transition-colors hover:border-foreground hover:text-foreground"
-                      >
-                        <Plus className="h-3 w-3" />
-                      </button>
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                      <p className="text-sm font-semibold">₦{itemTotal.toLocaleString()}</p>
-                      <button
-                        onClick={() => removeItem(item.productId, item.tierId)}
-                        className="text-muted-foreground transition-colors hover:text-destructive"
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Order summary */}
-        <div className="lg:col-span-1">
-          <div className="sticky top-20 rounded-lg border bg-card p-4 space-y-4">
-            <h2 className="text-sm font-semibold">Order Summary</h2>
-
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
-                <span>₦{total.toLocaleString()}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Processing fee</span>
-                <span className="text-muted-foreground">Calculated at checkout</span>
-              </div>
+              <Link
+                href="/products"
+                className="block w-full rounded-full border border-brand-500 px-6 py-2.5 text-center text-sm font-medium text-brand-500 transition-colors hover:bg-brand-500 hover:text-white"
+              >
+                Continue shopping
+              </Link>
             </div>
-
-            <Separator />
-
-            <div className="flex justify-between text-sm font-semibold">
-              <span>Total</span>
-              <span className="text-primary">₦{total.toLocaleString()}</span>
-            </div>
-
-            {/* Payment method */}
-            <div className="rounded-md border bg-muted/40 px-3 py-2 flex items-center gap-2">
-              <CreditCard className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
-              <span className="text-xs text-muted-foreground">Flutterwave · Secure checkout</span>
-            </div>
-
-            {/* Trust */}
-            <div className="flex justify-around text-xs text-muted-foreground">
-              <span className="flex items-center gap-1"><Shield className="h-3 w-3" />Secure</span>
-              <span className="flex items-center gap-1"><Zap className="h-3 w-3" />Instant</span>
-              <span className="flex items-center gap-1"><Package className="h-3 w-3" />Guaranteed</span>
-            </div>
-
-            <Button className="w-full" onClick={handleCheckout} disabled={processing}>
-              {processing ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
-                  Processing...
-                </span>
-              ) : (
-                <span className="flex items-center gap-1.5">
-                  Checkout
-                  <ArrowRight className="h-3.5 w-3.5" />
-                </span>
-              )}
-            </Button>
-
-            <Button variant="outline" className="w-full" size="sm" asChild>
-              <Link href="/products">Continue shopping</Link>
-            </Button>
           </div>
         </div>
       </div>

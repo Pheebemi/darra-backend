@@ -2,10 +2,9 @@
 import { useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
-import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Eye, EyeOff, ShoppingBag } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
@@ -17,62 +16,55 @@ export default function LoginPage() {
     <div className="flex min-h-[calc(100dvh-4rem)]">
 
       {/* Left — brand */}
-      <div className="hidden lg:flex lg:w-1/2 flex-col justify-between bg-primary p-12 text-primary-foreground">
+      <div className="hidden flex-col justify-between bg-brand-950 p-12 lg:flex lg:w-1/2">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/20">
-            <ShoppingBag className="h-4 w-4" />
+          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
+            <span className="text-lg font-bold text-white">D</span>
           </div>
-          <span className="font-semibold">Darra</span>
+          <span className="text-lg font-semibold text-white">Darra</span>
         </div>
 
         <div>
-          <h2 className="mb-3 text-4xl font-semibold leading-tight">
+          <h2 className="mb-3 text-4xl font-bold leading-tight text-white">
             The marketplace for creators and learners
           </h2>
-          <p className="text-primary-foreground/70">
+          <p className="text-lg text-brand-200">
             Buy and sell eBooks, templates, courses, and more.
           </p>
-          <div className="mt-10 grid grid-cols-2 gap-3">
-            {[
-              { label: "Products listed", value: "10,000+" },
-              { label: "Happy buyers", value: "50,000+" },
-              { label: "Active sellers", value: "2,000+" },
-              { label: "Avg. rating", value: "4.9 ★" },
-            ].map((s) => (
-              <div key={s.label} className="rounded-lg bg-white/10 p-4">
-                <p className="text-xl font-semibold">{s.value}</p>
-                <p className="text-sm text-primary-foreground/60">{s.label}</p>
-              </div>
-            ))}
-          </div>
+          <img
+            src="/illustrations/online-shopping.svg"
+            alt="Online shopping illustration"
+            className="mx-auto mt-10 w-full max-w-sm"
+          />
         </div>
 
-        <p className="text-xs text-primary-foreground/40">© {new Date().getFullYear()} Darra</p>
+        <p className="text-xs text-brand-300/60">© {new Date().getFullYear()} Darra</p>
       </div>
 
       {/* Right — form */}
-      <div className="flex w-full flex-col items-center justify-center bg-background px-6 py-12 lg:w-1/2">
+      <div className="flex w-full flex-col items-center justify-center bg-page px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
-          <div className="mb-8 flex items-center gap-2 lg:hidden">
-            <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-primary">
-              <ShoppingBag className="h-3.5 w-3.5 text-primary-foreground" />
+          <div className="mb-8 flex items-center gap-2.5 lg:hidden">
+            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
+              <span className="text-lg font-bold text-white">D</span>
             </div>
-            <span className="font-semibold">Darra</span>
+            <span className="text-lg font-semibold text-ink">Darra</span>
           </div>
 
-          <h1 className="mb-1 text-2xl font-semibold">Welcome back</h1>
-          <p className="mb-7 text-sm text-muted-foreground">Sign in to your Darra account</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">Sign in</p>
+          <h1 className="mb-1 text-3xl font-semibold text-ink">Welcome back</h1>
+          <p className="mb-8 text-gray-600">Sign in to your Darra account</p>
 
           <form
-            className="space-y-4"
+            className="space-y-5"
             onSubmit={async (e) => {
               e.preventDefault();
               try { await login(email, password); } catch (_) {}
             }}
           >
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-xs font-medium">Email address</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-gray-900">Email address</Label>
               <Input
                 id="email"
                 type="email"
@@ -80,14 +72,14 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="h-9"
+                className="h-12 rounded-xl border-gray-200 bg-white px-4 focus-visible:ring-brand-300"
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-xs font-medium">Password</Label>
-                <Link href="/forgot-password" className="text-xs text-muted-foreground hover:text-foreground transition-colors">
+                <Label htmlFor="password" className="text-sm font-medium text-gray-900">Password</Label>
+                <Link href="/forgot-password" className="text-sm font-medium text-brand-500 transition-colors hover:text-brand-600">
                   Forgot password?
                 </Link>
               </div>
@@ -99,31 +91,35 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="h-9 pr-9"
+                  className="h-12 rounded-xl border-gray-200 bg-white px-4 pr-11 focus-visible:ring-brand-300"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-ink"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
             </div>
 
-            <Button type="submit" className="w-full" disabled={isLoading}>
+            <button
+              type="submit"
+              className="w-full rounded-full bg-brand-500 px-6 py-3.5 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300 active:bg-brand-700 disabled:opacity-60"
+              disabled={isLoading}
+            >
               {isLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent" />
+                <span className="flex items-center justify-center gap-2">
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />
                   Signing in...
                 </span>
               ) : "Sign in"}
-            </Button>
+            </button>
           </form>
 
-          <p className="mt-5 text-center text-sm text-muted-foreground">
+          <p className="mt-6 text-center text-sm text-gray-600">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-medium text-foreground hover:text-primary transition-colors">
+            <Link href="/register" className="font-medium text-brand-500 transition-colors hover:text-brand-600">
               Create one
             </Link>
           </p>

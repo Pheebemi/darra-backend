@@ -2,10 +2,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Store, Clock, PackageOpen, CheckCircle2, XCircle, Package } from "lucide-react";
+import { Store, Clock, CheckCircle2, XCircle, Package, ArrowRight } from "lucide-react";
 
 interface Product {
   id: number;
@@ -63,19 +61,19 @@ export default function PublicStorePage() {
 
   if (loading) {
     return (
-      <div>
+      <div className="min-h-screen bg-page">
         {/* Banner skeleton */}
-        <Skeleton className="h-48 w-full rounded-none" />
-        <div className="mx-auto max-w-5xl px-4">
-          <div className="mb-8 -mt-10 flex items-end gap-4">
+        <Skeleton className="h-56 w-full rounded-none" />
+        <div className="mx-auto max-w-7xl px-5 sm:px-16">
+          <div className="-mt-10 mb-8 flex items-end gap-4">
             <Skeleton className="h-20 w-20 rounded-2xl" />
             <div className="pb-2">
               <Skeleton className="mb-2 h-7 w-48" />
               <Skeleton className="h-4 w-32" />
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-64 w-full rounded-2xl" />)}
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {[1,2,3,4,5,6].map(i => <Skeleton key={i} className="h-64 w-full rounded-3xl" />)}
           </div>
         </div>
       </div>
@@ -84,13 +82,16 @@ export default function PublicStorePage() {
 
   if (notFound || !store) {
     return (
-      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4">
-        <PackageOpen className="h-16 w-16 text-muted-foreground" />
-        <h1 className="text-2xl font-bold">Store not found</h1>
-        <p className="text-muted-foreground">This store doesn't exist or has been removed.</p>
-        <Button className="bg-[#3800ff] text-white hover:bg-[#2d00d4]" asChild>
-          <Link href="/products">Browse Products</Link>
-        </Button>
+      <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-page px-5 text-center">
+        <img src="/illustrations/web-search.svg" alt="" className="h-40 w-auto" />
+        <h1 className="text-3xl font-semibold text-ink">Store not found</h1>
+        <p className="text-gray-600">This store doesn't exist or has been removed.</p>
+        <Link
+          href="/products"
+          className="mt-2 inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300"
+        >
+          Browse Products
+        </Link>
       </div>
     );
   }
@@ -98,80 +99,84 @@ export default function PublicStorePage() {
   const initials = store.brand_name?.slice(0, 2).toUpperCase() || "ST";
 
   return (
-    <div>
+    <div className="min-h-screen bg-page">
       {/* Banner */}
-      <div className="relative h-48 w-full bg-linear-to-br from-[#3800ff] to-[#7c3aed]">
-        {store.banner_url && (
+      <div className="relative h-56 w-full bg-brand-950">
+        {store.banner_url ? (
           <img
             src={getImageUrl(store.banner_url) || ""}
             alt="Store banner"
             className="absolute inset-0 h-full w-full object-cover"
           />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-end overflow-hidden pr-16">
+            <Store className="hidden h-32 w-32 text-brand-500/30 sm:block" />
+          </div>
         )}
       </div>
 
       {/* Profile row */}
-      <div className="relative z-10 mx-auto max-w-5xl px-4">
+      <div className="relative z-10 mx-auto max-w-7xl px-5 sm:px-16">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
-          <div className="flex items-end gap-4 -mt-10">
+          <div className="-mt-10 flex items-end gap-4">
             {/* Avatar */}
-            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-[#3800ff] shadow-md">
+            <div className="flex h-20 w-20 shrink-0 items-center justify-center rounded-2xl border-4 border-white bg-brand-500 shadow-md">
               <span className="text-2xl font-bold text-white">{initials}</span>
             </div>
             <div className="pb-1">
               <div className="flex items-center gap-2">
-                <h1 className="text-2xl font-bold text-foreground">{store.brand_name}</h1>
+                <h1 className="text-3xl font-semibold text-ink">{store.brand_name}</h1>
                 {store.store_active ? (
-                  <Badge className="flex items-center gap-1 bg-green-100 text-green-700 text-xs">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-[#EBFBF0] px-3 py-1 text-xs font-medium text-[#00B42A]">
                     <CheckCircle2 className="h-3 w-3" /> Open
-                  </Badge>
+                  </span>
                 ) : (
-                  <Badge variant="secondary" className="flex items-center gap-1 text-xs">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500">
                     <XCircle className="h-3 w-3" /> Closed
-                  </Badge>
+                  </span>
                 )}
               </div>
-              <p className="text-sm text-muted-foreground">{store.full_name}</p>
+              <p className="text-sm text-gray-600">{store.full_name}</p>
             </div>
           </div>
         </div>
 
         {/* Info bar */}
-        <div className="mb-8 flex flex-wrap items-center gap-6 border-b pb-6 text-sm text-muted-foreground">
+        <div className="mb-10 flex flex-wrap items-center gap-6 border-b border-brand-100 pb-6 text-sm text-gray-600">
           <div className="flex items-center gap-1.5">
-            <Package className="h-4 w-4 text-[#3800ff]" />
+            <Package className="h-4 w-4 text-brand-500" />
             <span>{store.products.length} {store.products.length === 1 ? "product" : "products"}</span>
           </div>
           {(store.open_time || store.close_time) && (
             <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-[#3800ff]" />
+              <Clock className="h-4 w-4 text-brand-500" />
               <span>{store.open_time || "—"} – {store.close_time || "—"}</span>
             </div>
           )}
           {store.about && (
             <div
-              className="w-full text-sm text-muted-foreground [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-foreground [&_p]:mb-1"
+              className="w-full text-sm text-gray-600 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-ink [&_p]:mb-1"
               dangerouslySetInnerHTML={{ __html: store.about }}
             />
           )}
         </div>
 
         {/* Products */}
-        <h2 className="mb-4 text-base font-semibold text-foreground">All Products</h2>
+        <h2 className="mb-6 text-3xl font-semibold text-ink">All Products</h2>
 
         {store.products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-2xl border bg-muted/30 py-20 text-center">
-            <PackageOpen className="mb-4 h-12 w-12 text-muted-foreground" />
-            <p className="font-medium text-foreground">No products yet</p>
-            <p className="text-sm text-muted-foreground">This seller hasn't listed anything yet.</p>
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-white py-16 text-center">
+            <img src="/illustrations/blank-canvas.svg" alt="" className="mb-6 h-40 w-auto" />
+            <p className="text-xl font-semibold text-ink">No products yet</p>
+            <p className="mt-1 text-gray-600">This seller hasn't listed anything yet.</p>
           </div>
         ) : (
-          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {store.products.map(product => (
               <Link key={product.id} href={`/products/${product.id}`} className="group block">
-                <div className="overflow-hidden rounded-2xl border bg-white shadow-sm transition-shadow hover:shadow-md">
+                <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl">
                   {/* Image */}
-                  <div className="relative h-48 w-full overflow-hidden bg-[#e8deff]">
+                  <div className="relative h-52 w-full overflow-hidden bg-brand-50">
                     {product.cover_image_url ? (
                       <img
                         src={getImageUrl(product.cover_image_url) || ""}
@@ -180,26 +185,26 @@ export default function PublicStorePage() {
                       />
                     ) : (
                       <div className="flex h-full items-center justify-center">
-                        <Store className="h-10 w-10 text-[#3800ff]/30" />
+                        <Store className="h-10 w-10 text-brand-300" />
                       </div>
                     )}
                     {/* Type badge */}
                     <div className="absolute left-3 top-3">
-                      <span className="rounded-full bg-black/50 px-2.5 py-0.5 text-xs font-medium uppercase tracking-wide text-white">
+                      <span className="rounded-full bg-ink/70 px-3 py-1 text-xs font-medium uppercase tracking-wide text-white backdrop-blur-sm">
                         {product.product_type}
                       </span>
                     </div>
                   </div>
                   {/* Info */}
-                  <div className="p-4">
-                    <h3 className="mb-1 font-semibold text-foreground line-clamp-1 group-hover:text-[#3800ff] transition-colors">
+                  <div className="p-5">
+                    <h3 className="mb-1 line-clamp-1 text-xl font-semibold text-gray-900 transition-colors group-hover:text-brand-500">
                       {product.title}
                     </h3>
-                    <p className="mb-3 text-xs text-muted-foreground line-clamp-2">{product.description}</p>
+                    <p className="mb-4 line-clamp-2 text-sm text-gray-600">{product.description}</p>
                     <div className="flex items-center justify-between">
-                      <span className="text-base font-bold text-[#3800ff]">{formatCurrency(product.price)}</span>
-                      <span className="text-xs font-medium text-[#3800ff] opacity-0 transition-opacity group-hover:opacity-100">
-                        View →
+                      <span className="font-semibold text-ink">{formatCurrency(product.price)}</span>
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-500 opacity-0 transition-opacity group-hover:opacity-100">
+                        View <ArrowRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
                   </div>
@@ -209,7 +214,7 @@ export default function PublicStorePage() {
           </div>
         )}
 
-        <div className="pb-12" />
+        <div className="pb-16" />
       </div>
     </div>
   );
