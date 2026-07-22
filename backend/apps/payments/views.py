@@ -759,12 +759,10 @@ def download_product_file(request, library_item_id):
     if not product.file:
         return Response({'message': 'No file attached to this product.'}, status=404)
 
-    try:
-        file_path = product.file.path
-    except Exception:
-        return Response({'message': 'File not found on server.'}, status=404)
-
-    if not os.path.exists(file_path):
+    # Resolves the private location, falling back to the pre-migration public
+    # one so downloads keep working while files are still being moved.
+    file_path = product.resolve_file_path()
+    if not file_path:
         return Response({'message': 'File not found on server.'}, status=404)
 
     ext = os.path.splitext(file_path)[1].lower()

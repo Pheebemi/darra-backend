@@ -507,15 +507,16 @@ def send_digital_product_email(user, product, file_url):
                 print(f"DEBUG: No file field found for product")
                 return False
                 
-            # Read the file from local storage
-            if hasattr(product.file, 'read'):
-                # If it's a file object, read it
-                product.file.seek(0)
-                file_content = product.file.read()
-            else:
-                # If it's a file path, read from filesystem
-                with open(product.file.path, 'rb') as f:
-                    file_content = f.read()
+            # Read the file from local storage. resolve_file_path() handles the
+            # private location plus the legacy MEDIA_ROOT fallback for files
+            # that have not been moved yet.
+            resolved_path = product.resolve_file_path()
+            if not resolved_path:
+                print(f"DEBUG: Product file missing on disk: {product.file.name}")
+                return False
+
+            with open(resolved_path, 'rb') as f:
+                file_content = f.read()
             
             # Get file extension from the file name
             file_extension = product.file.name.split('.')[-1].lower() if '.' in product.file.name else 'file'

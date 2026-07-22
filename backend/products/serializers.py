@@ -49,22 +49,16 @@ class ProductSerializer(serializers.ModelSerializer):
 
     def get_file_url(self, obj):
         """
-        Only the product's own seller ever sees a direct file URL. For everyone
-        else this stays None so the paid asset can't be fetched without buying.
+        Always None. Product files live outside MEDIA_ROOT and are not servable
+        by URL at all, so there is no honest value to return here — a /media/
+        path would both 404 and imply the paid file is publicly fetchable.
+
+        The key is kept in the response purely so existing clients that read it
+        don't break on a missing field. Use `has_file` to decide whether to show
+        a download control; the file itself comes from the authenticated
+        /payments/library/<id>/download/ endpoint.
         """
-        if not obj.file:
-            return None
-
-        request = self.context.get('request')
-        user = getattr(request, 'user', None)
-        if not (user and user.is_authenticated and obj.owner_id == user.id):
-            return None
-
-        try:
-            from django.conf import settings
-            return f"{settings.MEDIA_URL}{obj.file.name}"
-        except Exception:
-            return None
+        return None
 
 
     def get_cover_image_url(self, obj):
