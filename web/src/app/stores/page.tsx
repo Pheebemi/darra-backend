@@ -11,6 +11,23 @@ interface StoreItem {
   product_count: number;
 }
 
+// The store "about" is saved as HTML by the rich-text editor. On these list
+// cards we only want a short plain-text preview, so strip the tags and
+// collapse whitespace/entities rather than dumping raw markup on screen.
+function stripHtml(html: string | null): string {
+  if (!html) return "";
+  return html
+    .replace(/<[^>]*>/g, " ")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&quot;/gi, '"')
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function AllStoresPage() {
   const [stores, setStores] = useState<StoreItem[]>([]);
   const [filtered, setFiltered] = useState<StoreItem[]>([]);
@@ -22,7 +39,7 @@ export default function AllStoresPage() {
   useEffect(() => {
     const q = search.toLowerCase();
     setFiltered(stores.filter(s =>
-      s.brand_name.toLowerCase().includes(q) || (s.about || "").toLowerCase().includes(q)
+      s.brand_name.toLowerCase().includes(q) || stripHtml(s.about).toLowerCase().includes(q)
     ));
   }, [search, stores]);
 
@@ -101,8 +118,8 @@ export default function AllStoresPage() {
                         {store.brand_name}
                       </h2>
                     </div>
-                    {store.about && (
-                      <p className="mb-4 line-clamp-2 text-sm text-gray-600">{store.about}</p>
+                    {stripHtml(store.about) && (
+                      <p className="mb-4 line-clamp-2 text-sm text-gray-600">{stripHtml(store.about)}</p>
                     )}
                     <div className="mt-auto flex items-center justify-between">
                       <span className="text-sm font-medium text-brand-500">
