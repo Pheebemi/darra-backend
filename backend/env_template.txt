@@ -28,13 +28,18 @@ FLUTTERWAVE_SECRET_HASH=pick-a-long-random-string
 # Payment provider (paystack or flutterwave)
 PAYMENT_PROVIDER=paystack
 
-# Base URL of the API (Django itself)
+# Base URL of the API (Django itself) — also used to build admin links
 BASE_URL=http://localhost:8000
 
 # Public address of the FRONTEND. Used for links inside emails (receipts,
 # sale alerts, ticket emails). Must be set in production or buyers get links
 # pointing at the wrong site.
 FRONTEND_URL=http://localhost:3000
+
+# Optional. Who gets admin alerts (e.g. a seller requested a payout).
+# Leave blank and alerts go to every active superuser in the database, which
+# means adding/removing an admin needs no config change. Comma-separated.
+ADMIN_ALERT_EMAILS=
 
 # Cloudinary settings
 CLOUDINARY_CLOUD_NAME=your_cloud_name

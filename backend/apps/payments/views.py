@@ -562,6 +562,14 @@ def request_payout(request):
         except Exception as e:
             print(f"Payout request email error: {e}")
 
+        # Alert admins separately, so a failure to reach the seller does not
+        # also swallow the alert telling us money is waiting to be sent.
+        try:
+            from users.utils import send_payout_admin_alert_email
+            send_payout_admin_alert_email(payout_request)
+        except Exception as e:
+            print(f"Payout admin alert error: {e}")
+
         return Response({
             'message': 'Payout request submitted. You will be paid within 12-14 hours.',
             'payout': PayoutRequestSerializer(payout_request).data

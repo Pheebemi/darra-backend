@@ -348,6 +348,15 @@ if not DEBUG and not os.getenv('FRONTEND_URL'):
         f"{_DEFAULT_FRONTEND_URL}. Set it in .env to be explicit."
     )
 
+# Who receives operational alerts (e.g. "a seller requested a payout").
+# Deliberately optional: leave it unset and alerts go to every active
+# superuser in the database, so adding or removing an admin in Django admin is
+# enough — no config change, no redeploy, and no address to go stale. Set it
+# only when you want alerts sent somewhere that isn't an admin account.
+ADMIN_ALERT_EMAILS = [
+    e.strip() for e in os.getenv('ADMIN_ALERT_EMAILS', '').split(',') if e.strip()
+]
+
 # Currency settings
 CURRENCY = os.getenv('CURRENCY', 'NGN')
 CURRENCY_SYMBOL = os.getenv('CURRENCY_SYMBOL', '₦')
