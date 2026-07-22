@@ -588,10 +588,23 @@ class PaymentService:
     def process_successful_payment(payment):
         """Process successful payment and add products to user library"""
         print(f"DEBUG: Processing successful payment for user: {payment.user.email}")
-        
-        # Update payment status FIRST - this is critical for payment success
+
+        # Idempotency guard. Providers retry webhooks, and the verify endpoint
+        # can fire for the same payment, so without this a single purchase can
+        # issue duplicate library entries and tickets and double-count
+        # quantity_sold. Claim the payment atomically: only the caller that
+        # actually flips the row from non-success proceeds.
+        claimed = Payment.objects.filter(
+            pk=payment.pk
+        ).exclude(
+            status=Payment.PaymentStatus.SUCCESS
+        ).update(status=Payment.PaymentStatus.SUCCESS)
+
+        if not claimed:
+            print(f"DEBUG: Payment {payment.reference} already processed; skipping.")
+            return payment
+
         payment.status = Payment.PaymentStatus.SUCCESS
-        payment.save()
         print(f"DEBUG: Payment status updated to: {payment.status}")
         
         # Now process everything else - if this fails, payment is still successful

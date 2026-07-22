@@ -6,7 +6,6 @@ from .views import (
     PaymentHistoryView,
     payment_status,
     payment_webhook,
-    debug_checkout,
     test_connection,
     test_flutterwave_connection,
     seller_earnings,
@@ -22,7 +21,6 @@ from .views import (
 
 urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name='checkout'),
-    path('debug-checkout/', debug_checkout, name='debug_checkout'),
     path('test-connection/', test_connection, name='test_connection'),
     path('test-flutterwave/', test_flutterwave_connection, name='test_flutterwave_connection'),
     path('verify/<str:reference>/', verify_payment, name='verify_payment'),
