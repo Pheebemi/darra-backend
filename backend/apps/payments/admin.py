@@ -90,52 +90,92 @@ class PayoutRequestAdmin(admin.ModelAdmin):
     transfer_provider.short_description = 'Provider'
     
     actions = ['mark_as_processing', 'mark_as_completed', 'mark_as_failed']
-    
+
+    def _notify_status_change(self, payout, new_status):
+        """
+        Send the seller the email for whichever status the payout moved to.
+
+        Lives here, keyed off the status itself, so the notification is tied to
+        the transition rather than to one particular admin button. `status` is
+        in list_editable, so it can also be changed straight from the list page
+        or the change form — those used to save silently and the seller was
+        never told.
+        """
+        from users.utils import (
+            send_payout_processing_email,
+            send_payout_completed_email,
+            send_payout_failed_email,
+        )
+        senders = {
+            'processing': send_payout_processing_email,
+            'completed': send_payout_completed_email,
+            'failed': send_payout_failed_email,
+        }
+        sender = senders.get(new_status)
+        if not sender:
+            return False
+        try:
+            return sender(payout)
+        except Exception as e:
+            print(f"Payout {new_status} email error for {payout.id}: {e}")
+            return False
+
+    def save_model(self, request, obj, form, change):
+        """
+        Notify the seller whenever the status changes from the admin UI —
+        the change form or the inline dropdown on the list page — not just
+        from the actions menu.
+        """
+        previous_status = None
+        if change and obj.pk:
+            previous_status = (
+                PayoutRequest.objects.filter(pk=obj.pk)
+                .values_list('status', flat=True)
+                .first()
+            )
+
+        if obj.status == 'completed' and not obj.processed_at:
+            from django.utils import timezone
+            obj.processed_at = timezone.now()
+
+        super().save_model(request, obj, form, change)
+
+        if previous_status != obj.status:
+            self._notify_status_change(obj, obj.status)
+
+    def _bulk_transition(self, request, queryset, new_status, label):
+        from django.utils import timezone
+        changed = notified = 0
+        for payout in queryset:
+            if payout.status == new_status:
+                continue
+            payout.status = new_status
+            if new_status == 'completed' and not payout.processed_at:
+                payout.processed_at = timezone.now()
+            payout.save()
+            changed += 1
+            if self._notify_status_change(payout, new_status):
+                notified += 1
+
+        skipped = queryset.count() - changed
+        message = f"Marked {changed} payouts as {label}; {notified} sellers notified."
+        if skipped:
+            message += f" {skipped} already had that status and were left alone."
+        self.message_user(request, message)
+
     def mark_as_completed(self, request, queryset):
         """Mark selected payouts as completed and notify sellers"""
-        from django.utils import timezone
-        from users.utils import send_payout_completed_email
-        count = 0
-        for payout in queryset:
-            payout.status = 'completed'
-            payout.processed_at = timezone.now()
-            payout.save()
-            try:
-                send_payout_completed_email(payout)
-            except Exception as e:
-                print(f"Payout completed email error for {payout.id}: {e}")
-            count += 1
-        self.message_user(request, f"Marked {count} payouts as completed and notified sellers.")
+        self._bulk_transition(request, queryset, 'completed', 'completed')
     mark_as_completed.short_description = "Mark payouts as completed"
-    
+
     def mark_as_processing(self, request, queryset):
         """Mark selected payouts as processing and notify sellers"""
-        from users.utils import send_payout_processing_email
-        count = 0
-        for payout in queryset:
-            payout.status = 'processing'
-            payout.save()
-            try:
-                send_payout_processing_email(payout)
-            except Exception as e:
-                print(f"Payout processing email error for {payout.id}: {e}")
-            count += 1
-        self.message_user(request, f"Marked {count} payouts as processing and notified sellers.")
+        self._bulk_transition(request, queryset, 'processing', 'processing')
     mark_as_processing.short_description = "Mark payouts as processing"
 
     def mark_as_failed(self, request, queryset):
         """Mark selected payouts as failed and notify sellers"""
-        from users.utils import send_payout_failed_email
-        count = 0
-        for payout in queryset:
-            payout.status = 'failed'
-            payout.save()
-            try:
-                send_payout_failed_email(payout)
-            except Exception as e:
-                print(f"Payout failed email error for {payout.id}: {e}")
-            count += 1
-        self.message_user(request, f"Marked {count} payouts as failed and notified sellers.")
+        self._bulk_transition(request, queryset, 'failed', 'failed')
     mark_as_failed.short_description = "Mark payouts as failed"
 
 @admin.register(SellerEarnings)
