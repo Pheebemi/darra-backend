@@ -12,6 +12,7 @@ from .views import (
     BankDetailView,
     SellerStoreView,
     AllStoresView,
+    list_banks,
 )
 
 urlpatterns = [
@@ -27,6 +28,7 @@ urlpatterns = [
 ]
 
 urlpatterns += [
+    path('banks/', list_banks, name='list-banks'),
     path('bank-detail/', BankDetailView.as_view(), name='bank-detail'),
     path('stores/', AllStoresView.as_view(), name='all-stores'),
     path('store/<slug:brand_slug>/', SellerStoreView.as_view(), name='seller-store'),

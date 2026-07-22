@@ -360,6 +360,53 @@ class UpdatePasswordView(APIView):
             }, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def list_banks(request):
+    """
+    Nigerian bank list for the payout bank-details form.
+
+    This lives on the backend so the Flutterwave secret key never has to be
+    deployed to the frontend. Previously the Next.js server held a live key
+    purely to make this one read-only call — a money-moving credential
+    stationed on a host that only needed a dropdown.
+
+    Cached for a day; the list changes a few times a year at most.
+    """
+    from django.core.cache import cache
+
+    cached = cache.get('flutterwave_bank_list')
+    if cached:
+        return Response(cached)
+
+    try:
+        resp = requests.get(
+            'https://api.flutterwave.com/v3/banks/NG',
+            headers={'Authorization': f'Bearer {settings.FLUTTERWAVE_SECRET_KEY}'},
+            timeout=15,
+        )
+        payload = resp.json()
+    except Exception as e:
+        print(f"Error fetching banks: {e}")
+        return Response(
+            {'message': 'Could not load the bank list. Please try again.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    if not resp.ok or payload.get('status') != 'success':
+        return Response(
+            {'message': payload.get('message') or 'Could not load the bank list.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
+
+    banks = [
+        {'name': b.get('name'), 'code': b.get('code')}
+        for b in (payload.get('data') or [])
+    ]
+    cache.set('flutterwave_bank_list', banks, 60 * 60 * 24)
+    return Response(banks)
+
+
 class BankDetailView(APIView):
     permission_classes = [IsAuthenticated]
 
