@@ -103,15 +103,15 @@ export default function PayoutHistoryPage() {
   const getStatusColor = (status: string) => {
     switch (status) {
       case "completed":
-        return "bg-green-500";
+        return "bg-[#EBFBF0] text-[#00B42A]";
       case "processing":
-        return "bg-amber-500";
+        return "bg-[#FFF9E5] text-[#B08600]";
       case "pending":
-        return "bg-blue-500";
+        return "bg-brand-50 text-brand-600";
       case "failed":
-        return "bg-red-500";
+        return "bg-red-50 text-[#b3261e]";
       default:
-        return "bg-gray-500";
+        return "bg-gray-100 text-gray-500";
     }
   };
 
@@ -188,149 +188,92 @@ export default function PayoutHistoryPage() {
     <DashboardLayout>
       <div className="mx-auto max-w-6xl px-6 py-8">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between">
-          <div className="flex items-center gap-4">
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Finance</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Payout History</h1>
+          </div>
+          <div className="flex items-center gap-2">
             <Button variant="ghost" size="sm" asChild>
               <Link href="/dashboard/seller/earnings">
-                <ArrowLeft className="mr-2 h-4 w-4" />
+                <ArrowLeft className="mr-1.5 h-4 w-4" />
                 Back
               </Link>
             </Button>
-            <div>
-              <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Payout History</h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                View all your payout requests and their status
-              </p>
-            </div>
+            <Button variant="outline" size="sm" onClick={onRefresh} disabled={refreshing}>
+              <RefreshCw className={`mr-1.5 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
+              Refresh
+            </Button>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={refreshing}
-          >
-            <RefreshCw className={`mr-2 h-4 w-4 ${refreshing ? "animate-spin" : ""}`} />
-            Refresh
-          </Button>
         </div>
 
         {/* Header Stats */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-3">
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-ink">{payouts.length}</p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">Total Payouts</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-ink">
-                  {formatCurrency(calculateTotalAmount(payouts))}
-                </p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">Total Amount</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-6">
-              <div className="text-center">
-                <p className="text-2xl font-bold text-ink">
-                  {payouts.filter((p) => p.status === "completed").length}
-                </p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">Completed</p>
-              </div>
-            </CardContent>
-          </Card>
+        <div className="mb-8 grid grid-cols-3 gap-4">
+          {[
+            { label: "Total Payouts", value: payouts.length.toString() },
+            { label: "Total Amount", value: formatCurrency(calculateTotalAmount(payouts)) },
+            { label: "Completed", value: payouts.filter((p) => p.status === "completed").length.toString() },
+          ].map(({ label, value }) => (
+            <div key={label} className="rounded-3xl border border-gray-100 bg-white p-5 text-center">
+              <p className="truncate text-2xl font-semibold text-ink">{value}</p>
+              <p className="mt-1 text-xs font-medium text-gray-600 sm:text-sm">{label}</p>
+            </div>
+          ))}
         </div>
 
         {/* Payouts List */}
         {payouts.length === 0 ? (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <CreditCard className="mb-4 h-12 w-12 text-muted-foreground" />
-              <h3 className="mb-2 text-lg font-semibold">No payouts yet</h3>
-              <p className="mb-6 text-center text-sm text-muted-foreground">
-                Your payout history will appear here once you make your first request
-              </p>
-              <Button asChild>
-                <Link href="/dashboard/seller/earnings/request-payout">Request Payout</Link>
-              </Button>
-            </CardContent>
-          </Card>
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-white py-16 text-center">
+            <img src="/illustrations/no-data.svg" alt="" className="mb-6 h-28 w-auto" />
+            <h3 className="mb-1 text-lg font-semibold text-ink">No payouts yet</h3>
+            <p className="mb-6 text-sm text-gray-600">
+              Your payout history will appear here once you make your first request
+            </p>
+            <Button asChild>
+              <Link href="/dashboard/seller/earnings/request-payout">Request Payout</Link>
+            </Button>
+          </div>
         ) : (
           <div className="space-y-4">
             {payouts.map((payout) => {
               const StatusIcon = getStatusIcon(payout.status);
               return (
-                <Card key={payout.id}>
-                  <CardContent className="p-6">
-                    {/* Header */}
-                    <div className="mb-4 flex items-start justify-between">
-                      <div className="flex-1">
-                        <p className="text-2xl font-bold text-ink">
-                          {formatCurrency(payout.amount)}
-                        </p>
-                        <p className="mt-1 text-xs font-mono text-muted-foreground">
-                          Ref: {payout.transfer_reference}
-                        </p>
-                      </div>
-                      <Badge className={getStatusColor(payout.status)}>
-                        <StatusIcon className="mr-1 h-3 w-3" />
-                        {getStatusText(payout.status)}
-                      </Badge>
+                <div key={payout.id} className="rounded-3xl border border-gray-100 bg-white p-6">
+                  {/* Header */}
+                  <div className="mb-4 flex items-start justify-between">
+                    <div className="flex-1">
+                      <p className="text-2xl font-bold text-ink">
+                        {formatCurrency(payout.amount)}
+                      </p>
+                      <p className="mt-1 font-mono text-xs text-gray-500">
+                        Ref: {payout.transfer_reference}
+                      </p>
                     </div>
+                    <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${getStatusColor(payout.status)}`}>
+                      <StatusIcon className="mr-1 h-3 w-3" />
+                      {getStatusText(payout.status)}
+                    </span>
+                  </div>
 
-                    {/* Details */}
-                    <div className="space-y-3 border-t pt-4">
-                      <div className="flex items-center gap-3">
-                        <Building2 className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">Bank:</span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {payout.bank_name}
-                        </span>
+                  {/* Details */}
+                  <div className="grid gap-x-8 gap-y-2 border-t border-gray-100 pt-4 sm:grid-cols-2">
+                    {[
+                      { icon: Building2, k: "Bank", v: payout.bank_name },
+                      { icon: CreditCard, k: "Account", v: payout.account_number },
+                      { icon: User, k: "Recipient", v: payout.account_name },
+                      { icon: Calendar, k: "Requested", v: formatDate(payout.created_at) },
+                      ...(payout.processed_at
+                        ? [{ icon: CheckCircle, k: "Processed", v: formatDate(payout.processed_at) }]
+                        : []),
+                    ].map(({ icon: Icon, k, v }) => (
+                      <div key={k} className="flex items-center gap-2 text-sm">
+                        <Icon className="h-4 w-4 shrink-0 text-brand-500" />
+                        <span className="text-gray-600">{k}:</span>
+                        <span className="truncate font-medium text-ink">{v}</span>
                       </div>
-                      <div className="flex items-center gap-3">
-                        <CreditCard className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">Account:</span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {payout.account_number}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <User className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Recipient:
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {payout.account_name}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <Calendar className="h-4 w-4 text-muted-foreground" />
-                        <span className="text-sm font-medium text-muted-foreground">
-                          Requested:
-                        </span>
-                        <span className="text-sm font-semibold text-foreground">
-                          {formatDate(payout.created_at)}
-                        </span>
-                      </div>
-                      {payout.processed_at && (
-                        <div className="flex items-center gap-3">
-                          <CheckCircle className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm font-medium text-muted-foreground">
-                            Processed:
-                          </span>
-                          <span className="text-sm font-semibold text-foreground">
-                            {formatDate(payout.processed_at)}
-                          </span>
-                        </div>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
+                    ))}
+                  </div>
+                </div>
               );
             })}
           </div>

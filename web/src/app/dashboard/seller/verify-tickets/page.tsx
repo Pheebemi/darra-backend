@@ -4,7 +4,6 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth/auth-context";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -318,7 +317,7 @@ export default function VerifyTicketsPage() {
 
   const formatCurrency = (amount: string | number) => {
     const numAmount = typeof amount === "string" ? parseFloat(amount) : amount;
-    if (isNaN(numAmount)) return "â‚¦0";
+    if (isNaN(numAmount)) return "₦0";
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
@@ -343,79 +342,74 @@ export default function VerifyTicketsPage() {
       <div className="mx-auto max-w-4xl px-6 py-8">
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href="/dashboard/seller">
-                <ArrowLeft className="mr-2 h-4 w-4" />
-                Back
-              </Link>
-            </Button>
-            <div>
-              <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
-                Verify Tickets
-              </h1>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Scan QR codes to verify event tickets
-              </p>
-            </div>
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Events</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
+              Verify Tickets
+            </h1>
           </div>
+          <Button variant="ghost" size="sm" asChild>
+            <Link href="/dashboard/seller">
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
+              Back
+            </Link>
+          </Button>
         </div>
 
         {/* Scanner Section */}
         {!scanning && !scanned && (
-          <Card>
-            <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="mb-8 flex flex-col items-center">
-                <QrCode className="mb-4 h-24 w-24 text-primary" />
-                <h2 className="mb-2 text-2xl font-semibold">Ready to scan</h2>
-                <p className="text-center text-muted-foreground">
-                  Point camera at a ticket QR code
-                </p>
+          <div className="rounded-3xl bg-brand-950 p-8 sm:p-12">
+            <div className="flex flex-col items-center">
+              <div className="mb-6 flex h-24 w-24 items-center justify-center rounded-3xl bg-brand-500/20">
+                <QrCode className="h-12 w-12 text-brand-300" />
               </div>
+              <h2 className="mb-2 text-2xl font-bold text-white sm:text-3xl">Ready to scan</h2>
+              <p className="mb-8 text-center text-brand-200">
+                Point camera at a ticket QR code
+              </p>
 
-              <div className="flex w-full max-w-md flex-col gap-4">
-                <Button onClick={startScanning} size="lg" className="w-full">
-                  <Camera className="mr-2 h-5 w-5" />
-                  Start Scanning
-                </Button>
-
-                <Button
-                  variant="outline"
-                  onClick={() => setShowManualEntry(true)}
-                  size="lg"
-                  className="w-full"
+              <div className="flex w-full max-w-md flex-col gap-3">
+                <button
+                  onClick={startScanning}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-8 py-4 text-lg font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300"
                 >
-                  <Keyboard className="mr-2 h-5 w-5" />
+                  <Camera className="h-5 w-5" />
+                  Start Scanning
+                </button>
+
+                <button
+                  onClick={() => setShowManualEntry(true)}
+                  className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-brand-300/40 px-6 py-3 font-medium text-brand-100 transition-colors hover:bg-white/10"
+                >
+                  <Keyboard className="h-5 w-5" />
                   Enter Ticket ID Manually
-                </Button>
+                </button>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         )}
 
         {/* Scanning View */}
         {scanning && (
-          <Card>
-            <CardContent className="p-6">
-              <div className="relative">
-                <div id="qr-reader" className="w-full rounded-lg" />
-                <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-                  <div className="border-2 border-primary rounded-lg w-64 h-64" />
-                </div>
-                <p className="mt-4 text-center text-sm text-muted-foreground">
-                  Position QR code within frame
-                </p>
+          <div className="rounded-3xl border border-gray-100 bg-white p-6">
+            <div className="relative">
+              <div id="qr-reader" className="w-full overflow-hidden rounded-2xl" />
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="h-64 w-64 rounded-2xl border-2 border-brand-500" />
               </div>
-              <Button
-                onClick={stopScanning}
-                variant="destructive"
-                className="mt-4 w-full"
-              >
-                <X className="mr-2 h-4 w-4" />
-                Stop Scanning
-              </Button>
-            </CardContent>
-          </Card>
+              <p className="mt-4 text-center text-sm text-gray-600">
+                Position QR code within frame
+              </p>
+            </div>
+            <Button
+              onClick={stopScanning}
+              variant="destructive"
+              className="mt-4 w-full"
+            >
+              <X className="mr-2 h-4 w-4" />
+              Stop Scanning
+            </Button>
+          </div>
         )}
 
         {/* Manual Entry Dialog */}
@@ -538,20 +532,18 @@ export default function VerifyTicketsPage() {
                       <span className="text-sm font-medium text-muted-foreground">
                         Status:
                       </span>
-                      <Badge
-                        className={
-                          ticketDetails.is_used
-                            ? "bg-red-500"
-                            : "bg-green-500"
-                        }
-                      >
+                      <span className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-medium ${
+                        ticketDetails.is_used
+                          ? "bg-red-50 text-[#b3261e]"
+                          : "bg-[#EBFBF0] text-[#00B42A]"
+                      }`}>
                         {ticketDetails.is_used ? (
                           <XCircle className="mr-1 h-3 w-3" />
                         ) : (
                           <CheckCircle2 className="mr-1 h-3 w-3" />
                         )}
                         {ticketDetails.is_used ? "Used" : "Valid"}
-                      </Badge>
+                      </span>
                     </div>
 
                     <div className="flex items-center justify-between">

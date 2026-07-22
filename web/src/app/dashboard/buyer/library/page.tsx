@@ -128,16 +128,17 @@ export default function BuyerLibraryPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-5 max-w-5xl">
+      <div className="mx-auto max-w-5xl space-y-6 p-6 sm:p-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-ink">My Library</h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Purchases</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">My Library</h1>
+            <p className="mt-1 text-sm text-gray-600">
               {items.length} {items.length === 1 ? "item" : "items"} purchased
             </p>
           </div>
-          <Button size="sm" asChild>
+          <Button asChild>
             <a href="/products">
               <ShoppingBag className="mr-1.5 h-3.5 w-3.5" />
               Browse
@@ -147,7 +148,7 @@ export default function BuyerLibraryPage() {
 
         {/* Filter tabs */}
         {!loading && items.length > 0 && (
-          <div className="flex gap-1 border rounded-md p-0.5 w-fit">
+          <div className="flex w-fit gap-1 rounded-full border border-gray-200 bg-white p-1">
             {([
               { key: "all", label: `All (${items.length})` },
               { key: "products", label: `Downloads (${downloadItems.length})` },
@@ -156,10 +157,10 @@ export default function BuyerLibraryPage() {
               <button
                 key={key}
                 onClick={() => setFilter(key)}
-                className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
                   filter === key
-                    ? "bg-foreground text-background"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "bg-brand-500 text-white"
+                    : "text-gray-600 hover:text-brand-500"
                 }`}
               >
                 {label}
@@ -170,17 +171,17 @@ export default function BuyerLibraryPage() {
 
         {/* Content */}
         {loading ? (
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
             {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-52 w-full rounded-lg" />
+              <Skeleton key={i} className="h-52 w-full rounded-3xl" />
             ))}
           </div>
         ) : items.length === 0 ? (
-          <div className="rounded-3xl border border-gray-100 bg-white py-14 text-center">
-            <Package className="mx-auto h-10 w-10 text-muted-foreground/40" />
-            <p className="mt-3 text-sm font-medium">Library is empty</p>
-            <p className="text-xs text-muted-foreground">Products you purchase will appear here</p>
-            <Button size="sm" className="mt-4 h-8 text-xs" asChild>
+          <div className="flex flex-col items-center rounded-3xl border border-dashed border-brand-200 bg-white py-16 text-center">
+            <img src="/illustrations/no-data.svg" alt="" className="mb-6 h-28 w-auto" />
+            <p className="font-medium text-ink">Library is empty</p>
+            <p className="mt-1 text-xs text-gray-600">Products you purchase will appear here</p>
+            <Button size="sm" className="mt-5" asChild>
               <a href="/products">
                 <ShoppingBag className="mr-1.5 h-3.5 w-3.5" />Browse Products
               </a>
@@ -191,7 +192,7 @@ export default function BuyerLibraryPage() {
             {/* Download products */}
             {(filter === "all" || filter === "products") && downloadItems.map((item) => (
               <div key={item.id} className="rounded-3xl border border-gray-100 bg-white overflow-hidden flex flex-col">
-                <div className="relative h-36 bg-muted shrink-0">
+                <div className="relative h-36 shrink-0 bg-brand-50">
                   {item.product.cover_image_url ? (
                     <SafeImage
                       src={getImageUrl(item.product.cover_image_url)}
@@ -238,7 +239,7 @@ export default function BuyerLibraryPage() {
               item.event_tickets?.map((ticket) => (
                 <div key={ticket.id} className="rounded-3xl border border-gray-100 bg-white overflow-hidden flex flex-col">
                   {/* QR preview */}
-                  <div className="relative h-36 bg-muted/50 flex items-center justify-center shrink-0">
+                  <div className="relative flex h-36 shrink-0 items-center justify-center bg-brand-50/60">
                     {ticket.qr_code_url ? (
                       <SafeImage
                         src={getImageUrl(ticket.qr_code_url)}

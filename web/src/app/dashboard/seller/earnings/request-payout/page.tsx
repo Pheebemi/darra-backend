@@ -124,7 +124,7 @@ export default function RequestPayoutPage() {
   };
 
   const formatCurrency = (amount: number | undefined | null) => {
-    if (amount === undefined || amount === null) return "â‚¦0";
+    if (amount === undefined || amount === null) return "₦0";
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
@@ -147,7 +147,7 @@ export default function RequestPayoutPage() {
 
     const numAmount = parseFloat(amount);
     if (numAmount < 1000) {
-      toast.error("Minimum payout amount is â‚¦1,000");
+      toast.error("Minimum payout amount is ₦1,000");
       return false;
     }
 
@@ -237,200 +237,172 @@ export default function RequestPayoutPage() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-4xl px-6 py-8">
+      <div className="mx-auto max-w-4xl space-y-6 p-6 sm:p-8">
         {/* Header */}
-        <div className="mb-6 flex items-center gap-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Finance</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Request Payout</h1>
+          </div>
           <Button variant="ghost" size="sm" asChild>
             <Link href="/dashboard/seller/earnings">
-              <ArrowLeft className="mr-2 h-4 w-4" />
+              <ArrowLeft className="mr-1.5 h-4 w-4" />
               Back
             </Link>
           </Button>
-          <div>
-            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Request Payout</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Request a payout to your bank account
-            </p>
-          </div>
         </div>
 
-        {/* Available Balance Card */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <div className="flex flex-col items-center text-center">
-              <div className="mb-4 flex items-center gap-2">
-                <Wallet className="h-6 w-6 text-primary" />
-                <h2 className="text-lg font-semibold text-foreground">Available Balance</h2>
-              </div>
-              <p className="text-4xl font-bold text-foreground">
-                {earnings ? formatCurrency(earnings.available_balance) : "â‚¦0"}
-              </p>
-              <p className="mt-2 text-sm text-muted-foreground">
-                This is the amount available for payout
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+        {/* Available Balance hero */}
+        <div className="rounded-3xl bg-brand-950 p-6 text-center sm:p-8">
+          <div className="mb-4 inline-flex rounded-2xl bg-brand-500/20 p-3">
+            <Wallet className="h-6 w-6 text-brand-300" />
+          </div>
+          <p className="text-sm text-brand-200/70">Available Balance</p>
+          <p className="mt-1 text-4xl font-bold text-white">
+            {earnings ? formatCurrency(earnings.available_balance) : "₦0"}
+          </p>
+          <p className="mt-2 text-sm text-brand-200">
+            This is the amount available for payout
+          </p>
+        </div>
 
         {/* Amount Input */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <Label htmlFor="amount" className="mb-4 text-lg font-semibold">
-              Payout Amount
-            </Label>
-            <div className="flex items-center gap-2 rounded-2xl border border-gray-100 p-4">
-              <span className="text-2xl font-bold text-ink">â‚¦</span>
-              <Input
-                id="amount"
-                type="text"
-                value={amount}
-                onChange={handleAmountChange}
-                placeholder="0"
-                className="border-0 text-2xl font-bold focus-visible:ring-0"
-                maxLength={10}
-              />
-            </div>
-            <p className="mt-2 text-center text-xs text-muted-foreground">
-              Minimum: â‚¦1,000 â€¢ Maximum:{" "}
-              {earnings ? formatCurrency(earnings.available_balance) : "â‚¦0"}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="rounded-3xl border border-gray-100 bg-white p-6">
+          <Label htmlFor="amount" className="mb-4 block text-lg font-semibold text-ink">
+            Payout Amount
+          </Label>
+          <div className="flex items-center gap-2 rounded-2xl bg-brand-50 p-4 focus-within:ring-2 focus-within:ring-brand-300">
+            <span className="text-2xl font-bold text-ink">₦</span>
+            <Input
+              id="amount"
+              type="text"
+              value={amount}
+              onChange={handleAmountChange}
+              placeholder="0"
+              className="border-0 bg-transparent text-2xl font-bold shadow-none focus-visible:ring-0"
+              maxLength={10}
+            />
+          </div>
+          <p className="mt-3 text-center text-xs text-gray-600">
+            Minimum: ₦1,000 • Maximum:{" "}
+            {earnings ? formatCurrency(earnings.available_balance) : "₦0"}
+          </p>
+        </div>
 
         {/* Bank Account Selection */}
-        <Card className="mb-6">
-          <CardContent className="p-6">
-            <Label className="mb-4 text-lg font-semibold">Select Bank Account</Label>
+        <div className="rounded-3xl border border-gray-100 bg-white p-6">
+          <Label className="mb-4 block text-lg font-semibold text-ink">Select Bank Account</Label>
 
-            {loadingBanks ? (
-              <div className="flex flex-col items-center justify-center py-8">
-                <Loader2 className="mb-4 h-6 w-6 animate-spin text-primary" />
-                <p className="text-sm text-muted-foreground">Loading bank accounts...</p>
-              </div>
-            ) : (
-              <>
-                {bankAccounts.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-8">
-                    <CreditCard className="mb-4 h-12 w-12 text-muted-foreground" />
-                    <h3 className="mb-2 text-lg font-semibold">No bank accounts found</h3>
-                    <p className="mb-6 text-center text-sm text-muted-foreground">
-                      Add a bank account in your profile to request payouts
-                    </p>
-                    <Button asChild>
-                      <Link href="/dashboard/seller/settings">Add Bank Account</Link>
-                    </Button>
+          {loadingBanks ? (
+            <div className="flex flex-col items-center justify-center py-8">
+              <Loader2 className="mb-4 h-6 w-6 animate-spin text-brand-500" />
+              <p className="text-sm text-gray-600">Loading bank accounts...</p>
+            </div>
+          ) : (
+            <>
+              {bankAccounts.length === 0 ? (
+                <div className="flex flex-col items-center justify-center py-8">
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100">
+                    <CreditCard className="h-7 w-7 text-brand-500" />
                   </div>
-                ) : (
-                  <div className="space-y-3">
-                    {bankAccounts.map((bank) => (
-                      <button
-                        key={bank.id}
-                        onClick={() => setSelectedBank(bank)}
-                        className={`w-full rounded-lg border-2 p-4 text-left transition-colors ${
-                          selectedBank?.id === bank.id
-                            ? "border-primary bg-primary/10"
-                            : "border-border hover:bg-accent"
-                        }`}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-4">
-                            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-primary/20">
-                              <Building2 className="h-5 w-5 text-primary" />
-                            </div>
-                            <div>
-                              <p className="font-semibold text-foreground">{bank.bank_name}</p>
-                              <p className="text-sm text-muted-foreground">
-                                {bank.account_number}
-                              </p>
-                              <p className="text-xs text-muted-foreground">{bank.account_name}</p>
-                            </div>
+                  <h3 className="mb-1 text-lg font-semibold text-ink">No bank accounts found</h3>
+                  <p className="mb-6 text-center text-sm text-gray-600">
+                    Add a bank account in your profile to request payouts
+                  </p>
+                  <Button asChild>
+                    <Link href="/dashboard/seller/settings">Add Bank Account</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {bankAccounts.map((bank) => (
+                    <button
+                      key={bank.id}
+                      onClick={() => setSelectedBank(bank)}
+                      className={`w-full rounded-2xl border-2 p-4 text-left transition-colors ${
+                        selectedBank?.id === bank.id
+                          ? "border-brand-500 bg-brand-50"
+                          : "border-gray-100 hover:border-brand-200 hover:bg-brand-50/40"
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-4">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100">
+                            <Building2 className="h-5 w-5 text-brand-500" />
                           </div>
-                          {selectedBank?.id === bank.id && (
-                            <CheckCircle2 className="h-6 w-6 text-primary" />
-                          )}
+                          <div>
+                            <p className="font-semibold text-ink">{bank.bank_name}</p>
+                            <p className="text-sm text-gray-600">
+                              {bank.account_number}
+                            </p>
+                            <p className="text-xs text-gray-500">{bank.account_name}</p>
+                          </div>
                         </div>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </>
-            )}
-          </CardContent>
-        </Card>
+                        {selectedBank?.id === bank.id && (
+                          <CheckCircle2 className="h-6 w-6 text-brand-500" />
+                        )}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* Payout Summary */}
         {amount && selectedBank && (
-          <Card className="mb-6">
-            <CardContent className="p-6">
-              <h3 className="mb-4 text-lg font-semibold">Payout Summary</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Amount:</span>
-                  <span className="text-sm font-semibold text-foreground">
-                    {formatCurrency(parseFloat(amount))}
-                  </span>
+          <div className="rounded-3xl bg-brand-50 p-6">
+            <h3 className="mb-4 text-lg font-semibold text-ink">Payout Summary</h3>
+            <div className="space-y-3">
+              {[
+                { k: "Amount", v: formatCurrency(parseFloat(amount)) },
+                { k: "Bank", v: selectedBank.bank_name },
+                { k: "Account", v: selectedBank.account_number },
+                { k: "Recipient", v: selectedBank.account_name },
+              ].map(({ k, v }) => (
+                <div key={k} className="flex items-center justify-between rounded-xl bg-white px-4 py-2.5">
+                  <span className="text-sm font-medium text-gray-600">{k}</span>
+                  <span className="text-sm font-semibold text-ink">{v}</span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Bank:</span>
-                  <span className="text-sm font-semibold text-foreground">
-                    {selectedBank.bank_name}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Account:</span>
-                  <span className="text-sm font-semibold text-foreground">
-                    {selectedBank.account_number}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Recipient:</span>
-                  <span className="text-sm font-semibold text-foreground">
-                    {selectedBank.account_name}
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              ))}
+            </div>
+          </div>
         )}
 
         {/* Submit Button */}
-        <div className="mb-6">
-          <Button
-            onClick={handleRequestPayout}
-            disabled={!amount || !selectedBank || loading}
-            size="lg"
-            className="w-full"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Submitting...
-              </>
-            ) : (
-              <>
-                <ArrowUpCircle className="mr-2 h-5 w-5" />
-                Request Payout
-              </>
-            )}
-          </Button>
-        </div>
+        <button
+          onClick={handleRequestPayout}
+          disabled={!amount || !selectedBank || loading}
+          className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-brand-500 px-8 py-4 text-lg font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300 active:bg-brand-700 disabled:opacity-50"
+        >
+          {loading ? (
+            <>
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Submitting...
+            </>
+          ) : (
+            <>
+              <ArrowUpCircle className="h-5 w-5" />
+              Request Payout
+            </>
+          )}
+        </button>
 
         {/* Info Section */}
-        <Card>
-          <CardContent className="p-6">
-            <div className="mb-4 flex items-center gap-2">
-              <Info className="h-5 w-5 text-primary" />
-              <h3 className="text-lg font-semibold text-foreground">Important Information</h3>
-            </div>
-            <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>â€¢ Payouts are processed within 12-14 hours</li>
-              <li>â€¢ You'll receive a confirmation email once processed</li>
-              <li>â€¢ Minimum payout amount is â‚¦1,000</li>
-              <li>â€¢ Platform fee of 4% is already deducted from your sales</li>
-              <li>â€¢ You can track your payout status in Payout History</li>
-            </ul>
-          </CardContent>
-        </Card>
+        <div className="rounded-3xl bg-page-warm p-6">
+          <div className="mb-4 flex items-center gap-2">
+            <Info className="h-5 w-5 text-brand-500" />
+            <h3 className="text-lg font-semibold text-ink">Important Information</h3>
+          </div>
+          <ul className="space-y-2 text-sm text-gray-600">
+            <li>• Payouts are processed within 12-14 hours</li>
+            <li>• You'll receive a confirmation email once processed</li>
+            <li>• Minimum payout amount is ₦1,000</li>
+            <li>• Platform fee of 4% is already deducted from your sales</li>
+            <li>• You can track your payout status in Payout History</li>
+          </ul>
+        </div>
       </div>
     </DashboardLayout>
   );

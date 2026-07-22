@@ -3,11 +3,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { DashboardLayout } from "@/components/dashboard/dashboard-layout";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RefreshCw, CheckCircle2, XCircle, User, Package } from "lucide-react";
+import { RefreshCw, CheckCircle2, XCircle, User } from "lucide-react";
 import { toast } from "sonner";
 
 interface EventTicket {
@@ -29,7 +27,7 @@ interface Stats { total: number; valid: number; used: number }
 
 const fmt = (v: string | number) => {
   const n = typeof v === "string" ? parseFloat(v) : v;
-  if (isNaN(n)) return "â‚¦0";
+  if (isNaN(n)) return "₦0";
   return new Intl.NumberFormat("en-NG", { style: "currency", currency: "NGN", minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n);
 };
 
@@ -84,7 +82,7 @@ export default function SellerPurchasesPage() {
     return (
       <DashboardLayout>
         <div className="flex h-full items-center justify-center">
-          <div className="h-5 w-5 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-brand-500 border-t-transparent" />
         </div>
       </DashboardLayout>
     );
@@ -103,37 +101,35 @@ export default function SellerPurchasesPage() {
 
   return (
     <DashboardLayout>
-      <div className="p-6 space-y-5 max-w-4xl">
+      <div className="mx-auto max-w-4xl space-y-8 p-6 sm:p-8">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-ink">Purchases</h1>
-            <p className="text-sm text-muted-foreground">All purchases made on your products</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Sales</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Purchases</h1>
           </div>
-          <Button size="sm" variant="outline" onClick={onRefresh} disabled={refreshing} className="h-8 text-xs">
+          <Button size="sm" variant="outline" onClick={onRefresh} disabled={refreshing}>
             <RefreshCw className={`mr-1.5 h-3.5 w-3.5 ${refreshing ? "animate-spin" : ""}`} />
             Refresh
           </Button>
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-3 gap-4">
           {[
-            { label: "Total", value: stats.total, color: "text-foreground" },
-            { label: "Valid", value: stats.valid, color: "text-emerald-600" },
-            { label: "Used", value: stats.used, color: "text-muted-foreground" },
+            { label: "Total", value: stats.total, color: "text-ink" },
+            { label: "Valid", value: stats.valid, color: "text-[#00B42A]" },
+            { label: "Used", value: stats.used, color: "text-gray-500" },
           ].map(({ label, value, color }) => (
-            <Card key={label} className="shadow-none">
-              <CardContent className="px-4 py-3 text-center">
-                <p className={`text-2xl font-semibold ${color}`}>{value}</p>
-                <p className="text-xs text-muted-foreground">{label}</p>
-              </CardContent>
-            </Card>
+            <div key={label} className="rounded-3xl border border-gray-100 bg-white p-5 text-center">
+              <p className={`text-2xl font-semibold ${color}`}>{value}</p>
+              <p className="text-xs text-gray-600">{label}</p>
+            </div>
           ))}
         </div>
 
         {/* Filter tabs */}
-        <div className="flex gap-1 border rounded-md p-0.5 w-fit">
+        <div className="flex w-fit gap-1 rounded-full border border-gray-200 bg-white p-1">
           {([
             { key: "all", label: `All (${stats.total})` },
             { key: "valid", label: `Valid (${stats.valid})` },
@@ -142,10 +138,10 @@ export default function SellerPurchasesPage() {
             <button
               key={key}
               onClick={() => setFilter(key)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+              className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
                 filter === key
-                  ? "bg-foreground text-background"
-                  : "text-muted-foreground hover:text-foreground"
+                  ? "bg-brand-500 text-white"
+                  : "text-gray-600 hover:text-brand-500"
               }`}
             >
               {label}
@@ -155,78 +151,77 @@ export default function SellerPurchasesPage() {
 
         {/* List */}
         {loading ? (
-          <div className="space-y-2">
-            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-20 w-full" />)}
+          <div className="space-y-3">
+            {[1, 2, 3, 4].map((i) => <Skeleton key={i} className="h-24 w-full rounded-3xl" />)}
           </div>
         ) : filtered.length > 0 ? (
-          <div className="divide-y border rounded-lg overflow-hidden">
+          <div className="space-y-3">
             {filtered.map((ticket) => (
-              <div key={ticket.ticket_id} className="flex items-start gap-4 bg-card px-4 py-3">
+              <div key={ticket.ticket_id} className="flex items-start gap-4 rounded-3xl border border-gray-100 bg-white p-5">
                 {/* Status icon */}
-                <div className="mt-0.5 shrink-0">
+                <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ticket.is_used ? "bg-gray-100" : "bg-[#EBFBF0]"}`}>
                   {ticket.is_used ? (
-                    <XCircle className="h-4 w-4 text-muted-foreground" />
+                    <XCircle className="h-4 w-4 text-gray-500" />
                   ) : (
-                    <CheckCircle2 className="h-4 w-4 text-emerald-500" />
+                    <CheckCircle2 className="h-4 w-4 text-[#00B42A]" />
                   )}
                 </div>
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <p className="text-sm font-medium truncate">{ticket.event.title}</p>
-                    <Badge
-                      variant={ticket.is_used ? "secondary" : "default"}
-                      className={`text-[10px] px-1.5 h-4 shrink-0 ${!ticket.is_used ? "bg-emerald-500 hover:bg-emerald-500" : ""}`}
-                    >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="truncate font-medium text-gray-900">{ticket.event.title}</p>
+                    <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
+                      ticket.is_used ? "bg-gray-100 text-gray-500" : "bg-[#EBFBF0] text-[#00B42A]"
+                    }`}>
                       {ticket.is_used ? "Used" : "Valid"}
-                    </Badge>
+                    </span>
                   </div>
 
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
-                    <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                      <User className="h-3 w-3" />
+                    <span className="flex items-center gap-1 text-xs text-gray-600">
+                      <User className="h-3 w-3 text-brand-500" />
                       {ticket.buyer.full_name}
                     </span>
-                    <span className="text-xs text-muted-foreground">
+                    <span className="text-xs text-gray-600">
                       Qty: {ticket.quantity}
                     </span>
-                    <span className="text-xs text-muted-foreground font-mono">
+                    <span className="font-mono text-xs text-gray-500">
                       {ticket.purchase_reference}
                     </span>
                   </div>
 
                   {ticket.is_used && ticket.verified_by && (
-                    <p className="mt-0.5 text-xs text-muted-foreground">
+                    <p className="mt-0.5 text-xs text-gray-500">
                       Verified by {ticket.verified_by.full_name}
-                      {ticket.verified_at ? ` Â· ${fmtDate(ticket.verified_at)}` : ""}
+                      {ticket.verified_at ? ` · ${fmtDate(ticket.verified_at)}` : ""}
                     </p>
                   )}
 
-                  <p className="mt-0.5 text-xs text-muted-foreground">
+                  <p className="mt-0.5 text-xs text-gray-500">
                     {fmtDate(ticket.created_at)}
                   </p>
                 </div>
 
                 {/* Amount */}
                 <div className="shrink-0 text-right">
-                  <p className="text-sm font-semibold text-primary">{fmt(ticket.payment_amount)}</p>
+                  <p className="font-semibold text-brand-500">{fmt(ticket.payment_amount)}</p>
                   {ticket.ticket_tier && (
-                    <p className="text-[11px] text-muted-foreground">{ticket.ticket_tier.name}</p>
+                    <p className="text-[11px] text-gray-500">{ticket.ticket_tier.name}</p>
                   )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="rounded-3xl border border-gray-100 bg-white py-12 text-center">
-            <Package className="mx-auto h-8 w-8 text-muted-foreground/40" />
-            <p className="mt-2 text-sm font-medium">No purchases found</p>
-            <p className="text-xs text-muted-foreground">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-white py-16 text-center">
+            <img src="/illustrations/no-data.svg" alt="" className="mb-6 h-28 w-auto" />
+            <p className="font-medium text-ink">No purchases found</p>
+            <p className="mt-1 text-xs text-gray-600">
               {filter !== "all" ? "Try switching to All" : "Purchases will appear once customers buy your products"}
             </p>
             {filter !== "all" && (
-              <Button size="sm" variant="outline" className="mt-3 h-7 text-xs" onClick={() => setFilter("all")}>
+              <Button size="sm" variant="outline" className="mt-4" onClick={() => setFilter("all")}>
                 View all
               </Button>
             )}

@@ -99,7 +99,7 @@ export default function EarningsPage() {
   };
 
   const formatCurrency = (amount: number | undefined | null) => {
-    if (amount === undefined || amount === null) return "â‚¦0";
+    if (amount === undefined || amount === null) return "₦0";
     return new Intl.NumberFormat("en-NG", {
       style: "currency",
       currency: "NGN",
@@ -188,169 +188,97 @@ export default function EarningsPage() {
 
   return (
     <DashboardLayout>
-      <div className="mx-auto max-w-6xl px-6 py-8">
+      <div className="mx-auto max-w-5xl space-y-8 p-6 sm:p-8">
         {/* Header */}
-        <div className="mb-8">
+        <div>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Finance</p>
           <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Earnings</h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            View your earnings and payout information
-          </p>
         </div>
 
-        {/* Total Earnings Header Card */}
-        <Card className="mb-6 overflow-hidden border-0 bg-gradient-to-br from-indigo-600 to-purple-600 shadow-lg">
-          <CardContent className="p-6">
-            <div className="flex items-center gap-4">
-              <div className="flex h-12 w-12 items-center justify-center rounded-full bg-white/20">
-                <Wallet className="h-6 w-6 text-white" />
+        {/* Dark hero panel */}
+        <div className="rounded-3xl bg-brand-950 p-6 sm:p-8">
+          <div className="flex flex-col gap-6 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <div className="mb-3 inline-flex rounded-2xl bg-brand-500/20 p-3">
+                <Wallet className="h-6 w-6 text-brand-300" />
               </div>
-              <div className="flex-1">
-                <p className="text-sm font-medium text-white/80">Total Earnings</p>
-                <p className="text-3xl font-bold text-white">
-                  {formatCurrency(earnings.total_sales)}
-                </p>
-                <p className="text-sm text-white/70">From all sales</p>
-              </div>
+              <p className="text-sm text-brand-200/70">Total earnings from all sales</p>
+              <p className="mt-1 text-4xl font-bold text-white">
+                {formatCurrency(earnings.total_sales)}
+              </p>
+              <p className="mt-2 text-sm text-brand-200">
+                Available to withdraw:{" "}
+                <span className="font-semibold text-brand-300">
+                  {formatCurrency(earnings.available_balance)}
+                </span>
+              </p>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* Quick Actions */}
-        <div className="mb-6 grid grid-cols-1 gap-4 md:grid-cols-2">
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-auto flex-col items-center justify-center gap-2 py-6"
-            asChild
-          >
-            <Link href="/dashboard/seller/earnings/request-payout">
-              <ArrowUpCircle className="h-6 w-6 text-primary" />
-              <span className="font-semibold">Request Payout</span>
-            </Link>
-          </Button>
-
-          <Button
-            variant="outline"
-            size="lg"
-            className="h-auto flex-col items-center justify-center gap-2 py-6"
-            asChild
-          >
-            <Link href="/dashboard/seller/earnings/payout-history">
-              <List className="h-6 w-6 text-primary" />
-              <span className="font-semibold">Payout History</span>
-            </Link>
-          </Button>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/dashboard/seller/earnings/request-payout"
+                className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+              >
+                <ArrowUpCircle className="h-4 w-4" />
+                Request Payout
+              </Link>
+              <Link
+                href="/dashboard/seller/earnings/payout-history"
+                className="inline-flex items-center gap-2 rounded-full border border-brand-300/40 px-6 py-3 text-sm font-medium text-brand-100 transition-colors hover:bg-white/10"
+              >
+                <List className="h-4 w-4" />
+                Payout History
+              </Link>
+            </div>
+          </div>
         </div>
 
         {/* Earnings Breakdown */}
-        <div className="mb-6">
-          <h2 className="mb-4 text-xl font-semibold text-ink">Earnings Breakdown</h2>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-            {/* Total Sales */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-green-100 dark:bg-green-900/20">
-                  <TrendingUp className="h-5 w-5 text-green-600 dark:text-green-400" />
+        <div>
+          <h2 className="mb-4 text-xl font-semibold text-ink">Breakdown</h2>
+          <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+            {[
+              { label: "Total Sales", value: earnings.total_sales, icon: TrendingUp, chip: "bg-[#EBFBF0]", iconColor: "text-[#00B42A]" },
+              { label: "Platform Fee (4%)", value: earnings.total_commission, icon: TrendingDown, chip: "bg-red-50", iconColor: "text-[#b3261e]" },
+              { label: "Total Payouts", value: earnings.total_payouts, icon: Wallet, chip: "bg-brand-100", iconColor: "text-brand-500" },
+              { label: "Available Balance", value: earnings.available_balance, icon: Wallet, chip: "bg-[#FFF9E5]", iconColor: "text-[#B08600]" },
+            ].map(({ label, value, icon: Icon, chip, iconColor }) => (
+              <div key={label} className="rounded-3xl border border-gray-100 bg-white p-5">
+                <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${chip}`}>
+                  <Icon className={`h-5 w-5 ${iconColor}`} />
                 </div>
-                <p className="text-2xl font-bold text-ink">
-                  {formatCurrency(earnings.total_sales)}
+                <p className="truncate text-xl font-bold text-ink sm:text-2xl">
+                  {formatCurrency(value)}
                 </p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">
-                  Total Sales
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Platform Fee */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-red-100 dark:bg-red-900/20">
-                  <TrendingDown className="h-5 w-5 text-red-600 dark:text-red-400" />
-                </div>
-                <p className="text-2xl font-bold text-ink">
-                  {formatCurrency(earnings.total_commission)}
-                </p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">
-                  Platform Fee (4%)
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Total Payouts */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-blue-100 dark:bg-blue-900/20">
-                  <Wallet className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-                </div>
-                <p className="text-2xl font-bold text-ink">
-                  {formatCurrency(earnings.total_payouts)}
-                </p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">
-                  Total Payouts
-                </p>
-              </CardContent>
-            </Card>
-
-            {/* Available Balance */}
-            <Card>
-              <CardContent className="p-6">
-                <div className="mb-4 flex h-10 w-10 items-center justify-center rounded-full bg-amber-100 dark:bg-amber-900/20">
-                  <Wallet className="h-5 w-5 text-amber-600 dark:text-amber-400" />
-                </div>
-                <p className="text-2xl font-bold text-ink">
-                  {formatCurrency(earnings.available_balance)}
-                </p>
-                <p className="mt-1 text-sm font-medium text-muted-foreground">
-                  Available Balance
-                </p>
-              </CardContent>
-            </Card>
+                <p className="mt-1 text-xs font-medium text-gray-600 sm:text-sm">{label}</p>
+              </div>
+            ))}
           </div>
         </div>
 
         {/* Commission Structure */}
-        <div className="mb-6">
-          <h2 className="mb-4 text-xl font-semibold text-ink">Commission Structure</h2>
-          <Card>
-            <CardContent className="p-6">
-              <div className="mb-4 flex items-center gap-2">
-                <Info className="h-5 w-5 text-primary" />
-                <h3 className="text-lg font-semibold text-foreground">How it works</h3>
+        <div className="rounded-3xl bg-brand-50 p-6 sm:p-8">
+          <div className="mb-4 flex items-center gap-2">
+            <Info className="h-5 w-5 text-brand-500" />
+            <h3 className="text-lg font-semibold text-ink">How commissions work</h3>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {[
+              { k: "Platform Fee", v: "4% of sale price" },
+              { k: "Your Earnings", v: "96% of sale price" },
+              { k: "Example", v: "₦1,500 sale → You earn ₦1,440" },
+            ].map(({ k, v }) => (
+              <div key={k} className="rounded-2xl bg-white p-4">
+                <p className="text-xs font-medium text-gray-600">{k}</p>
+                <p className="mt-1 text-sm font-semibold text-ink">{v}</p>
               </div>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Platform Fee:
-                  </span>
-                  <span className="text-sm font-semibold text-foreground">
-                    4% of sale price
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">
-                    Your Earnings:
-                  </span>
-                  <span className="text-sm font-semibold text-foreground">
-                    96% of sale price
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className="text-sm font-medium text-muted-foreground">Example:</span>
-                  <span className="text-sm font-semibold text-foreground">
-                    â‚¦1,500 sale â†’ You earn â‚¦1,440
-                  </span>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+            ))}
+          </div>
         </div>
 
         {/* Last Updated */}
-        <div className="text-center">
-          <p className="text-xs text-muted-foreground">
-            Last updated: {formatDate(earnings.last_updated)}
-          </p>
-        </div>
+        <p className="text-center text-xs text-gray-500">
+          Last updated: {formatDate(earnings.last_updated)}
+        </p>
       </div>
     </DashboardLayout>
   );

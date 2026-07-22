@@ -170,15 +170,11 @@ export default function SellerStorePage() {
     <DashboardLayout>
       <div className="mx-auto max-w-3xl px-6 py-8">
         {/* Header */}
-        <div className="mb-6 flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100">
-              <Store className="h-5 w-5 text-brand-500" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-semibold text-ink">My Store</h1>
-              <p className="text-sm text-muted-foreground">{profile?.brand_name}</p>
-            </div>
+        <div className="mb-8 flex items-center justify-between gap-4">
+          <div>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Storefront</p>
+            <h1 className="text-2xl font-semibold text-ink sm:text-3xl">My Store</h1>
+            <p className="mt-1 text-sm text-gray-600">{profile?.brand_name}</p>
           </div>
           {profile?.brand_slug && (
             <Button variant="outline" size="sm" asChild>
@@ -193,16 +189,18 @@ export default function SellerStorePage() {
         <Card className="mb-6">
           <CardContent className="flex items-center justify-between p-5">
             <div className="flex items-center gap-3">
-              {profile?.store_active ? (
-                <CheckCircle2 className="h-5 w-5 text-green-600" />
-              ) : (
-                <XCircle className="h-5 w-5 text-muted-foreground" />
-              )}
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${profile?.store_active ? "bg-[#EBFBF0]" : "bg-gray-100"}`}>
+                {profile?.store_active ? (
+                  <CheckCircle2 className="h-5 w-5 text-[#00B42A]" />
+                ) : (
+                  <XCircle className="h-5 w-5 text-gray-500" />
+                )}
+              </div>
               <div>
-                <p className="font-semibold text-foreground">
+                <p className="font-semibold text-ink">
                   Store is {profile?.store_active ? "Open" : "Closed"}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-gray-600">
                   {profile?.store_active
                     ? "Customers can browse and buy your products"
                     : "Your store is hidden from customers"}
@@ -232,7 +230,7 @@ export default function SellerStorePage() {
           <CardContent className="p-5">
             <h2 className="mb-3 text-base font-semibold text-foreground">Store Banner</h2>
             <p className="mb-3 text-xs text-muted-foreground">
-              Shown at the top of your public store page. Max {MAX_BANNER_KB} KB â€” keep it tight for fast loads.
+              Shown at the top of your public store page. Max {MAX_BANNER_KB} KB — keep it tight for fast loads.
             </p>
 
             {/* Preview */}
@@ -271,7 +269,7 @@ export default function SellerStorePage() {
               onChange={handleBannerChange}
             />
             <p className="text-[11px] text-muted-foreground">
-              Recommended: 1200Ã—300 px Â· JPG or PNG Â· Max {MAX_BANNER_KB} KB
+              Recommended: 1200×300 px · JPG or PNG · Max {MAX_BANNER_KB} KB
             </p>
           </CardContent>
         </Card>

@@ -263,16 +263,17 @@ export default function BankDetailsPage() {
     <DashboardLayout>
       <div className="mx-auto max-w-4xl px-6 py-8">
         {/* Header */}
-        <div className="mb-6 flex items-center gap-4">
-          <Button variant="ghost" size="sm" asChild>
-            <Link href="/dashboard/seller/settings">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <Link
+              href="/dashboard/seller/settings"
+              className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-brand-500"
+            >
+              <ArrowLeft className="h-4 w-4" /> Settings
             </Link>
-          </Button>
-          <div className="flex-1">
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Payouts</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Bank Accounts</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
+            <p className="mt-1 text-sm text-gray-600">
               {savedAccounts.length > 0
                 ? `You have ${savedAccounts.length} bank account${savedAccounts.length > 1 ? "s" : ""}`
                 : "No bank accounts added yet"}
@@ -288,7 +289,7 @@ export default function BankDetailsPage() {
         {savedAccounts.length === 0 && !showAddForm && (
           <Card>
             <CardContent className="flex flex-col items-center justify-center py-12">
-              <div className="mb-4 text-6xl">ðŸ¦</div>
+              <img src="/illustrations/payments.svg" alt="" className="mb-6 h-36 w-auto" />
               <h3 className="mb-2 text-xl font-semibold">No Bank Accounts</h3>
               <p className="mb-6 text-center text-sm text-muted-foreground">
                 Add your bank account details to receive payments and withdrawals
@@ -304,39 +305,43 @@ export default function BankDetailsPage() {
         {/* Existing Bank Accounts */}
         {savedAccounts.length > 0 && (
           <div className="mb-6">
-            <h2 className="mb-4 text-lg font-semibold">Your Bank Accounts</h2>
+            <h2 className="mb-4 text-lg font-semibold text-ink">Your Bank Accounts</h2>
             <div className="space-y-4">
               {savedAccounts.map((account) => (
-                <Card key={account.id}>
-                  <CardContent className="p-6">
-                    {account.is_primary && (
-                      <Badge className="mb-4 bg-primary">PRIMARY</Badge>
-                    )}
-                    <div className="space-y-2">
-                      <p className="text-lg font-semibold text-foreground">
-                        {account.account_name}
-                      </p>
-                      <div className="flex items-center gap-2 text-muted-foreground">
-                        <Building2 className="h-4 w-4" />
-                        <span>{account.bank_name}</span>
+                <div key={account.id} className="rounded-3xl border border-gray-100 bg-white p-6">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-100">
+                        <Building2 className="h-6 w-6 text-brand-500" />
                       </div>
-                      <div className="flex items-center gap-2 font-mono text-sm text-muted-foreground">
-                        <CreditCard className="h-4 w-4" />
-                        <span>{account.account_number}</span>
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <p className="text-lg font-semibold text-ink">
+                            {account.account_name}
+                          </p>
+                          {account.is_primary && (
+                            <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-[10px] font-semibold text-brand-700">
+                              PRIMARY
+                            </span>
+                          )}
+                        </div>
+                        <p className="mt-0.5 text-sm text-gray-600">{account.bank_name}</p>
+                        <p className="mt-0.5 flex items-center gap-1.5 font-mono text-sm text-gray-500">
+                          <CreditCard className="h-3.5 w-3.5" />
+                          {account.account_number}
+                        </p>
                       </div>
                     </div>
-                    <div className="mt-4 flex justify-end">
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => deleteAccount(account.id)}
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => deleteAccount(account.id)}
+                    >
+                      <Trash2 className="mr-1.5 h-4 w-4" />
+                      Delete
+                    </Button>
+                  </div>
+                </div>
               ))}
             </div>
           </div>
@@ -418,8 +423,8 @@ export default function BankDetailsPage() {
                                   className="cursor-pointer py-3"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10">
-                                      <Building2 className="h-4 w-4 text-primary" />
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100">
+                                      <Building2 className="h-4 w-4 text-brand-500" />
                                     </div>
                                     <span className="font-medium">{bank.name}</span>
                                   </div>
@@ -465,7 +470,7 @@ export default function BankDetailsPage() {
                 {accountName && (
                   <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <CheckCircle2 className="h-4 w-4 text-[#00B42A]" />
                       <p className="font-medium text-foreground">Account Verified</p>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
