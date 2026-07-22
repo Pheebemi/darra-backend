@@ -1,14 +1,31 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
+from django.contrib.auth.password_validation import validate_password as django_validate_password
+from django.core.exceptions import ValidationError as DjangoValidationError
 from django.utils.text import slugify
 import re
 from .models import BankDetail
 
 User = get_user_model()
 
+
+def run_password_validators(value):
+    """
+    Run Django's configured AUTH_PASSWORD_VALIDATORS (min length, common
+    passwords, numeric-only, attribute similarity) and surface any failures
+    as a single DRF validation error. This is what actually blocks weak
+    passwords like 'password' or '12345678' — a bare length check does not.
+    """
+    try:
+        django_validate_password(value)
+    except DjangoValidationError as exc:
+        raise serializers.ValidationError(list(exc.messages))
+    return value
+
+
 class UserRegistrationSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, min_length=8)
-    
+
     class Meta:
         model = User
         fields = ['email', 'password', 'full_name', 'user_type', 'brand_name']
@@ -22,9 +39,7 @@ class UserRegistrationSerializer(serializers.ModelSerializer):
         return value
 
     def validate_password(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters long.")
-        return value
+        return run_password_validators(value)
 
     def validate_brand_name(self, value):
         if self.initial_data.get('user_type') == 'seller':
@@ -79,9 +94,7 @@ class PasswordResetConfirmSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate_password(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters long.")
-        return value
+        return run_password_validators(value)
 
 class UserProfileSerializer(serializers.ModelSerializer):
     about = serializers.CharField(required=False, allow_blank=True)
@@ -141,9 +154,7 @@ class UpdatePasswordSerializer(serializers.Serializer):
     new_password = serializers.CharField(required=True, min_length=8)
 
     def validate_new_password(self, value):
-        if len(value) < 8:
-            raise serializers.ValidationError("Password must be at least 8 characters long.")
-        return value
+        return run_password_validators(value)
 
 class BankDetailSerializer(serializers.ModelSerializer):
     class Meta:

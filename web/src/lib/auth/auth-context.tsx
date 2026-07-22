@@ -89,6 +89,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const data = await response.json();
 
       if (!response.ok) {
+        // Unverified account: instead of a dead-end error, send the user to
+        // the OTP page (backend has just re-sent a fresh code) so they can
+        // finish verifying rather than being stuck forever.
+        if (data.needs_verification && data.email) {
+          toast.info(data.message || "Please verify your email to continue.");
+          router.push("/verify-otp?email=" + encodeURIComponent(data.email));
+          return;
+        }
         throw new Error(data.message || "Login failed");
       }
 

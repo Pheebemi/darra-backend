@@ -31,12 +31,22 @@ export async function POST(request: NextRequest) {
     });
   } catch (error: any) {
     const status = error.response?.status || 500;
+    const data = error.response?.data || {};
     const message =
-      error.response?.data?.message ||
+      data.message ||
       error.message ||
       "Login failed. Please try again.";
 
-    return NextResponse.json({ message }, { status });
+    // Pass through the unverified-account signal so the client can route the
+    // user to the OTP page instead of dead-ending on a toast.
+    return NextResponse.json(
+      {
+        message,
+        ...(data.needs_verification ? { needs_verification: true } : {}),
+        ...(data.email ? { email: data.email } : {}),
+      },
+      { status }
+    );
   }
 }
 

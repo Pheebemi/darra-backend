@@ -145,16 +145,15 @@ class VerifyOTPView(APIView):
                         }
                     })
                 else:
-                    # Invalid OTP - clear it to prevent reuse
-                    user.otp = ''
-                    user.otp_created_at = None
-                    user.save()
-                    
-                    # Log failed verification
+                    # Wrong code: do NOT clear the OTP. Clearing on a single
+                    # typo forced a full resend + 2-min cooldown, which is a big
+                    # part of how users got stuck. The 10-minute expiry plus the
+                    # auth rate limit already make a 6-digit code impractical to
+                    # brute force, so let them simply try again.
                     log_otp_attempt(user.email, False, request.META.get('REMOTE_ADDR'))
-                    
+
                     return Response({
-                        "message": "Invalid OTP. Please request a new one."
+                        "message": "Incorrect code. Please check and try again."
                     }, status=status.HTTP_400_BAD_REQUEST)
             except User.DoesNotExist:
                 return Response({
@@ -172,9 +171,26 @@ class LoginView(APIView):
             try:
                 user = User.objects.get(email=serializer.validated_data['email'])
                 if not user.is_verified:
+                    # Recovery path: an unverified user who closed the OTP page
+                    # would otherwise be stuck forever (can't re-register — email
+                    # taken; can't log in — not verified). Resend a fresh OTP
+                    # (respecting the cooldown so we don't spam) and tell the
+                    # frontend to route them to the verification page.
+                    cooldown_ok, _ = check_otp_cooldown(user.otp_created_at, cooldown_minutes=2)
+                    if cooldown_ok:
+                        otp = generate_otp()
+                        user.otp = otp
+                        user.otp_created_at = timezone.now()
+                        user.save()
+                        try:
+                            send_otp_email(user.email, otp, is_verification=True)
+                        except Exception as e:
+                            print(f"Failed to send verification email: {str(e)}")
                     return Response({
-                        "message": "Please verify your email first."
-                    }, status=status.HTTP_400_BAD_REQUEST)
+                        "message": "Your email isn't verified yet. We've sent you a verification code.",
+                        "needs_verification": True,
+                        "email": user.email,
+                    }, status=status.HTTP_403_FORBIDDEN)
 
                 if user.check_password(serializer.validated_data['password']):
                     refresh = RefreshToken.for_user(user)
