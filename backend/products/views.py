@@ -16,6 +16,7 @@ from django.db.models.functions import TruncDate
 from apps.payments.serializers import PurchaseSerializer
 from .file_validation import validate_uploaded_file, ALLOWED_FILE_TYPES
 from django.core.exceptions import ValidationError
+from core.pagination import StandardResultsPagination
 from core.cache_utils import (
     cache_product_list, cache_product_data, cache_user_data, 
     performance_monitor, CacheManager
@@ -224,14 +225,26 @@ class ProductListView(generics.ListAPIView):
     serializer_class = ProductSerializer
     permission_classes = [permissions.AllowAny]
     queryset = Product.objects.all()
+    pagination_class = StandardResultsPagination
 
-    @cache_product_list
+    # Sorting happens here rather than in the browser. With pagination the
+    # client only holds one page, so sorting client-side would only order that
+    # page — "cheapest first" would show the cheapest of page 3, not overall.
+    ORDERING = {
+        'newest': '-created_at',
+        'oldest': 'created_at',
+        'price_asc': 'price',
+        'price_desc': '-price',
+        'title': 'title',
+    }
+
     @performance_monitor('get_product_list')
     def get_queryset(self):
         queryset = Product.objects.select_related('owner', 'ticket_category').prefetch_related('ticket_tiers')
         product_type = self.request.query_params.get('product_type', None)
         ticket_category = self.request.query_params.get('ticket_category', None)
         search = self.request.query_params.get('search', None)
+        ordering = self.request.query_params.get('ordering', 'newest')
 
         if product_type:
             queryset = queryset.filter(product_type=product_type)
@@ -245,7 +258,10 @@ class ProductListView(generics.ListAPIView):
                 Q(owner__brand_name__icontains=search)
             )
 
-        return queryset
+        # A deterministic order is required, not just nice to have: without it
+        # the database can return rows in any order and the same product can
+        # appear on two pages while another is never shown. `id` breaks ties.
+        return queryset.order_by(self.ORDERING.get(ordering, '-created_at'), '-id')
 
 class PublicProductDetailView(generics.RetrieveAPIView):
     serializer_class = ProductSerializer

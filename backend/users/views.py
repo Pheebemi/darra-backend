@@ -32,6 +32,8 @@ from .serializers import BankDetailSerializer
 from rest_framework.throttling import AnonRateThrottle
 from django.contrib.auth import authenticate
 from django.conf import settings
+from django.db.models import Count, Q
+from core.pagination import paginate_list
 from core.throttling import AuthenticationRateThrottle  # Import custom rate limiting
 from .otp_security import (
     generate_secure_otp,
@@ -526,14 +528,31 @@ class AllStoresView(APIView):
     permission_classes = [AllowAny]
 
     def get(self, request):
-        sellers = User.objects.filter(user_type='seller', store_active=True).exclude(brand_slug__isnull=True).exclude(brand_slug='')
-        data = [
-            {
+        sellers = (
+            User.objects
+            .filter(user_type='seller', store_active=True)
+            .exclude(brand_slug__isnull=True)
+            .exclude(brand_slug='')
+            # annotate() instead of s.products.count() inside the loop, which
+            # ran one extra query per seller.
+            .annotate(product_count=Count('products'))
+            # Explicit order so paging is stable; id breaks ties.
+            .order_by('brand_name', 'id')
+        )
+
+        search = (request.GET.get('search') or '').strip()
+        if search:
+            sellers = sellers.filter(
+                Q(brand_name__icontains=search) | Q(about__icontains=search)
+            )
+
+        return Response(paginate_list(
+            request,
+            sellers,
+            serialize=lambda s: {
                 'brand_name': s.brand_name,
                 'brand_slug': s.brand_slug,
                 'about': s.about,
-                'product_count': s.products.count(),
-            }
-            for s in sellers
-        ]
-        return Response(data)
+                'product_count': s.product_count,
+            },
+        ))

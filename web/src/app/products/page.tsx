@@ -35,18 +35,18 @@ interface Product {
   seller_name: string;
 }
 
+// These ids must be real Product.product_type values, since the server now
+// filters on them. The previous list used labels like "ebook" and "course"
+// that match no product type, so those chips always returned nothing.
 const CATEGORIES = [
   { id: "all", label: "All" },
-  { id: "ebook", label: "eBooks" },
-  { id: "template", label: "Templates" },
-  { id: "course", label: "Courses" },
-  { id: "software", label: "Software" },
-  { id: "music", label: "Music" },
-  { id: "art", label: "Art" },
-  { id: "digital", label: "Digital" },
-  { id: "png", label: "Images" },
+  { id: "pdf", label: "eBooks (PDF)" },
+  { id: "docx", label: "eBooks (DOCX)" },
+  { id: "mp3", label: "Audio" },
   { id: "event", label: "Events" },
 ];
+
+const PAGE_SIZE = 24;
 
 function getMinPrice(p: Product): number | null {
   if (p.is_ticket_event && p.ticket_tiers?.length) {
@@ -65,42 +65,55 @@ function ProductsContent() {
   const [category, setCategory] = useState("all");
   const [sort, setSort] = useState("newest");
 
-  useEffect(() => {
-    (async () => {
-      try {
-        setLoading(true);
-        const q = new URLSearchParams();
-        if (search.trim()) q.set("search", search.trim());
-        const res = await fetch(`/api/products${q.toString() ? `?${q}` : ""}`);
-        if (!res.ok) throw new Error("Failed to fetch");
-        const data = await res.json();
-        setProducts(Array.isArray(data) ? data : []);
-      } catch (e: any) {
-        toast.error(e.message || "Failed to load products");
-      } finally {
-        setLoading(false);
-      }
-    })();
-  }, [search]);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [total, setTotal] = useState(0);
 
-  const filtered = products
-    .filter((p) => {
-      if (category !== "all" && p.product_type !== category) return false;
-      if (search.trim()) {
-        const q = search.toLowerCase();
-        return (
-          p.title.toLowerCase().includes(q) ||
-          p.description?.toLowerCase().includes(q) ||
-          p.seller_name?.toLowerCase().includes(q)
-        );
-      }
-      return true;
-    })
-    .sort((a, b) => {
-      if (sort === "price_asc") return (getMinPrice(a) ?? 0) - (getMinPrice(b) ?? 0);
-      if (sort === "price_desc") return (getMinPrice(b) ?? 0) - (getMinPrice(a) ?? 0);
-      return 0;
-    });
+  // Search, category and sort are all applied by the server. With paging the
+  // browser only holds one page, so filtering or sorting here would only
+  // affect that page — "cheapest first" would show the cheapest of page 1,
+  // not of the catalogue. Debounced so typing doesn't fire a request per key.
+  useEffect(() => {
+    const t = setTimeout(() => { fetchProducts(1); }, 300);
+    return () => clearTimeout(t);
+  }, [search, category, sort]);
+
+  const fetchProducts = async (targetPage: number) => {
+    const isFirst = targetPage === 1;
+    isFirst ? setLoading(true) : setLoadingMore(true);
+
+    try {
+      const q = new URLSearchParams({
+        page: String(targetPage),
+        page_size: String(PAGE_SIZE),
+        ordering: sort,
+      });
+      if (search.trim()) q.set("search", search.trim());
+      if (category !== "all") q.set("product_type", category);
+
+      const res = await fetch(`/api/products?${q}`);
+      if (!res.ok) throw new Error("Failed to fetch");
+      const data = await res.json();
+
+      // Tolerate an unpaginated response in case an older backend is live.
+      const results: Product[] = Array.isArray(data) ? data : data.results || [];
+      const meta = Array.isArray(data) ? null : data.pagination;
+
+      setProducts((prev) => (isFirst ? results : [...prev, ...results]));
+      setPage(targetPage);
+      setHasNext(meta ? meta.has_next : false);
+      setTotal(meta ? meta.total_items : results.length);
+    } catch (e: any) {
+      toast.error(e.message || "Failed to load products");
+      if (isFirst) { setProducts([]); setTotal(0); setHasNext(false); }
+    } finally {
+      isFirst ? setLoading(false) : setLoadingMore(false);
+    }
+  };
+
+  // Server already filtered and sorted; render what it returned.
+  const filtered = products;
 
   return (
     <div className="min-h-screen bg-page">
@@ -292,6 +305,23 @@ function ProductsContent() {
                 </Link>
               );
             })}
+          </div>
+        )}
+
+        {!loading && filtered.length > 0 && (
+          <div className="mt-12 flex flex-col items-center gap-3 pb-16">
+            <p className="text-sm text-gray-600">
+              Showing {filtered.length} of {total} {total === 1 ? "product" : "products"}
+            </p>
+            {hasNext && (
+              <button
+                onClick={() => fetchProducts(page + 1)}
+                disabled={loadingMore}
+                className="rounded-full border border-brand-500 px-8 py-3 font-medium text-brand-500 transition-colors hover:bg-brand-500 hover:text-white disabled:opacity-50"
+              >
+                {loadingMore ? "Loading..." : "Load more products"}
+              </button>
+            )}
           </div>
         )}
       </div>

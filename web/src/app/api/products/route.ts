@@ -1,21 +1,32 @@
 import { NextRequest, NextResponse } from "next/server";
 import { apiClient } from "@/lib/api/client";
-import { getAuthCookies } from "@/lib/auth/cookies";
+
+/**
+ * Product list. Filtering, sorting and paging all happen on the server —
+ * the client only ever holds one page, so sorting or filtering here would
+ * only apply to that page rather than the whole catalogue.
+ */
+const FORWARDED = [
+  "product_type",
+  "ticket_category",
+  "search",
+  "ordering",
+  "page",
+  "page_size",
+];
 
 export async function GET(request: NextRequest) {
   try {
-    const searchParams = request.nextUrl.searchParams;
-    const productType = searchParams.get("product_type");
-    const ticketCategory = searchParams.get("ticket_category");
-
-    const search = searchParams.get("search");
+    const incoming = request.nextUrl.searchParams;
     const queryParams = new URLSearchParams();
-    if (productType) queryParams.append("product_type", productType);
-    if (ticketCategory) queryParams.append("ticket_category", ticketCategory);
-    if (search) queryParams.append("search", search);
 
-    const url = `/products/${queryParams.toString() ? `?${queryParams.toString()}` : ""}`;
-    const response = await apiClient.get(url);
+    for (const key of FORWARDED) {
+      const value = incoming.get(key);
+      if (value) queryParams.append(key, value);
+    }
+
+    const qs = queryParams.toString();
+    const response = await apiClient.get(`/products/${qs ? `?${qs}` : ""}`);
 
     return NextResponse.json(response.data);
   } catch (error: any) {
@@ -28,8 +39,3 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ message }, { status });
   }
 }
-
-
-
-
-

@@ -24,10 +24,13 @@ export default function Home() {
     (async () => {
       try {
         setLoading(true);
-        const res = await fetch("/api/products");
+        // Only six are shown, so ask for six rather than the whole catalogue.
+        const res = await fetch("/api/products?page_size=6");
         if (!res.ok) throw new Error();
         const data = await res.json();
-        setProducts(Array.isArray(data) ? data : []);
+        // The list endpoint is paginated ({results, pagination}); the array
+        // form is kept as a fallback for an older backend.
+        setProducts(Array.isArray(data) ? data : data.results || []);
       } catch {
         setProducts([]);
       } finally {
