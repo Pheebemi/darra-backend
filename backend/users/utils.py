@@ -518,6 +518,69 @@ def send_payout_admin_alert_email(payout_request):
         return False
 
 
+def send_contact_admin_alert_email(contact):
+    """Alert admins that someone is waiting for a human reply."""
+    try:
+        recipients = get_admin_notification_emails()
+        if not recipients:
+            print(
+                "WARNING: contact message received but no admin recipients found. "
+                "Set ADMIN_ALERT_EMAILS or mark a user as superuser."
+            )
+            return False
+
+        meta = contact._meta
+        context = {
+            'name': contact.name,
+            'email': contact.email,
+            'message': contact.message,
+            'conversation': contact.conversation,
+            'source_label': contact.get_source_display().lower(),
+            'account_label': contact.user.email if contact.user else 'Not signed in',
+            'received_at': contact.created_at.strftime('%B %d, %Y at %I:%M %p'),
+            'admin_url': (
+                f"{settings.BASE_URL}/admin/{meta.app_label}/{meta.model_name}/"
+                f"{contact.pk}/change/"
+            ),
+        }
+
+        request_factory = RequestFactory()
+        request = request_factory.get('/')
+        request.user = AnonymousUser()
+        html_message = render_to_string(
+            'users/email/contact_admin_alert.html', context, request=request
+        )
+
+        plain_message = (
+            f"{contact.name} sent a message from {context['source_label']}.\n\n"
+            f"{contact.message}\n\n"
+            f"Name: {contact.name}\n"
+            f"Email: {contact.email}\n"
+            f"Account: {context['account_label']}\n"
+            f"Received: {context['received_at']}\n"
+        )
+        if contact.conversation:
+            plain_message += (
+                f"\nWhat they already asked the assistant:\n{contact.conversation}\n"
+            )
+        plain_message += f"\nOpen in admin: {context['admin_url']}\n"
+
+        send_mail(
+            subject=f"New message from {contact.name}",
+            message=plain_message,
+            html_message=html_message,
+            from_email=settings.DEFAULT_FROM_EMAIL,
+            recipient_list=recipients,
+            # Replying goes straight back to the person who wrote in.
+            fail_silently=False,
+        )
+        print(f"Contact alert sent to {', '.join(recipients)}")
+        return True
+    except Exception as e:
+        print(f"Error sending contact admin alert: {str(e)}")
+        return False
+
+
 def send_payout_requested_email(payout_request):
     """Notify seller their payout request was received"""
     return _send_payout_email(payout_request, 'requested')
