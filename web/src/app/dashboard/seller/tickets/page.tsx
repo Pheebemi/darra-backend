@@ -20,7 +20,7 @@ interface EventTicket {
   created_at: string;
   purchase_reference: string;
   payment_amount: string;
-  ticket_tier?: { name: string; price: string; category: { name: string; color: string } };
+  ticket_tier?: { name: string; display_name?: string; color?: string; price: string; category?: { name: string; color: string } };
 }
 
 interface Stats { total: number; valid: number; used: number }
@@ -207,7 +207,7 @@ export default function SellerPurchasesPage() {
                 <div className="shrink-0 text-right">
                   <p className="font-semibold text-brand-500">{fmt(ticket.payment_amount)}</p>
                   {ticket.ticket_tier && (
-                    <p className="text-[11px] text-gray-500">{ticket.ticket_tier.name}</p>
+                    <p className="text-[11px] text-gray-500">{ticket.ticket_tier.display_name || ticket.ticket_tier.name}</p>
                   )}
                 </div>
               </div>

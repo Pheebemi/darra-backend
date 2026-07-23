@@ -50,9 +50,34 @@ class TicketCategory(models.Model):
         ordering = ['name']
 
 class TicketTier(models.Model):
-    """Different pricing tiers within a ticket category"""
-    category = models.ForeignKey(TicketCategory, on_delete=models.CASCADE, related_name='tiers')
-    name = models.CharField(max_length=100)  # e.g., "Early Bird", "Regular", "Late"
+    """
+    One ticket type on one event, named by the seller.
+
+    `name` is free text the seller types per event — "Regular", "Table for 2",
+    "Gold", "Twitter". Ticket names are inherently per-event, so they cannot
+    come from a shared global list: one organiser's "VIP" is another's
+    "Table for 2".
+
+    `category` is legacy. It used to be a required link to a global,
+    admin-managed TicketCategory whose name was what actually got displayed,
+    while this `name` field held a generated value like "VIP_a3f9c2b1" purely
+    to satisfy a unique_together constraint. It is now optional and kept only
+    so existing rows keep working.
+    """
+    category = models.ForeignKey(
+        TicketCategory,
+        on_delete=models.SET_NULL,
+        related_name='tiers',
+        null=True,
+        blank=True,
+        help_text="Legacy. New ticket types are named directly by the seller.",
+    )
+    name = models.CharField(max_length=100)  # "Regular", "VIP", "Table for 2"
+    color = models.CharField(
+        max_length=7,
+        default='#5465FF',
+        help_text="Badge colour in the UI.",
+    )
     price = models.DecimalField(max_digits=10, decimal_places=2)
     quantity_available = models.PositiveIntegerField()
     quantity_sold = models.PositiveIntegerField(default=0)
@@ -62,8 +87,34 @@ class TicketTier(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     
     def __str__(self):
-        return f"{self.category.name} - {self.name}"
-    
+        return self.display_name
+
+    @property
+    def display_name(self):
+        """
+        The label to show anyone.
+
+        Rows created before sellers named their own categories have a
+        generated `name` like "VIP_a3f9c2b1" with the real label on the linked
+        category. Prefer the category for those; otherwise `name` is what the
+        seller typed. After `manage.py fix_ticket_tier_names` this is just
+        `name`.
+        """
+        head, sep, tail = self.name.rpartition('_')
+        looks_generated = (
+            sep and head and len(tail) == 8
+            and all(c in '0123456789abcdef' for c in tail.lower())
+        )
+        if looks_generated:
+            return self.category.name if self.category else head
+        return self.name
+
+    @property
+    def display_color(self):
+        if self.color:
+            return self.color
+        return self.category.color if self.category else '#5465FF'
+
     @property
     def remaining_quantity(self):
         return self.quantity_available - self.quantity_sold
@@ -73,8 +124,13 @@ class TicketTier(models.Model):
         return self.remaining_quantity <= 0
     
     class Meta:
-        unique_together = ['category', 'name']
+        # No unique_together on (category, name). It was what forced tier names
+        # to be generated as "VIP_<uuid>", and it is wrong anyway: two
+        # different events should both be allowed a ticket called "Regular".
+        # Uniqueness is enforced per product in the serializer instead.
         ordering = ['price']
+        verbose_name = 'Ticket category'
+        verbose_name_plural = 'Ticket categories'
 
 class Product(models.Model):
     class ProductType(models.TextChoices):

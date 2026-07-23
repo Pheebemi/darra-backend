@@ -41,6 +41,8 @@ interface TicketTier {
   description?: string;
   benefits?: string;
   is_sold_out: boolean;
+  display_name?: string;
+  color?: string;
   category?: { name?: string };
 }
 
@@ -128,7 +130,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
     addItem(
       productId, tierId, quantity,
       { id: product.id, title: product.title, price: product.price, cover_image: product.cover_image, product_type: product.product_type, is_ticket_event: product.is_ticket_event },
-      tier ? { id: tier.id, name: tier.name, price: tier.price } : undefined
+      tier ? { id: tier.id, name: tier.display_name || tier.name, price: tier.price } : undefined
     );
   };
 
@@ -327,8 +329,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                       >
                         <div className="flex items-start justify-between">
                           <div>
-                            <p className="text-sm font-medium text-gray-900">{tier.category?.name || tier.name}</p>
-                            {tier.description && tier.description !== `${tier.category?.name} tickets` && (
+                            <p className="text-sm font-medium text-gray-900">{tier.display_name || tier.name}</p>
+                            {tier.description && (
                               <p className="text-xs text-gray-600">{tier.description}</p>
                             )}
                             <p className="mt-0.5 text-xs text-gray-600">
@@ -366,8 +368,8 @@ export default function ProductDetailClient({ product }: { product: Product }) {
                           <div key={tier.id} className="rounded-2xl border border-gray-100 bg-page-soft p-4">
                             <div className="mb-3 flex items-start justify-between">
                               <div>
-                                <p className="text-sm font-medium text-gray-900">{tier.category?.name || tier.name}</p>
-                                {tier.description && tier.description !== `${tier.category?.name} tickets` && (
+                                <p className="text-sm font-medium text-gray-900">{tier.display_name || tier.name}</p>
+                                {tier.description && (
                                   <p className="text-xs text-gray-600">{tier.description}</p>
                                 )}
                                 <p className="mt-0.5 text-xs text-gray-600">{tier.remaining_quantity} available</p>
