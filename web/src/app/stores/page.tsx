@@ -28,32 +28,52 @@ function stripHtml(html: string | null): string {
     .trim();
 }
 
+const PAGE_SIZE = 24;
+
 export default function AllStoresPage() {
-  const [stores, setStores] = useState<StoreItem[]>([]);
   const [filtered, setFiltered] = useState<StoreItem[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [total, setTotal] = useState(0);
 
-  useEffect(() => { fetchStores(); }, []);
-
+  // Search runs on the server now — with paging, filtering in the browser
+  // would only search the stores already loaded. Debounced so typing doesn't
+  // fire a request per keystroke.
   useEffect(() => {
-    const q = search.toLowerCase();
-    setFiltered(stores.filter(s =>
-      s.brand_name.toLowerCase().includes(q) || stripHtml(s.about).toLowerCase().includes(q)
-    ));
-  }, [search, stores]);
+    const t = setTimeout(() => { fetchStores(1, search); }, 300);
+    return () => clearTimeout(t);
+  }, [search]);
 
-  const fetchStores = async () => {
+  const fetchStores = async (targetPage: number, query: string) => {
+    const isFirst = targetPage === 1;
+    isFirst ? setLoading(true) : setLoadingMore(true);
+
     try {
-      const res = await fetch("/api/stores");
+      const params = new URLSearchParams({
+        page: String(targetPage),
+        page_size: String(PAGE_SIZE),
+      });
+      if (query.trim()) params.set("search", query.trim());
+
+      const res = await fetch(`/api/stores?${params}`);
       if (!res.ok) throw new Error("Failed");
       const data = await res.json();
-      setStores(data);
-      setFiltered(data);
+
+      // Tolerate an unpaginated response in case an older backend is live.
+      const results: StoreItem[] = Array.isArray(data) ? data : data.results || [];
+      const meta = Array.isArray(data) ? null : data.pagination;
+
+      setFiltered((prev) => (isFirst ? results : [...prev, ...results]));
+      setPage(targetPage);
+      setHasNext(meta ? meta.has_next : false);
+      setTotal(meta ? meta.total_items : results.length);
     } catch {
-      setStores([]);
+      if (isFirst) { setFiltered([]); setTotal(0); setHasNext(false); }
     } finally {
-      setLoading(false);
+      isFirst ? setLoading(false) : setLoadingMore(false);
     }
   };
 
@@ -132,6 +152,23 @@ export default function AllStoresPage() {
                   </div>
                 </Link>
               ))}
+            </div>
+          )}
+
+          {!loading && filtered.length > 0 && (
+            <div className="mt-10 flex flex-col items-center gap-3">
+              <p className="text-sm text-gray-600">
+                Showing {filtered.length} of {total} {total === 1 ? "store" : "stores"}
+              </p>
+              {hasNext && (
+                <button
+                  onClick={() => fetchStores(page + 1, search)}
+                  disabled={loadingMore}
+                  className="rounded-full border border-brand-500 px-8 py-3 font-medium text-brand-500 transition-colors hover:bg-brand-500 hover:text-white disabled:opacity-50"
+                >
+                  {loadingMore ? "Loading..." : "Load more stores"}
+                </button>
+              )}
             </div>
           )}
         </div>
