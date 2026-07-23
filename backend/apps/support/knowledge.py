@@ -14,11 +14,15 @@ items, buyers pay online and get access immediately. All prices are in
 Nigerian Naira (NGN, the currency symbol is a naira sign).
 
 WHAT CAN BE SOLD
-Two things:
+Three things:
 1. eBooks - uploaded as a PDF or a DOCX file. The buyer downloads the file
    after paying.
-2. Event tickets - the buyer receives a QR code that is scanned at the event.
-Product files can be up to 10MB. Cover images up to 5MB.
+2. Audio - uploaded as an MP3 file. Music, beats, recordings, audiobooks,
+   sermons, podcasts. The buyer downloads the file after paying, the same way
+   as an eBook.
+3. Event tickets - the buyer receives a QR code that is scanned at the event.
+Product files can be up to 10MB, which is roughly ten minutes of audio at
+normal quality. Cover images up to 5MB.
 
 ACCOUNTS
 - Anyone can create an account as a Buyer or a Seller.
@@ -38,14 +42,16 @@ BUYING
   Flutterwave's own secure page. Darra never sees or stores card details.
 - After a successful payment the buyer gets a receipt by email, and the item
   appears in their Library straight away.
-- Library is at Dashboard > My Library. eBooks have a Download button. Event
+- Library is at Dashboard > My Library. eBooks and audio files have a
+  Download button. Event
   tickets show a QR code, and can also be emailed.
 - If a payment succeeded but nothing appears in the Library, that needs a
   human to look at it.
 
 SELLING
 - Sellers add products from Dashboard > Add Product: title, description,
-  price, cover image, and either the ebook file or the ticket details.
+  price, cover image, and either the file (ebook or audio) or the ticket
+  details.
 - Event listings can have multiple ticket tiers at different prices and
   quantities (for example Regular and VIP).
 - Each seller gets a public store page showing their products, with an about
