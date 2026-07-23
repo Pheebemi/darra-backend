@@ -34,6 +34,7 @@ urlpatterns = [
     path('api/payments/', include('apps.payments.urls')),
     path('api/', include('apps.notifications.urls')),
     path('api/events/', include('apps.events.urls')),
+    path('api/support/', include('apps.support.urls')),
     
     # Rate limiting test endpoints
     path('api/test/rate-limit/', test_rate_limiting, name='test_rate_limit'),

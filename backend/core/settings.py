@@ -90,6 +90,7 @@ INSTALLED_APPS = [
     'apps.payments',
     'apps.notifications',
     'apps.events',
+    'apps.support',
     
     # Celery apps
     'django_celery_beat',
@@ -263,6 +264,11 @@ REST_FRAMEWORK = {
         'payment': '30/minute',    # 30 payment requests per minute
         'auth': '10/minute',       # 10 authentication attempts per minute
         'webhook': '100/minute',   # 100 webhook calls per minute
+        # The chat endpoint spends money on every call, so it is throttled
+        # harder than anything else — an unthrottled AI proxy is somebody
+        # else's free API key.
+        'support_chat': '15/minute',
+        'contact': '5/hour',       # human-handoff / contact form submissions
     },
 }
 
@@ -347,6 +353,21 @@ if not DEBUG and not os.getenv('FRONTEND_URL'):
         f"WARNING: FRONTEND_URL is not set; email links will use "
         f"{_DEFAULT_FRONTEND_URL}. Set it in .env to be explicit."
     )
+
+# Support chat AI.
+# Provider-neutral names on purpose: Groq (api.groq.com, keys start 'gsk_') and
+# xAI Grok (api.x.ai, keys start 'xai-') are different companies with similar
+# names, and both speak the OpenAI chat-completions format. Swapping provider
+# is a change of URL, model and key — no code change.
+#
+# The key stays on the server and never reaches the browser: the frontend talks
+# to our own endpoint, which forwards upstream. Shipping it to the client would
+# let anyone spend your credits.
+SUPPORT_AI_API_KEY = os.getenv('SUPPORT_AI_API_KEY', '')
+SUPPORT_AI_API_URL = os.getenv(
+    'SUPPORT_AI_API_URL', 'https://api.groq.com/openai/v1/chat/completions'
+)
+SUPPORT_AI_MODEL = os.getenv('SUPPORT_AI_MODEL', 'llama-3.3-70b-versatile')
 
 # Who receives operational alerts (e.g. "a seller requested a payout").
 # Deliberately optional: leave it unset and alerts go to every active
