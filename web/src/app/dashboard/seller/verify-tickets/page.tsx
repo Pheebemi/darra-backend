@@ -65,7 +65,10 @@ interface TicketDetails {
   ticket_tier?: {
     name: string;
     price: string;
-    category: {
+    // Seller-named categories have these; older rows fall back to `category`.
+    display_name?: string;
+    color?: string;
+    category?: {
       name: string;
       color: string;
     };
@@ -566,11 +569,11 @@ export default function VerifyTicketsPage() {
                           <span
                             className="mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-semibold"
                             style={{
-                              backgroundColor: `${ticketDetails.ticket_tier.category.color}20`,
-                              color: ticketDetails.ticket_tier.category.color,
+                              backgroundColor: `${ticketDetails.ticket_tier.color || ticketDetails.ticket_tier.category?.color || '#5465FF'}20`,
+                              color: ticketDetails.ticket_tier.color || ticketDetails.ticket_tier.category?.color || '#5465FF',
                             }}
                           >
-                            {ticketDetails.ticket_tier.category.name}
+                            {ticketDetails.ticket_tier.display_name || ticketDetails.ticket_tier.name}
                           </span>
                         </div>
                         <div className="rounded-2xl bg-brand-50 p-4">

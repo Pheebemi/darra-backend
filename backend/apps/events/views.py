@@ -63,13 +63,14 @@ class SellerEventTicketsView(generics.ListAPIView):
                         'created_at': ticket.created_at,
                         'purchase_reference': ticket.purchase.payment.reference if ticket.purchase and ticket.purchase.payment else 'N/A',
                         'payment_amount': str(ticket.purchase.total_price) if ticket.purchase else '0.00',
+                        # display_name/display_color handle both seller-named
+                        # categories and legacy rows whose label lived on the
+                        # (now optional) global category.
                         'ticket_tier': {
                             'name': ticket.purchase.selected_ticket_tier.name,
+                            'display_name': ticket.purchase.selected_ticket_tier.display_name,
+                            'color': ticket.purchase.selected_ticket_tier.display_color,
                             'price': str(ticket.purchase.selected_ticket_tier.price),
-                            'category': {
-                                'name': ticket.purchase.selected_ticket_tier.category.name,
-                                'color': ticket.purchase.selected_ticket_tier.category.color,
-                            }
                         } if ticket.purchase and ticket.purchase.selected_ticket_tier else None,
                         'qr_code_url': ticket.ticket_png.url if ticket.ticket_png else None,
                         'pdf_ticket_url': None,

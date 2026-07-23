@@ -41,10 +41,21 @@ interface TicketCategory {
 
 interface TicketType {
   id: number;
-  category: TicketCategory;
+  name: string;
+  color: string;
   price: number;
   quantity: number;
 }
+
+// Quick-pick names. Tapping one fills the name box — the seller can type
+// anything instead ("Table for 2", "Gold", "Twitter"), because ticket names
+// belong to the event, not to a shared list.
+const TICKET_NAME_PRESETS = [
+  { label: "Regular", color: "#5465FF" },
+  { label: "VIP", color: "#F7B500" },
+  { label: "Early Bird", color: "#00B42A" },
+  { label: "Table", color: "#9333EA" },
+];
 
 // Sellers can currently only list ebooks (PDF / DOCX) and event tickets.
 // The backend still accepts the older types (mp3, zip, video, png) so existing
@@ -81,7 +92,7 @@ function CreateEventInner() {
   const [speakers, setSpeakers] = useState("");
 
   const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>([]);
-  const [selectedTicketCategory, setSelectedTicketCategory] = useState<number | null>(null);
+  const [newTicketName, setNewTicketName] = useState("");
   const [ticketTypes, setTicketTypes] = useState<TicketType[]>([]);
   const [newTicketPrice, setNewTicketPrice] = useState("");
   const [newTicketQuantity, setNewTicketQuantity] = useState("");
@@ -145,12 +156,14 @@ function CreateEventInner() {
       setLocation(data.location || "");
       setSpeakers(data.speakers || "");
 
-      // Pre-fill ticket tiers if event type — map to local TicketType shape
+      // Pre-fill ticket categories when editing. display_name already resolves
+      // old generated names ("VIP_a3f9c2b1") back to something readable.
       if (data.ticket_tiers && Array.isArray(data.ticket_tiers)) {
         const mapped: TicketType[] = data.ticket_tiers.map((t: any) => ({
           id: t.id,
-          category: t.category || { id: t.id, name: t.name || "Tier", description: "", color: "#5465FF" },
-          price: t.price,
+          name: t.display_name || t.category?.name || t.name || "Ticket",
+          color: t.color || t.category?.color || "#5465FF",
+          price: Number(t.price),
           quantity: t.quantity_available ?? t.quantity ?? 0,
         }));
         setTicketTypes(mapped);
@@ -181,20 +194,30 @@ function CreateEventInner() {
   };
 
   const addTicketType = () => {
-    if (!selectedTicketCategory || !newTicketPrice || !newTicketQuantity) {
-      toast.error("Select a category and fill price + quantity");
+    const name = newTicketName.trim();
+    if (!name || !newTicketPrice || !newTicketQuantity) {
+      toast.error("Enter a name, price and quantity");
       return;
     }
-    const cat = ticketCategories.find((c) => c.id === selectedTicketCategory);
-    if (!cat) return;
+    if (ticketTypes.some((t) => t.name.toLowerCase() === name.toLowerCase())) {
+      toast.error(`You already have a category called "${name}"`);
+      return;
+    }
     const p = parseFloat(newTicketPrice);
     const q = parseInt(newTicketQuantity);
     if (p <= 0 || q <= 0) { toast.error("Price and quantity must be > 0"); return; }
-    setTicketTypes([...ticketTypes, { id: Date.now(), category: cat, price: p, quantity: q }]);
+
+    const preset = TICKET_NAME_PRESETS.find(
+      (x) => x.label.toLowerCase() === name.toLowerCase()
+    );
+    setTicketTypes([
+      ...ticketTypes,
+      { id: Date.now(), name, color: preset?.color || "#5465FF", price: p, quantity: q },
+    ]);
+    setNewTicketName("");
     setNewTicketPrice("");
     setNewTicketQuantity("");
-    setSelectedTicketCategory(null);
-    toast.success("Ticket type added");
+    toast.success(`"${name}" added`);
   };
 
   const removeTicketType = (id: number) => {
@@ -242,7 +265,8 @@ function CreateEventInner() {
         formData.append(
           "ticket_types",
           JSON.stringify(ticketTypes.map((t) => ({
-            category_id: t.category.id,
+            name: t.name,
+            color: t.color,
             price: t.price,
             quantity: t.quantity,
           })))
@@ -451,26 +475,33 @@ function CreateEventInner() {
                     <div className="space-y-3 rounded-2xl bg-brand-50 p-4">
                       <p className="text-xs font-medium">Add Ticket Type</p>
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-gray-900">Category</Label>
-                        {categoriesLoading ? (
-                          <Skeleton className="h-9 w-full" />
-                        ) : (
-                          <Select value={selectedTicketCategory?.toString() || ""} onValueChange={(v) => setSelectedTicketCategory(parseInt(v))}>
-                            <SelectTrigger className="h-11 w-full">
-                              <SelectValue placeholder="Select category" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              {ticketCategories.map((c) => (
-                                <SelectItem key={c.id} value={c.id.toString()}>
-                                  <div className="flex items-center gap-2">
-                                    <div className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: c.color }} />
-                                    {c.name}
-                                  </div>
-                                </SelectItem>
-                              ))}
-                            </SelectContent>
-                          </Select>
-                        )}
+                        <Label className="text-sm font-medium text-gray-900">Category name *</Label>
+                        <Input
+                          value={newTicketName}
+                          onChange={(e) => setNewTicketName(e.target.value)}
+                          placeholder="e.g. Regular, VIP, Table for 2"
+                          maxLength={100}
+                          className="h-11"
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter") { e.preventDefault(); addTicketType(); }
+                          }}
+                        />
+                        <div className="flex flex-wrap gap-1.5 pt-0.5">
+                          {TICKET_NAME_PRESETS.map((p) => (
+                            <button
+                              key={p.label}
+                              type="button"
+                              onClick={() => setNewTicketName(p.label)}
+                              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700 transition-colors hover:border-brand-300 hover:bg-brand-50"
+                            >
+                              <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
+                              {p.label}
+                            </button>
+                          ))}
+                        </div>
+                        <p className="text-xs text-gray-500">
+                          Name these however you like — they only apply to this event.
+                        </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
@@ -482,8 +513,8 @@ function CreateEventInner() {
                           <Input type="number" value={newTicketQuantity} onChange={(e) => setNewTicketQuantity(e.target.value)} placeholder="0" min="1" className="h-11" />
                         </div>
                       </div>
-                      <Button size="sm" className="w-full h-8 text-xs" onClick={addTicketType} disabled={!selectedTicketCategory || !newTicketPrice || !newTicketQuantity}>
-                        <Plus className="mr-1.5 h-3.5 w-3.5" />Add Ticket Type
+                      <Button size="sm" className="w-full h-8 text-xs" onClick={addTicketType} disabled={!newTicketName.trim() || !newTicketPrice || !newTicketQuantity}>
+                        <Plus className="mr-1.5 h-3.5 w-3.5" />Add Category
                       </Button>
                     </div>
 
@@ -494,7 +525,7 @@ function CreateEventInner() {
                         {ticketTypes.map((t) => (
                           <div key={t.id} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-page-soft p-4">
                             <div className="flex items-center gap-3">
-                              <Badge className="text-[10px]" style={{ backgroundColor: t.category.color }}>{t.category.name}</Badge>
+                              <Badge className="text-[10px]" style={{ backgroundColor: t.color }}>{t.name}</Badge>
                               <div>
                                 <p className="text-sm font-semibold">₦{t.price.toLocaleString()}</p>
                                 <p className="text-xs text-muted-foreground">{t.quantity} available</p>
