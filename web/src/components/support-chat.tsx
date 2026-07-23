@@ -129,13 +129,16 @@ export function SupportChat() {
       <button
         onClick={() => setOpen(!open)}
         aria-label={open ? "Close support chat" : "Open support chat"}
-        className="fixed bottom-5 right-5 z-60 flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-lg transition-transform hover:bg-brand-600 active:scale-95"
+        className="fixed bottom-5 right-5 z-1000 flex h-14 w-14 items-center justify-center rounded-full bg-brand-500 text-white shadow-lg transition-transform hover:bg-brand-600 active:scale-95"
       >
         {open ? <X className="h-6 w-6" /> : <MessageCircle className="h-6 w-6" />}
       </button>
 
+      {/* Panel: z-1000 clears the sticky site header (z-999), and the height
+          leaves room for it so on short screens the top of the panel stops
+          below the header instead of tucking under it. */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-60 flex h-[min(560px,calc(100dvh-8rem))] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
+        <div className="fixed bottom-24 right-5 z-1000 flex h-[min(560px,calc(100dvh-11rem))] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
 
           {/* Header */}
           <div className="flex items-center gap-3 bg-brand-950 px-5 py-4">
