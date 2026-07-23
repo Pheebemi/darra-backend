@@ -15,18 +15,17 @@ class TicketCategoryAdmin(admin.ModelAdmin):
 class TicketTierAdmin(admin.ModelAdmin):
     list_display = ('name', 'category', 'price', 'quantity_available', 'quantity_sold', 'remaining_quantity', 'product_title', 'is_active')
     list_filter = ('category', 'is_active', 'created_at')
-    search_fields = ('name', 'category__name', 'description', 'product__title')
+    search_fields = ('name', 'category__name', 'description', 'products__title')
     readonly_fields = ('quantity_sold', 'remaining_quantity', 'product_title')
-    ordering = ('category__name', 'price')
+    ordering = ('name', 'price')
     
     def remaining_quantity(self, obj):
         return obj.remaining_quantity
     remaining_quantity.short_description = 'Remaining'
     
     def product_title(self, obj):
-        if obj.product_set.exists():
-            return obj.product_set.first().title
-        return "No product"
+        first = obj.products.first()
+        return first.title if first else "No product"
     product_title.short_description = 'Event'
 
 class ProductAdminForm(forms.ModelForm):
@@ -105,7 +104,7 @@ class ProductAdmin(admin.ModelAdmin):
         total_quantity = sum(tier.quantity_available for tier in obj.ticket_tiers.all())
         
         # Get the first few categories for display
-        categories = [tier.category.name for tier in obj.ticket_tiers.all()[:3]]
+        categories = [tier.display_name for tier in obj.ticket_tiers.all()[:3]]
         categories_display = ", ".join(categories)
         if ticket_count > 3:
             categories_display += f" +{ticket_count - 3} more"
@@ -127,7 +126,7 @@ class ProductAdmin(admin.ModelAdmin):
         for tier in obj.ticket_tiers.all():
             rows.append(f"""
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; background-color: {tier.category.color or '#007bff'}; color: white; border-radius: 4px; text-align: center; font-weight: bold;">{tier.category.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background-color: {tier.display_color}; color: white; border-radius: 4px; text-align: center; font-weight: bold;">{tier.display_name}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; font-size: 18px; font-weight: bold; color: #28a745;">₦{tier.price:,}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">{tier.quantity_available}</td>
                 </tr>
@@ -181,7 +180,7 @@ class ProductAdmin(admin.ModelAdmin):
             total_quantity += tier.quantity_available
             rows.append(f"""
                 <tr>
-                    <td style="border: 1px solid #ddd; padding: 8px; background-color: {tier.category.color or '#007bff'}; color: white; border-radius: 4px; text-align: center; font-weight: bold;">{tier.category.name}</td>
+                    <td style="border: 1px solid #ddd; padding: 8px; background-color: {tier.display_color}; color: white; border-radius: 4px; text-align: center; font-weight: bold;">{tier.display_name}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; font-size: 16px; font-weight: bold; color: #28a745;">₦{tier.price:,}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center; font-weight: 600;">{tier.quantity_available}</td>
                     <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">
@@ -244,17 +243,15 @@ class ProductAdmin(admin.ModelAdmin):
                 price = form.cleaned_data['ticket_price']
                 quantity = form.cleaned_data['ticket_quantity']
                 
-                # Create the ticket tier with a unique name
-                import uuid
-                unique_name = f"{category.name}_{uuid.uuid4().hex[:8]}"
-                
+                # Ticket names are per-event now and the unique_together that
+                # forced "<name>_<uuid>" is gone, so use the real name.
                 ticket_tier = TicketTier.objects.create(
                     category=category,
-                    name=unique_name,  # Use unique name to avoid constraint violation
+                    name=category.name,
+                    color=category.color or '#5465FF',
                     price=price,
                     quantity_available=quantity,
-                    description=f"{category.name} tickets",
-                    benefits="Standard benefits",
+                    description="",
                     is_active=True
                 )
                 
@@ -286,7 +283,8 @@ class ProductAdmin(admin.ModelAdmin):
                     
                     ticket_tier = TicketTier.objects.create(
                         category=category,
-                        name=f"{category.name}_{uuid.uuid4().hex[:8]}",
+                        name=category.name,
+                        color=category.color or '#5465FF',
                         price=ticket_data['price'],
                         quantity_available=ticket_data['quantity'],
                         description=f"{category.name} tickets",
