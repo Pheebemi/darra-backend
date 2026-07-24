@@ -176,23 +176,47 @@ def get_mime_from_extension(filename):
 def validate_uploaded_file(file, product_type):
     """
     Complete file validation including type and size
-    
+
     Args:
         file: Django UploadedFile object
         product_type: The product type
-    
+
     Returns:
         bool: True if valid, raises ValidationError if invalid
     """
     if not file:
         return True
-    
+
     # Validate file type
     validate_file_type(file, product_type)
-    
+
     # Validate file size
     validate_file_size(file, product_type)
-    
+
+    return True
+
+
+# Cover images may be PNG or JPG/JPEG. The old code validated covers as 'png'
+# only, so every JPG cover was rejected — the single most common image format.
+COVER_IMAGE_TYPES = ('png', 'jpg', 'jpeg')
+
+
+def validate_cover_image(file):
+    """
+    Validate a product cover image: must be a PNG or JPG/JPEG within the image
+    size limit. Raises ValidationError with a plain-language message otherwise.
+    """
+    if not file:
+        return True
+
+    name = file.name or ''
+    ext = name.rsplit('.', 1)[-1].lower() if '.' in name else ''
+    if ext not in COVER_IMAGE_TYPES:
+        raise ValidationError("Cover image must be a PNG or JPG file.")
+
+    # validate_uploaded_file checks the signature bytes and the image size
+    # limit for the matching image type.
+    validate_uploaded_file(file, ext)
     return True
 
 def get_allowed_extensions_for_type(product_type):

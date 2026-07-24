@@ -12,6 +12,92 @@ from rest_framework import serializers as drf
 from core.test_factories import make_seller, make_product, make_event
 from .models import Product, TicketCategory, TicketTier, private_product_storage, _r2_configured
 from .serializers import ProductSerializer, parse_ticket_types
+from .file_validation import validate_cover_image
+from django.core.exceptions import ValidationError as DjangoValidationError
+from django.core.files.uploadedfile import SimpleUploadedFile
+
+# Minimal real file headers so magic-byte validation passes.
+PNG_BYTES = b'\x89PNG\r\n\x1a\n' + b'\x00' * 64
+JPG_BYTES = b'\xff\xd8\xff\xe0' + b'\x00' * 64
+PDF_BYTES = b'%PDF-1.4' + b'\x00' * 64
+
+
+class CoverImageValidationTests(TestCase):
+    """
+    Covers may be PNG or JPG. The old code accepted PNG only, so every JPG
+    cover was silently rejected and the product saved with no files.
+    """
+
+    def test_png_cover_is_accepted(self):
+        f = SimpleUploadedFile('c.png', PNG_BYTES, content_type='image/png')
+        self.assertTrue(validate_cover_image(f))
+
+    def test_jpg_cover_is_accepted(self):
+        f = SimpleUploadedFile('c.jpg', JPG_BYTES, content_type='image/jpeg')
+        self.assertTrue(validate_cover_image(f))  # the bug: this used to raise
+
+    def test_jpeg_extension_is_accepted(self):
+        f = SimpleUploadedFile('c.jpeg', JPG_BYTES, content_type='image/jpeg')
+        self.assertTrue(validate_cover_image(f))
+
+    def test_pdf_as_cover_is_rejected(self):
+        f = SimpleUploadedFile('c.pdf', PDF_BYTES, content_type='application/pdf')
+        with self.assertRaises(DjangoValidationError):
+            validate_cover_image(f)
+
+    def test_jpg_renamed_to_png_is_caught_by_magic_bytes(self):
+        # Right extension, wrong bytes — the signature check must still reject.
+        f = SimpleUploadedFile('c.png', JPG_BYTES, content_type='image/png')
+        with self.assertRaises(DjangoValidationError):
+            validate_cover_image(f)
+
+
+class ProductCreateUploadTests(TestCase):
+    """
+    Creating a product with a JPG cover must succeed and actually store both
+    files — and a bad upload must fail loudly, not save a fileless product.
+    """
+
+    def setUp(self):
+        cache.clear()
+        self.seller = make_seller()
+        self.client.force_authenticate = None  # DRF test client set below
+
+    def _post(self, cover, pfile):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=self.seller)
+        return client.post('/api/products/my-products/', {
+            'title': 'JPG Cover Book',
+            'description': 'x',
+            'price': '1500',
+            'product_type': 'pdf',
+            'cover_image': cover,
+            'file': pfile,
+        }, format='multipart')
+
+    def test_create_with_jpg_cover_saves_both_files(self):
+        res = self._post(
+            SimpleUploadedFile('c.jpg', JPG_BYTES, content_type='image/jpeg'),
+            SimpleUploadedFile('b.pdf', PDF_BYTES, content_type='application/pdf'),
+        )
+        self.assertIn(res.status_code, (200, 201))
+        p = Product.objects.get(title='JPG Cover Book')
+        self.assertTrue(p.cover_image, "cover was not saved")
+        self.assertTrue(p.file, "product file was not saved")
+
+    def test_invalid_cover_fails_loudly_and_saves_no_product(self):
+        # A PDF posing as the cover must be rejected with an error — and must
+        # NOT leave a half-created product behind.
+        res = self._post(
+            SimpleUploadedFile('c.pdf', PDF_BYTES, content_type='application/pdf'),
+            SimpleUploadedFile('b.pdf', PDF_BYTES, content_type='application/pdf'),
+        )
+        self.assertEqual(res.status_code, 400)
+        self.assertFalse(
+            Product.objects.filter(title='JPG Cover Book').exists(),
+            "a product was left behind after a rejected upload",
+        )
 
 
 class ProductFilePrivacyTests(TestCase):
