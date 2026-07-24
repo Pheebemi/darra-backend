@@ -22,6 +22,11 @@ qrcode>=7.4.2  # For generating QR codes
 # cloudinary>=1.40.0
 # django-cloudinary-storage>=0.3.0
 
+# Cloudflare R2 (S3-compatible) for paid product files. Only used when the
+# R2_* settings are configured; otherwise files stay on local disk.
+django-storages>=1.14.2
+boto3>=1.34.0
+
 # Production server
 gunicorn>=21.2.0
 

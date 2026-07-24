@@ -23,16 +23,46 @@ def media_url_for(filefield):
     return f"{settings.MEDIA_URL}{filefield.name}"
 
 
+def _r2_configured():
+    """True when all four R2 credentials are present in settings."""
+    return all([
+        getattr(settings, 'R2_ACCESS_KEY_ID', ''),
+        getattr(settings, 'R2_SECRET_ACCESS_KEY', ''),
+        getattr(settings, 'R2_BUCKET_NAME', ''),
+        getattr(settings, 'R2_ENDPOINT_URL', ''),
+    ])
+
+
 def private_product_storage():
     """
-    Storage for paid product files. Points at PRIVATE_MEDIA_ROOT, which sits
-    outside MEDIA_ROOT so the web server never serves these files directly —
-    buyers can only get them via the authenticated download endpoint.
+    Storage for paid product files (ebooks, audio).
 
-    This is a callable (not an instance) on purpose: Django serialises the
-    reference rather than the resolved absolute path, so the same migration
-    works on local and on the server where BASE_DIR differs.
+    If Cloudflare R2 is configured (all four R2_* settings set), files live in
+    the R2 bucket — this is what moves them off the server disk. Otherwise they
+    stay on local disk under PRIVATE_MEDIA_ROOT, exactly as before. Turning R2
+    on or off is purely an environment change; no code or migration change.
+
+    Either way the file is never public. Buyers only receive it streamed
+    through the authenticated download endpoint, which reads whichever backend
+    this returns via Product.open_file() -> storage.open().
+
+    A callable (not an instance) on purpose: Django serialises the reference,
+    so the field's migration is identical whether or not R2 is enabled.
     """
+    if _r2_configured():
+        # Imported lazily so the local-disk path still works even if boto3 /
+        # django-storages are not installed.
+        from storages.backends.s3boto3 import S3Boto3Storage
+        return S3Boto3Storage(
+            access_key=settings.R2_ACCESS_KEY_ID,
+            secret_key=settings.R2_SECRET_ACCESS_KEY,
+            bucket_name=settings.R2_BUCKET_NAME,
+            endpoint_url=settings.R2_ENDPOINT_URL,
+            region_name='auto',      # R2 uses a single 'auto' region
+            default_acl=None,        # R2 has no ACLs; sending one errors
+            querystring_auth=True,   # any generated URL is signed and expiring
+            file_overwrite=False,    # never silently replace a different upload
+        )
     return FileSystemStorage(location=settings.PRIVATE_MEDIA_ROOT)
 
 class TicketCategory(models.Model):
