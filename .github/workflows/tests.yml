@@ -1,0 +1,43 @@
+name: Backend tests
+
+# Runs on every pull request (any target branch) and on pushes to master,
+# so a red suite is visible before anything is merged.
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+
+    env:
+      # DEBUG=True on purpose:
+      #  - it skips the production SECRET_KEY guard, so no real key is needed
+      #  - it keeps SECURE_SSL_REDIRECT off, so the test client can use http
+      DEBUG: "True"
+      DJANGO_SECRET_KEY: "ci-not-a-real-secret-key"
+      # No DATABASE_URL / MYSQL_DATABASE is set, so settings falls back to
+      # SQLite — the suite needs no database service.
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run tests
+        # A bare `manage.py test` misses the apps/ package, so the labels are
+        # listed explicitly. --buffer hides app print() output for passing
+        # tests and shows it only on failure.
+        run: python manage.py test users products apps.payments.tests apps.support.tests --buffer
