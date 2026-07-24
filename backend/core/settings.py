@@ -219,11 +219,22 @@ STATICFILES_STORAGE = 'whitenoise.storage.StaticFilesStorage'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
-# Private media — paid product files (ebooks, etc.) live OUTSIDE MEDIA_ROOT so
+# Private media — paid product files (ebooks, audio) live OUTSIDE MEDIA_ROOT so
 # the web server never serves them directly. They are only streamed to buyers
 # through the authenticated download endpoint after purchase. Cover images stay
 # in MEDIA_ROOT because they are meant to be public.
 PRIVATE_MEDIA_ROOT = os.path.join(BASE_DIR, 'private_media')
+
+# Cloudflare R2 (S3-compatible) for paid product files. Set all four to move
+# those files off the server disk; leave any blank and they stay on local disk
+# under PRIVATE_MEDIA_ROOT. Nothing else is affected — cover images, banners
+# and ticket QR codes always stay local (they are tiny). See
+# products.models.private_product_storage.
+R2_ACCESS_KEY_ID = os.getenv('R2_ACCESS_KEY_ID', '')
+R2_SECRET_ACCESS_KEY = os.getenv('R2_SECRET_ACCESS_KEY', '')
+R2_BUCKET_NAME = os.getenv('R2_BUCKET_NAME', '')
+# e.g. https://<account-id>.r2.cloudflarestorage.com
+R2_ENDPOINT_URL = os.getenv('R2_ENDPOINT_URL', '')
 
 # Local file storage configuration
 # No additional configuration needed - Django will use local storage by default

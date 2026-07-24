@@ -6,11 +6,11 @@ product list pagination/ordering.
 from decimal import Decimal
 
 from django.core.cache import cache
-from django.test import TestCase
+from django.test import TestCase, override_settings
 from rest_framework import serializers as drf
 
 from core.test_factories import make_seller, make_product, make_event
-from .models import Product, TicketCategory, TicketTier
+from .models import Product, TicketCategory, TicketTier, private_product_storage, _r2_configured
 from .serializers import ProductSerializer, parse_ticket_types
 
 
@@ -94,6 +94,45 @@ class TicketCategoryTests(TestCase):
         cat = TicketCategory.objects.create(name='Early Bird', color='#00B42A')
         parsed = parse_ticket_types([{'category_id': cat.id, 'price': 7500, 'quantity': 20}])
         self.assertEqual(parsed[0]['name'], 'Early Bird')
+
+
+class StorageSelectionTests(TestCase):
+    """
+    private_product_storage() must fall back to local disk when R2 is not
+    configured, and switch to the R2 backend when all four settings are set —
+    without any network call.
+    """
+
+    R2 = dict(
+        R2_ACCESS_KEY_ID='ak',
+        R2_SECRET_ACCESS_KEY='sk',
+        R2_BUCKET_NAME='darra-files',
+        R2_ENDPOINT_URL='https://acct.r2.cloudflarestorage.com',
+    )
+
+    @override_settings(R2_ACCESS_KEY_ID='', R2_SECRET_ACCESS_KEY='',
+                       R2_BUCKET_NAME='', R2_ENDPOINT_URL='')
+    def test_falls_back_to_local_disk_without_r2(self):
+        from django.core.files.storage import FileSystemStorage
+        self.assertFalse(_r2_configured())
+        self.assertIsInstance(private_product_storage(), FileSystemStorage)
+
+    @override_settings(**R2)
+    def test_uses_r2_when_configured(self):
+        from storages.backends.s3boto3 import S3Boto3Storage
+        self.assertTrue(_r2_configured())
+        storage = private_product_storage()
+        self.assertIsInstance(storage, S3Boto3Storage)
+        self.assertEqual(storage.bucket_name, 'darra-files')
+        self.assertEqual(storage.endpoint_url, 'https://acct.r2.cloudflarestorage.com')
+
+    @override_settings(R2_ACCESS_KEY_ID='ak', R2_SECRET_ACCESS_KEY='sk',
+                       R2_BUCKET_NAME='darra-files', R2_ENDPOINT_URL='')
+    def test_partial_config_stays_local(self):
+        # One missing value must not half-enable R2.
+        from django.core.files.storage import FileSystemStorage
+        self.assertFalse(_r2_configured())
+        self.assertIsInstance(private_product_storage(), FileSystemStorage)
 
 
 class ProductListPaginationTests(TestCase):
