@@ -1,4 +1,4 @@
-name: Backend tests
+name: Tests
 
 # Runs on every pull request (any target branch) and on pushes to master,
 # so a red suite is visible before anything is merged.
@@ -8,7 +8,8 @@ on:
     branches: [master]
 
 jobs:
-  test:
+  backend:
+    name: Backend tests
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -41,3 +42,33 @@ jobs:
         # listed explicitly. --buffer hides app print() output for passing
         # tests and shows it only on failure.
         run: python manage.py test users products apps.payments.tests apps.support.tests --buffer
+
+  frontend:
+    name: Frontend type-check
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: web
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        # Catches TypeScript errors before they reach Vercel. Vercel still runs
+        # the full production build; this is the cheap early signal.
+        run: npx tsc --noEmit
