@@ -18,103 +18,149 @@ class FastTicketService:
         self.ticket_width = 400
         self.ticket_height = 500
         
+    # Palette (Darra indigo brand)
+    INDIGO = (56, 0, 255)
+    CONTAINER = (243, 241, 255)
+    BADGE_BG = (232, 222, 255)
+    BORDER = (226, 224, 240)
+    TEXT = (24, 24, 27)
+    MUTED = (120, 118, 132)
+    WHITE = (255, 255, 255)
+
+    @staticmethod
+    def _font(size):
+        # Pillow's scalable built-in font: renders identically on the server,
+        # no dependency on a system font like Arial (which the old code needed
+        # and which Linux does not have — that made server tickets tiny).
+        try:
+            return ImageFont.load_default(size=size)
+        except TypeError:  # very old Pillow
+            return ImageFont.load_default()
+
     def generate_ticket_png(self, ticket_data):
         """
-        Generate a complete ticket as PNG (QR code + event info)
-        Much faster than PDF generation
+        Generate a branded Darra event ticket as a PNG: indigo header, event
+        title, category badge, QR code, a perforated stub, and a details grid
+        (date, guest, email, ticket id). The QR payload is unchanged so ticket
+        verification keeps working.
         """
         try:
-            # Create ticket canvas
-            ticket_img = Image.new('RGB', (self.ticket_width, self.ticket_height), 'white')
-            draw = ImageDraw.Draw(ticket_img)
-            
-            # Try to use a nice font, fallback to default
-            try:
-                # Try to load a better font
-                font_large = ImageFont.truetype("arial.ttf", 24)
-                font_medium = ImageFont.truetype("arial.ttf", 18)
-                font_small = ImageFont.truetype("arial.ttf", 14)
-            except:
-                # Fallback to default font
-                font_large = ImageFont.load_default()
-                font_medium = ImageFont.load_default()
-                font_small = ImageFont.load_default()
-            
-            # Generate QR code with unique data
+            import json
+
+            f = self._font
+            W = 440
+
+            def bold(draw, xy, text, font, fill):
+                x, y = xy
+                draw.text((x, y), text, font=font, fill=fill)
+                draw.text((x + 1, y), text, font=font, fill=fill)
+
+            def wrap(draw, text, font, maxw, max_lines=2):
+                words = str(text).split()
+                lines, cur = [], ""
+                for w in words:
+                    t = (cur + " " + w).strip()
+                    if draw.textlength(t, font=font) <= maxw:
+                        cur = t
+                    else:
+                        if cur:
+                            lines.append(cur)
+                        cur = w
+                if cur:
+                    lines.append(cur)
+                return lines[:max_lines] or [""]
+
+            def fit(draw, text, font, maxw):
+                text = str(text)
+                if draw.textlength(text, font=font) <= maxw:
+                    return text
+                while text and draw.textlength(text + "…", font=font) > maxw:
+                    text = text[:-1]
+                return text + "…"
+
+            measure = ImageDraw.Draw(Image.new('RGB', (1, 1)))
+            title_font = f(23)
+            title_lines = wrap(measure, ticket_data.get('event_title', 'Event'), title_font, W - 56)
+            H = 690 + (len(title_lines) - 1) * 30
+
+            img = Image.new('RGB', (W, H), self.WHITE)
+            draw = ImageDraw.Draw(img)
+
+            # Header band (rounded top, square bottom)
+            draw.rounded_rectangle([0, 0, W, 132], 24, fill=self.INDIGO)
+            draw.rectangle([0, 108, W, 132], fill=self.INDIGO)
+            bold(draw, (28, 40), "DARRA", f(30), self.WHITE)
+            draw.text((W - 28, 52), "E-TICKET", font=f(13), fill=(206, 196, 255), anchor="ra")
+
+            # Event title
+            y = 152
+            for ln in title_lines:
+                bold(draw, (28, y), ln, title_font, self.TEXT)
+                y += 30
+
+            # Category badge
+            category = str(ticket_data.get('ticket_category') or 'General').upper()
+            bf = f(12)
+            bw = measure.textlength(category, font=bf) + 26
+            draw.rounded_rectangle([28, y + 2, 28 + bw, y + 28], 13, fill=self.BADGE_BG)
+            draw.text((28 + 13, y + 8), category, font=bf, fill=self.INDIGO)
+            y += 44
+
+            # QR code — payload identical to before so verification still works
             qr = qrcode.QRCode(
                 version=1,
-                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                error_correction=qrcode.constants.ERROR_CORRECT_M,
                 box_size=8,
-                border=2,
+                border=1,
             )
-            
-            # Create unique QR data that includes ticket_id, event_id, and timestamp
-            qr_data = {
+            qr.add_data(json.dumps({
                 'ticket_id': ticket_data['ticket_id'],
                 'event_id': ticket_data.get('event_id', ''),
                 'timestamp': ticket_data.get('timestamp', ''),
-                'type': 'fast_ticket'
-            }
-            
-            # Convert to JSON string for QR code
-            import json
-            qr_data_string = json.dumps(qr_data)
-            qr.add_data(qr_data_string)
+                'type': 'fast_ticket',
+            }))
             qr.make(fit=True)
-            
-            qr_img = qr.make_image(fill_color="black", back_color="white")
-            
-            # Resize QR code to fit ticket
-            qr_img = qr_img.resize((200, 200))
-            
-            # Paste QR code on ticket
-            ticket_img.paste(qr_img, (100, 50))
-            
-            # Add event information
-            y_position = 280
-            
-            # Event title
-            draw.text((20, y_position), "EVENT TICKET", fill='black', font=font_large)
-            y_position += 40
-            
-            # Event name
-            event_title = ticket_data.get('event_title', 'Event')[:30]  # Truncate if too long
-            draw.text((20, y_position), f"Event: {event_title}", fill='black', font=font_medium)
-            y_position += 30
-            
-            # Event date
+            qr_img = qr.make_image(fill_color=(24, 24, 27), back_color=self.WHITE).convert('RGB').resize((208, 208))
+
+            ct = y + 2
+            cs = 236
+            cx = (W - cs) // 2
+            draw.rounded_rectangle([cx, ct, cx + cs, ct + cs], 18, fill=self.CONTAINER)
+            img.paste(qr_img, (cx + 14, ct + 14))
+
+            # Perforated stub line with side notches
+            yp = ct + cs + 22
+            for x in range(24, W - 24, 14):
+                draw.line([x, yp, x + 7, yp], fill=(205, 203, 216), width=2)
+            draw.ellipse([-12, yp - 12, 12, yp + 12], fill=self.WHITE, outline=self.BORDER, width=2)
+            draw.ellipse([W - 12, yp - 12, W + 12, yp + 12], fill=self.WHITE, outline=self.BORDER, width=2)
+
+            # Details grid
             event_date = ticket_data.get('event_date', 'TBD')
             if hasattr(event_date, 'strftime'):
-                event_date = event_date.strftime('%Y-%m-%d %H:%M')
-            draw.text((20, y_position), f"Date: {event_date}", fill='black', font=font_medium)
-            y_position += 30
-            
-            # Buyer name
-            buyer_name = ticket_data.get('buyer_name', 'Guest')
-            draw.text((20, y_position), f"Guest: {buyer_name}", fill='black', font=font_medium)
-            y_position += 30
-            
-            # Ticket ID
-            ticket_id = ticket_data.get('ticket_id', 'N/A')
-            draw.text((20, y_position), f"Ticket ID: {ticket_id}", fill='black', font=font_small)
-            y_position += 25
-            
-            # Quantity
-            quantity = ticket_data.get('quantity', 1)
-            draw.text((20, y_position), f"Quantity: {quantity}", fill='black', font=font_small)
-            y_position += 25
-            
-            # Add some styling
-            draw.rectangle([10, 10, self.ticket_width-10, self.ticket_height-10], outline='black', width=2)
-            draw.rectangle([10, 260, self.ticket_width-10, 270], fill='black')
-            
-            # Convert to bytes
+                event_date = event_date.strftime('%b %d, %Y · %I:%M %p')
+
+            def cell(x, cy, label, value, maxw):
+                draw.text((x, cy), str(label).upper(), font=f(11), fill=self.MUTED)
+                draw.text((x, cy + 16), fit(draw, value, f(15), maxw), font=f(15), fill=self.TEXT)
+
+            gy = yp + 24
+            cell(28, gy, "Date", event_date, 170)
+            cell(W // 2, gy, "Guest", ticket_data.get('buyer_name', 'Guest'), 170)
+            cell(28, gy + 52, "Email", ticket_data.get('buyer_email', ''), W - 56)
+            cell(28, gy + 104, "Ticket ID", ticket_data.get('ticket_id', 'N/A'), W - 56)
+
+            draw.text((W // 2, H - 30), "Present this code at entry  •  darra.com.ng",
+                      font=f(11), fill=self.MUTED, anchor="ma")
+
+            # Outer border last so it frames everything cleanly
+            draw.rounded_rectangle([0, 0, W - 1, H - 1], 24, outline=self.BORDER, width=2)
+
             buffer = BytesIO()
-            ticket_img.save(buffer, format='PNG', optimize=True)
+            img.save(buffer, format='PNG', optimize=True)
             buffer.seek(0)
-            
             return buffer
-            
+
         except Exception as e:
             print(f"Error generating fast ticket PNG: {str(e)}")
             return None

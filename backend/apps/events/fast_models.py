@@ -40,6 +40,14 @@ class FastEventTicket(models.Model):
     def __str__(self):
         return f"Fast Ticket {self.ticket_id} for {self.event.title}"
     
+    def _ticket_category(self):
+        """The tier the buyer chose (VIP, Regular, …), shown as the ticket's
+        category badge. Falls back to 'General' for tickets with no tier."""
+        tier = getattr(self.purchase, 'selected_ticket_tier', None)
+        if tier:
+            return getattr(tier, 'display_name', None) or tier.name
+        return 'General'
+
     def generate_fast_ticket(self):
         """
         Generate fast PNG ticket (no PDF, no cloud upload)
@@ -51,8 +59,10 @@ class FastEventTicket(models.Model):
                 'ticket_id': str(self.ticket_id),
                 'event_id': str(self.event.id),
                 'event_title': self.event.title,
-                'event_date': self.event.event_date.strftime('%Y-%m-%d %H:%M') if self.event.event_date else 'TBD',
-                'buyer_name': f"{self.buyer.first_name} {self.buyer.last_name}".strip() or self.buyer.email,
+                'event_date': self.event.event_date if self.event.event_date else 'TBD',
+                'buyer_name': getattr(self.buyer, 'full_name', '') or self.buyer.email,
+                'buyer_email': self.buyer.email,
+                'ticket_category': self._ticket_category(),
                 'quantity': self.quantity,
                 'timestamp': datetime.now().isoformat()
             }
