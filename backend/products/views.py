@@ -14,7 +14,12 @@ from datetime import timedelta
 from apps.payments.models import Payment, Purchase
 from django.db.models.functions import TruncDate
 from apps.payments.serializers import PurchaseSerializer
-from .file_validation import validate_uploaded_file, validate_cover_image, ALLOWED_FILE_TYPES
+from .file_validation import (
+    validate_uploaded_file, validate_cover_image, ALLOWED_FILE_TYPES,
+    get_allowed_extensions_for_type,
+)
+from .models import _r2_configured
+from .r2_uploads import build_file_key, generate_presigned_put, attach_r2_file
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
 from core.pagination import StandardResultsPagination
@@ -94,7 +99,14 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
                 product.cover_image = cover_image
                 product.save()
 
-            if 'file' in self.request.FILES:
+            # The product file arrives one of two ways: a `file_key` pointing at
+            # an object the browser already uploaded straight to R2 (the path for
+            # anything large), or raw `file` bytes in the request (local disk /
+            # small files). Both are validated before they stick.
+            file_key = self.request.data.get('file_key')
+            if file_key:
+                attach_r2_file(product, file_key, self.request.user, product.product_type)
+            elif 'file' in self.request.FILES:
                 product_file = self.request.FILES['file']
                 validate_uploaded_file(product_file, product.product_type)
                 product.file = product_file
@@ -128,13 +140,52 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
                 product.cover_image = cover_image
                 product.save()
 
-            if 'file' in self.request.FILES:
+            file_key = self.request.data.get('file_key')
+            if file_key:
+                attach_r2_file(product, file_key, self.request.user, product.product_type)
+            elif 'file' in self.request.FILES:
                 product_file = self.request.FILES['file']
                 validate_uploaded_file(product_file, product.product_type)
                 product.file = product_file
                 product.save()
         except DjangoValidationError as e:
             raise DRFValidationError({'detail': e.messages})
+
+
+class PresignProductFileUploadView(APIView):
+    """
+    Hand a seller a short-lived presigned R2 URL so the browser can upload a
+    product file directly to Cloudflare — bypassing the Vercel 4.5MB proxy
+    limit. Returns 503 when R2 isn't configured so the frontend falls back to a
+    normal multipart upload (local dev / small files).
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        if not _r2_configured():
+            return Response({'detail': 'Direct upload is not available.'}, status=503)
+
+        if getattr(request.user, 'user_type', None) != 'seller':
+            return Response({'detail': 'Only sellers can upload product files.'}, status=403)
+
+        filename = (request.data.get('filename') or '').strip()
+        product_type = (request.data.get('product_type') or '').strip()
+        if not filename:
+            return Response({'detail': 'filename is required.'}, status=400)
+
+        allowed = get_allowed_extensions_for_type(product_type)
+        if allowed:
+            ext = '.' + filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+            if ext not in allowed:
+                return Response(
+                    {'detail': f"This product type accepts: {', '.join(allowed)}"},
+                    status=400,
+                )
+
+        key = build_file_key(request.user.id, filename)
+        url = generate_presigned_put(key)
+        return Response({'url': url, 'key': key})
+
 
 class ProductListView(generics.ListAPIView):
     serializer_class = ProductSerializer

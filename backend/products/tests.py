@@ -9,7 +9,7 @@ from django.core.cache import cache
 from django.test import TestCase, override_settings
 from rest_framework import serializers as drf
 
-from core.test_factories import make_seller, make_product, make_event
+from core.test_factories import make_seller, make_product, make_event, make_user
 from .models import Product, TicketCategory, TicketTier, private_product_storage, _r2_configured
 from .serializers import ProductSerializer, parse_ticket_types
 from .file_validation import validate_cover_image
@@ -144,6 +144,131 @@ class DocxUploadValidationTests(TestCase):
         f = SimpleUploadedFile('fake.docx', PNG_BYTES, content_type='image/png')
         with self.assertRaises(DjangoValidationError):
             validate_uploaded_file(f, 'docx')
+
+
+class R2DirectUploadTests(TestCase):
+    """
+    Large files upload straight to R2 via a presigned URL; Django only
+    validates the finished object. These cover the key namespacing, the size
+    caps, and the validate-and-attach guard — all without touching the network.
+    """
+
+    R2 = dict(
+        R2_ACCESS_KEY_ID='ak', R2_SECRET_ACCESS_KEY='sk',
+        R2_BUCKET_NAME='darra-files',
+        R2_ENDPOINT_URL='https://acct.r2.cloudflarestorage.com',
+    )
+
+    def test_key_is_namespaced_to_the_uploader(self):
+        from products.r2_uploads import build_file_key, key_belongs_to_user
+        key = build_file_key(42, 'song.mp3')
+        self.assertTrue(key.startswith('products/files/42/'))
+        self.assertTrue(key.endswith('.mp3'))
+        self.assertTrue(key_belongs_to_user(key, 42))
+        self.assertFalse(key_belongs_to_user(key, 43))  # can't claim another's key
+
+    def test_size_caps_per_type(self):
+        from products.file_validation import max_file_size_for
+        self.assertEqual(max_file_size_for('mp3'), 50 * 1024 * 1024)
+        self.assertEqual(max_file_size_for('pdf'), 25 * 1024 * 1024)
+        self.assertEqual(max_file_size_for('png'), 4 * 1024 * 1024)
+
+    @override_settings(**R2)
+    def test_attach_rejects_a_key_from_another_user(self):
+        from products.r2_uploads import attach_r2_file
+        product = make_product(product_type='mp3')
+        with self.assertRaises(DjangoValidationError):
+            attach_r2_file(product, 'products/files/99999/x.mp3', product.owner, 'mp3')
+
+    @override_settings(**R2)
+    def test_attach_validates_bytes_then_sets_file_name(self):
+        from unittest import mock
+        from products import r2_uploads
+        product = make_product(product_type='pdf')
+        key = f'products/files/{product.owner.id}/deadbeef.pdf'
+
+        client = mock.MagicMock()
+        client.head_object.return_value = {'ContentLength': 1000}
+        body = mock.MagicMock(); body.read.return_value = PDF_BYTES
+        client.get_object.return_value = {'Body': body}
+
+        with mock.patch.object(r2_uploads, '_r2_client', return_value=client):
+            r2_uploads.attach_r2_file(product, key, product.owner, 'pdf')
+
+        product.refresh_from_db()
+        self.assertEqual(product.file.name, key)
+
+    @override_settings(**R2)
+    def test_attach_rejects_wrong_bytes_and_deletes_the_object(self):
+        from unittest import mock
+        from products import r2_uploads
+        product = make_product(product_type='pdf')
+        key = f'products/files/{product.owner.id}/deadbeef.pdf'
+
+        client = mock.MagicMock()
+        client.head_object.return_value = {'ContentLength': 1000}
+        body = mock.MagicMock(); body.read.return_value = b'MZ\x90\x00' + b'\x00' * 100
+        client.get_object.return_value = {'Body': body}
+
+        with mock.patch.object(r2_uploads, '_r2_client', return_value=client):
+            with self.assertRaises(DjangoValidationError):
+                r2_uploads.attach_r2_file(product, key, product.owner, 'pdf')
+
+        client.delete_object.assert_called_once()  # untrusted object cleaned up
+
+
+class PresignEndpointTests(TestCase):
+    def setUp(self):
+        cache.clear()
+        self.seller = make_seller()
+
+    def _client(self, user):
+        from rest_framework.test import APIClient
+        c = APIClient()
+        c.force_authenticate(user=user)
+        return c
+
+    @override_settings(R2_ACCESS_KEY_ID='', R2_SECRET_ACCESS_KEY='',
+                       R2_BUCKET_NAME='', R2_ENDPOINT_URL='')
+    def test_503_when_r2_not_configured(self):
+        res = self._client(self.seller).post(
+            '/api/products/upload/presign/',
+            {'filename': 'a.pdf', 'product_type': 'pdf'},
+        )
+        self.assertEqual(res.status_code, 503)
+
+    @override_settings(R2_ACCESS_KEY_ID='ak', R2_SECRET_ACCESS_KEY='sk',
+                       R2_BUCKET_NAME='b', R2_ENDPOINT_URL='https://x.r2.cloudflarestorage.com')
+    def test_seller_gets_a_signed_url_and_key(self):
+        from unittest import mock
+        with mock.patch('products.views.generate_presigned_put', return_value='https://signed.example'):
+            res = self._client(self.seller).post(
+                '/api/products/upload/presign/',
+                {'filename': 'song.mp3', 'product_type': 'mp3'},
+            )
+        self.assertEqual(res.status_code, 200)
+        body = res.json()
+        self.assertEqual(body['url'], 'https://signed.example')
+        self.assertTrue(body['key'].startswith(f'products/files/{self.seller.id}/'))
+
+    @override_settings(R2_ACCESS_KEY_ID='ak', R2_SECRET_ACCESS_KEY='sk',
+                       R2_BUCKET_NAME='b', R2_ENDPOINT_URL='https://x.r2.cloudflarestorage.com')
+    def test_buyer_is_forbidden(self):
+        buyer = make_user(user_type='buyer')
+        res = self._client(buyer).post(
+            '/api/products/upload/presign/',
+            {'filename': 'song.mp3', 'product_type': 'mp3'},
+        )
+        self.assertEqual(res.status_code, 403)
+
+    @override_settings(R2_ACCESS_KEY_ID='ak', R2_SECRET_ACCESS_KEY='sk',
+                       R2_BUCKET_NAME='b', R2_ENDPOINT_URL='https://x.r2.cloudflarestorage.com')
+    def test_wrong_extension_for_type_is_rejected(self):
+        res = self._client(self.seller).post(
+            '/api/products/upload/presign/',
+            {'filename': 'notes.txt', 'product_type': 'pdf'},
+        )
+        self.assertEqual(res.status_code, 400)
 
 
 class ProductFilePrivacyTests(TestCase):

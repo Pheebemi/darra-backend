@@ -1,9 +1,9 @@
 from django.urls import path
 from .views import (
-    SellerProductListCreateView, ProductDetailView, 
+    SellerProductListCreateView, ProductDetailView,
     SellerAnalyticsView, ProductListView, PublicProductDetailView,
     SellerOrdersView, TicketCategoryListView, TicketTierListView,
-    TicketTierCreateView
+    TicketTierCreateView, PresignProductFileUploadView
 )
 
 urlpatterns = [
@@ -11,6 +11,7 @@ urlpatterns = [
     path('<int:pk>/', PublicProductDetailView.as_view(), name='public-product-detail'),
     path('my-products/', SellerProductListCreateView.as_view(), name='seller-products'),
     path('my-products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
+    path('upload/presign/', PresignProductFileUploadView.as_view(), name='presign-upload'),
     path('analytics/', SellerAnalyticsView.as_view(), name='seller-analytics'),
     path('orders/', SellerOrdersView.as_view(), name='seller-orders'),
     
