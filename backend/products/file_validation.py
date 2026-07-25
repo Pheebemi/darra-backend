@@ -46,8 +46,27 @@ ACCEPTABLE_MIMES = {
 }
 
 # File size limits (in bytes)
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-MAX_IMAGE_SIZE = 5 * 1024 * 1024   # 5MB for images
+MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB default for documents
+# Cover images still travel through the Vercel serverless proxy, which has a
+# hard 4.5MB request-body limit — keep covers safely under it.
+MAX_IMAGE_SIZE = 4 * 1024 * 1024   # 4MB for images
+
+# Product files (audio, zip bundles, ebooks) upload directly to R2, bypassing
+# the proxy, so they can be much larger than a document form field.
+MAX_SIZE_BY_TYPE = {
+    'pdf':  25 * 1024 * 1024,
+    'docx': 25 * 1024 * 1024,
+    'mp3':  50 * 1024 * 1024,
+    'zip':  50 * 1024 * 1024,
+    'png':  MAX_IMAGE_SIZE,
+    'jpg':  MAX_IMAGE_SIZE,
+    'jpeg': MAX_IMAGE_SIZE,
+}
+
+
+def max_file_size_for(product_type):
+    """Maximum allowed byte size for a given product type."""
+    return MAX_SIZE_BY_TYPE.get(product_type, MAX_FILE_SIZE)
 
 def validate_file_type(file, product_type):
     """
@@ -160,22 +179,16 @@ def validate_file_size(file, product_type):
     """
     if not file:
         return True
-    
+
     file_size = file.size
-    
-    # Different size limits for different file types
-    if product_type in ['png', 'jpg', 'jpeg']:
-        max_size = MAX_IMAGE_SIZE
-        size_type = "image"
-    else:
-        max_size = MAX_FILE_SIZE
-        size_type = "file"
-    
+    max_size = max_file_size_for(product_type)
+    size_type = "image" if product_type in ('png', 'jpg', 'jpeg') else "file"
+
     if file_size > max_size:
         raise ValidationError(
             f"{size_type.capitalize()} too large. Maximum size is {max_size // (1024*1024)}MB, got {file_size // (1024*1024)}MB"
         )
-    
+
     return True
 
 def get_mime_from_extension(filename):

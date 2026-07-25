@@ -31,6 +31,7 @@ import {
   Settings,
 } from "lucide-react";
 import { toast } from "sonner";
+import { uploadProductFileToR2 } from "@/lib/api/upload";
 
 interface TicketCategory {
   id: number;
@@ -101,6 +102,7 @@ function CreateEventInner() {
   const [loading, setLoading] = useState(false);
   const [fetchingProduct, setFetchingProduct] = useState(isEditing);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
   useEffect(() => {
@@ -273,7 +275,14 @@ function CreateEventInner() {
           })))
         );
       } else if (file) {
-        formData.append("file", file);
+        // Upload the file straight to R2 (bypasses the 4.5MB proxy limit) and
+        // send only its key. Falls back to a normal upload when R2 isn't
+        // configured on the server (local dev / small files).
+        setUploadPct(0);
+        const key = await uploadProductFileToR2(file, productType, setUploadPct);
+        setUploadPct(null);
+        if (key) formData.append("file_key", key);
+        else formData.append("file", file);
       }
 
       if (coverImage) formData.append("cover_image", coverImage);
@@ -294,6 +303,7 @@ function CreateEventInner() {
     } finally {
       setLoading(false);
       setIsSubmitting(false);
+      setUploadPct(null);
     }
   };
 
@@ -690,7 +700,12 @@ function CreateEventInner() {
               <CardContent className="p-4 space-y-2">
                 <Button onClick={handleSubmit} disabled={loading || isSubmitting} className="w-full">
                   {loading || isSubmitting ? (
-                    <><Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />{isEditing ? "Saving..." : "Creating..."}</>
+                    <>
+                      <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                      {uploadPct !== null
+                        ? `Uploading file... ${uploadPct}%`
+                        : isEditing ? "Saving..." : "Creating..."}
+                    </>
                   ) : (
                     isEditing ? "Save Changes" : "Create Product"
                   )}
