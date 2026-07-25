@@ -99,6 +99,9 @@ INSTALLED_APPS = [
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    # Recover the real visitor IP from the frontend proxy BEFORE anything reads
+    # it, so per-IP rate limits apply per visitor and not to the shared proxy IP.
+    'core.middleware.RealClientIPMiddleware',
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add WhiteNoise for static files
     'csp.middleware.CSPMiddleware',  # Content Security Policy
     'core.middleware.CustomSecurityMiddleware',  # Custom security headers
@@ -268,7 +271,10 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.ScopedRateThrottle',    # Custom scoped throttling
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/hour',        # 100 requests per hour for anonymous users
+        # Per anonymous visitor (real IP, recovered by RealClientIPMiddleware).
+        # Generous because one person casually browsing fires many reads; still
+        # low enough to slow a scraper coming from a single address.
+        'anon': '500/hour',
         'user': '1000/hour',       # 1000 requests per hour for authenticated users
         'burst': '60/minute',      # 60 requests per minute (burst protection)
         'sustained': '1000/hour',  # 1000 requests per hour (sustained usage)
@@ -412,6 +418,14 @@ SECURE_CROSS_ORIGIN_EMBEDDER_POLICY = 'require-corp'
 # original scheme in X-Forwarded-Proto. Django needs this to know the request
 # was really HTTPS — without it, SECURE_SSL_REDIRECT causes a redirect loop.
 SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
+
+# Shared secret proving a request really came from our own frontend proxy, so
+# the visitor IP it forwards in X-Client-IP can be trusted (see
+# RealClientIPMiddleware). MUST be the same value on the frontend (Vercel) and
+# here. Leave empty to disable IP recovery — rate limits then fall back to the
+# proxy's IP, which throttles the whole site as one client.
+PROXY_SHARED_SECRET = os.getenv('PROXY_SHARED_SECRET', '')
+
 SESSION_COOKIE_SECURE = not DEBUG
 CSRF_COOKIE_SECURE = not DEBUG
 SESSION_COOKIE_HTTPONLY = True

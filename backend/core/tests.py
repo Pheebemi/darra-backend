@@ -1,0 +1,73 @@
+"""
+Tests for RealClientIPMiddleware — the piece that lets per-IP rate limits see
+the real visitor instead of the shared frontend-proxy IP.
+"""
+
+from django.test import RequestFactory, TestCase, override_settings
+
+from core.middleware import RealClientIPMiddleware
+
+SECRET = 'test-proxy-secret-value'
+
+
+class RealClientIPMiddlewareTests(TestCase):
+    def setUp(self):
+        self.factory = RequestFactory()
+
+    def _run(self, **headers):
+        # RequestFactory maps kwargs straight into request.META.
+        request = self.factory.get('/api/products/', REMOTE_ADDR='10.0.0.1', **headers)
+        captured = {}
+
+        def get_response(req):
+            captured['remote_addr'] = req.META.get('REMOTE_ADDR')
+            captured['xff'] = req.META.get('HTTP_X_FORWARDED_FOR')
+            return 'ok'
+
+        RealClientIPMiddleware(get_response)(request)
+        return captured
+
+    @override_settings(PROXY_SHARED_SECRET=SECRET)
+    def test_trusts_client_ip_when_secret_matches(self):
+        out = self._run(HTTP_X_PROXY_SECRET=SECRET, HTTP_X_CLIENT_IP='203.0.113.9')
+        self.assertEqual(out['remote_addr'], '203.0.113.9')
+        self.assertEqual(out['xff'], '203.0.113.9')
+
+    @override_settings(PROXY_SHARED_SECRET=SECRET)
+    def test_ignores_client_ip_when_secret_wrong(self):
+        out = self._run(HTTP_X_PROXY_SECRET='not-the-secret', HTTP_X_CLIENT_IP='203.0.113.9')
+        self.assertEqual(out['remote_addr'], '10.0.0.1')  # unchanged
+
+    @override_settings(PROXY_SHARED_SECRET=SECRET)
+    def test_rejects_a_non_ip_value(self):
+        out = self._run(HTTP_X_PROXY_SECRET=SECRET, HTTP_X_CLIENT_IP='not-an-ip')
+        self.assertEqual(out['remote_addr'], '10.0.0.1')  # unchanged
+
+    @override_settings(PROXY_SHARED_SECRET=SECRET)
+    def test_takes_first_ip_if_a_list_is_sent(self):
+        out = self._run(HTTP_X_PROXY_SECRET=SECRET, HTTP_X_CLIENT_IP='203.0.113.9, 10.0.0.5')
+        self.assertEqual(out['remote_addr'], '203.0.113.9')
+
+    @override_settings(PROXY_SHARED_SECRET='')
+    def test_noop_when_secret_not_configured(self):
+        # An attacker cannot enable trust just by sending the headers.
+        out = self._run(HTTP_X_PROXY_SECRET='', HTTP_X_CLIENT_IP='203.0.113.9')
+        self.assertEqual(out['remote_addr'], '10.0.0.1')  # unchanged
+
+    @override_settings(PROXY_SHARED_SECRET=SECRET)
+    def test_throttle_get_ident_uses_the_recovered_ip(self):
+        # End result: DRF's throttle identity is now the real visitor.
+        from rest_framework.throttling import SimpleRateThrottle
+        request = self.factory.get('/api/products/', REMOTE_ADDR='10.0.0.1',
+                                   HTTP_X_PROXY_SECRET=SECRET, HTTP_X_CLIENT_IP='198.51.100.7')
+        RealClientIPMiddleware(lambda r: 'ok')(request)
+
+        class _T(SimpleRateThrottle):
+            scope = 'anon'
+            def get_cache_key(self, request, view):
+                return None
+
+        # DRF wraps the WSGIRequest; get_ident reads the same META we rewrote.
+        from rest_framework.request import Request
+        ident = _T().get_ident(Request(request))
+        self.assertEqual(ident, '198.51.100.7')
