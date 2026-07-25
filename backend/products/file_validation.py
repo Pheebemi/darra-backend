@@ -24,6 +24,27 @@ ALLOWED_FILE_TYPES = {
     'jpeg': 'image/jpeg'
 }
 
+# A single expected MIME string is too strict for container formats: a .docx
+# is really a ZIP archive, so content detectors report it as application/zip
+# (or application/octet-stream), never the long Word MIME. Same story for .zip
+# and .mp3. Accept the known-safe aliases per type here and let the
+# signature-byte check (validate_magic_bytes) be the real gate — that still
+# blocks an executable renamed to .docx, because it won't start with "PK".
+ACCEPTABLE_MIMES = {
+    'pdf':  {'application/pdf'},
+    'docx': {
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/zip',
+        'application/x-zip-compressed',
+        'application/octet-stream',
+    },
+    'zip':  {'application/zip', 'application/x-zip-compressed', 'application/octet-stream'},
+    'mp3':  {'audio/mpeg', 'audio/mp3', 'application/octet-stream'},
+    'png':  {'image/png'},
+    'jpg':  {'image/jpeg'},
+    'jpeg': {'image/jpeg'},
+}
+
 # File size limits (in bytes)
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
 MAX_IMAGE_SIZE = 5 * 1024 * 1024   # 5MB for images
@@ -64,10 +85,14 @@ def validate_file_type(file, product_type):
         # Use extension-based validation as fallback
         actual_mime = get_mime_from_extension(file.name)
 
-    # Validate MIME type
-    if actual_mime != expected_mime:
+    # Validate MIME type against the set of acceptable aliases for this type
+    # (a .docx legitimately reads as application/zip, etc.). When the type is
+    # simply undetectable (actual_mime is None), don't hard-fail here — the
+    # signature-byte check below is the authoritative gate.
+    acceptable = ACCEPTABLE_MIMES.get(product_type, {expected_mime})
+    if actual_mime and actual_mime not in acceptable:
         raise ValidationError(
-            f"Invalid file type. Expected {expected_mime} for {product_type}, got {actual_mime}"
+            f"Invalid file type. Expected a {product_type.upper()} file, got {actual_mime}"
         )
 
     # Always check the file's own signature bytes as well. Without python-magic
