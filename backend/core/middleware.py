@@ -7,13 +7,6 @@ class CustomSecurityMiddleware:
         self.get_response = get_response
 
     def __call__(self, request):
-        # Log incoming requests for debugging
-        if request.path.startswith('/api/products/my-products/'):
-            print(f"🔍 DEBUG: Incoming request to {request.path}")
-            print(f"🔍 DEBUG: Method: {request.method}")
-            print(f"🔍 DEBUG: User: {getattr(request, 'user', 'Anonymous')}")
-            print(f"🔍 DEBUG: Files: {list(request.FILES.keys())}")
-        
         response = self.get_response(request)
         
         # Additional security headers

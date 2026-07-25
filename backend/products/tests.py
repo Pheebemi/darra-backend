@@ -100,6 +100,52 @@ class ProductCreateUploadTests(TestCase):
         )
 
 
+class DocxUploadValidationTests(TestCase):
+    """
+    A .docx is a ZIP container, so content detectors report it as
+    application/zip — the strict MIME check used to reject every real Word
+    file with a 400 while PDFs went through. These lock in the fix.
+    """
+
+    def _docx_bytes(self):
+        import io
+        import zipfile
+        buf = io.BytesIO()
+        with zipfile.ZipFile(buf, 'w') as z:
+            z.writestr('[Content_Types].xml', '<xml/>')
+            z.writestr('word/document.xml', '<w:document/>')
+        return buf.getvalue()
+
+    def test_real_docx_is_accepted(self):
+        from .file_validation import validate_uploaded_file
+        f = SimpleUploadedFile('essay.docx', self._docx_bytes(),
+                               content_type='application/octet-stream')
+        self.assertTrue(validate_uploaded_file(f, 'docx'))
+
+    def test_docx_detected_as_zip_is_accepted(self):
+        # Reproduce the server: python-magic reports the docx as application/zip.
+        from unittest import mock
+        from products import file_validation as fv
+        f = SimpleUploadedFile('essay.docx', self._docx_bytes(), content_type='x')
+        with mock.patch.object(fv, 'MAGIC_AVAILABLE', True), \
+             mock.patch.object(fv, 'magic', create=True) as m:
+            m.from_buffer.return_value = 'application/zip'
+            self.assertTrue(fv.validate_uploaded_file(f, 'docx'))
+
+    def test_executable_renamed_to_docx_is_blocked(self):
+        from .file_validation import validate_uploaded_file
+        f = SimpleUploadedFile('malware.docx', b'MZ\x90\x00' + b'\x00' * 128,
+                               content_type='application/octet-stream')
+        with self.assertRaises(DjangoValidationError):
+            validate_uploaded_file(f, 'docx')
+
+    def test_a_png_claiming_to_be_docx_is_blocked(self):
+        from .file_validation import validate_uploaded_file
+        f = SimpleUploadedFile('fake.docx', PNG_BYTES, content_type='image/png')
+        with self.assertRaises(DjangoValidationError):
+            validate_uploaded_file(f, 'docx')
+
+
 class ProductFilePrivacyTests(TestCase):
     """A paid file must never be discoverable from the public product API."""
 

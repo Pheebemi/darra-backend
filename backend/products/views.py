@@ -64,22 +64,11 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
             return ProductCreateSerializer
         return ProductSerializer
     
-    def post(self, request, *args, **kwargs):
-        print(f"🔍 DEBUG: POST request received to /products/my-products/")
-        print(f"🔍 DEBUG: Request method: {request.method}")
-        print(f"🔍 DEBUG: Request user: {request.user}")
-        print(f"🔍 DEBUG: Request files: {list(request.FILES.keys())}")
-        print(f"🔍 DEBUG: Request data keys: {list(request.data.keys())}")
-        return super().post(request, *args, **kwargs)
-
     def perform_create(self, serializer):
         # Check if this is a duplicate request by looking for similar products
         title = serializer.validated_data.get('title')
         product_type = serializer.validated_data.get('product_type')
-        
-        print(f"🔍 DEBUG: Starting product creation for {title} (type: {product_type})")
-        print(f"🔍 DEBUG: Request files: {list(self.request.FILES.keys())}")
-        
+
         # Look for recent duplicate products (within last 5 minutes)
         recent_duplicate = Product.objects.filter(
             owner=self.request.user,
@@ -89,7 +78,6 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
         ).first()
         
         if recent_duplicate:
-            print(f"⚠️ Duplicate product creation detected: {title}")
             # Return the existing product instead of creating a new one
             return recent_duplicate
         
