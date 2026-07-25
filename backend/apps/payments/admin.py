@@ -18,9 +18,11 @@ class PurchaseAdmin(admin.ModelAdmin):
     ordering = ['-created_at']
     
     def ticket_tier_info(self, obj):
-        if obj.selected_ticket_tier:
-            return f"{obj.selected_ticket_tier.category.name} - {obj.selected_ticket_tier.name}"
-        return "N/A"
+        # Seller-named tiers have no category (category is nullable now), so
+        # never touch .category.name directly — display_name handles both the
+        # legacy category-backed tiers and the newer seller-named ones.
+        tier = obj.selected_ticket_tier
+        return tier.display_name if tier else "N/A"
     ticket_tier_info.short_description = 'Ticket Tier'
 
 @admin.register(UserLibrary)

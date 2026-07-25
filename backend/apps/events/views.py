@@ -143,8 +143,10 @@ def get_ticket_details(request, ticket_id):
                 'name': ticket.purchase.selected_ticket_tier.name,
                 'price': str(ticket.purchase.selected_ticket_tier.price),
                 'category': {
-                    'name': ticket.purchase.selected_ticket_tier.category.name,
-                    'color': ticket.purchase.selected_ticket_tier.category.color,
+                    # Seller-named tiers have no category row (category is
+                    # nullable); display_name/display_color are null-safe.
+                    'name': ticket.purchase.selected_ticket_tier.display_name,
+                    'color': ticket.purchase.selected_ticket_tier.display_color,
                 }
             } if ticket.purchase and ticket.purchase.selected_ticket_tier else None,
             'qr_code_url': ticket.ticket_png.url if ticket.ticket_png else None,
@@ -214,8 +216,10 @@ def verify_ticket(request, ticket_id):
                 'name': ticket.purchase.selected_ticket_tier.name,
                 'price': str(ticket.purchase.selected_ticket_tier.price),
                 'category': {
-                    'name': ticket.purchase.selected_ticket_tier.category.name,
-                    'color': ticket.purchase.selected_ticket_tier.category.color,
+                    # Seller-named tiers have no category row (category is
+                    # nullable); display_name/display_color are null-safe.
+                    'name': ticket.purchase.selected_ticket_tier.display_name,
+                    'color': ticket.purchase.selected_ticket_tier.display_color,
                 }
             } if ticket.purchase and ticket.purchase.selected_ticket_tier else None,
             'qr_code_url': ticket.ticket_png.url if ticket.ticket_png else None,
