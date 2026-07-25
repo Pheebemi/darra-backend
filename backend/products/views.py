@@ -14,8 +14,9 @@ from datetime import timedelta
 from apps.payments.models import Payment, Purchase
 from django.db.models.functions import TruncDate
 from apps.payments.serializers import PurchaseSerializer
-from .file_validation import validate_uploaded_file, ALLOWED_FILE_TYPES
-from django.core.exceptions import ValidationError
+from .file_validation import validate_uploaded_file, validate_cover_image, ALLOWED_FILE_TYPES
+from django.core.exceptions import ValidationError as DjangoValidationError
+from rest_framework.exceptions import ValidationError as DRFValidationError
 from core.pagination import StandardResultsPagination
 from core.cache_utils import (
     cache_product_list, cache_product_data, cache_user_data, 
@@ -92,78 +93,28 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
             # Return the existing product instead of creating a new one
             return recent_duplicate
         
-        # Save the product first to get the ID
+        product = serializer.save(owner=self.request.user)
+
+        # Attach the uploaded files. A failure here must NOT be swallowed: a
+        # product created without its file (the thing the buyer pays for) is
+        # worse than a clear error. If validation fails, delete the just-created
+        # product and return the message so the seller can fix and retry.
         try:
-            product = serializer.save(owner=self.request.user)
-            print(f"✅ Product created: {product.id} - {product.title}")
-        except Exception as e:
-            print(f"❌ DEBUG: Error creating product: {str(e)}")
-            print(f"❌ DEBUG: Error type: {type(e).__name__}")
-            import traceback
-            print(f"❌ DEBUG: Full traceback: {traceback.format_exc()}")
-            raise e
-        
-        # Handle local file uploads if files are provided
-        try:
-            # Upload cover image if provided
             if 'cover_image' in self.request.FILES:
                 cover_image = self.request.FILES['cover_image']
-                print(f"🔍 DEBUG: Cover image file: {cover_image.name}, size: {cover_image.size}, type: {cover_image.content_type}")
-                
-                # Validate cover image
-                try:
-                    validate_uploaded_file(cover_image, 'png')  # Cover images should be PNG/JPG
-                    print(f"✅ Cover image validation passed")
-                except ValidationError as e:
-                    print(f"❌ Cover image validation failed: {str(e)}")
-                    raise e
-                
-                print(f"🔄 Saving cover image to local storage...")
-                try:
-                    product.cover_image = cover_image
-                    product.save()
-                    print(f"✅ Cover image saved to local storage: {product.cover_image.name}")
-                except Exception as e:
-                    print(f"❌ DEBUG: Cover image save error: {str(e)}")
-                    print(f"❌ DEBUG: Cover image error type: {type(e).__name__}")
-                    import traceback
-                    print(f"❌ DEBUG: Cover image traceback: {traceback.format_exc()}")
-            
-            # Upload product file if provided
+                validate_cover_image(cover_image)
+                product.cover_image = cover_image
+                product.save()
+
             if 'file' in self.request.FILES:
                 product_file = self.request.FILES['file']
-                print(f"🔍 DEBUG: Product file: {product_file.name}, size: {product_file.size}, type: {product_file.content_type}")
-                print(f"🔍 DEBUG: Product type: {product.product_type}")
-                
-                # Validate product file based on product type
-                try:
-                    validate_uploaded_file(product_file, product.product_type)
-                    print(f"✅ Product file validation passed for type: {product.product_type}")
-                except ValidationError as e:
-                    print(f"❌ Product file validation failed: {str(e)}")
-                    raise e
-                
-                print(f"🔄 Saving product file to local storage...")
-                try:
-                    product.file = product_file
-                    product.save()
-                    print(f"✅ Product file saved to local storage: {product.file.name}")
-                except Exception as e:
-                    print(f"❌ DEBUG: Product file save error: {str(e)}")
-                    print(f"❌ DEBUG: Product file error type: {type(e).__name__}")
-                    import traceback
-                    print(f"❌ DEBUG: Product file traceback: {traceback.format_exc()}")
-                    
-        except Exception as e:
-            print(f"❌ DEBUG: General file save error: {str(e)}")
-            print(f"❌ DEBUG: General error type: {type(e).__name__}")
-            import traceback
-            print(f"❌ DEBUG: General traceback: {traceback.format_exc()}")
-            # If file save fails, we still have the product but without files
-        
-        # Log the final result
-        print(f"🎉 Product {product.id} created successfully with local file storage")
-        
+                validate_uploaded_file(product_file, product.product_type)
+                product.file = product_file
+                product.save()
+        except DjangoValidationError as e:
+            product.delete()
+            raise DRFValidationError({'detail': e.messages})
+
         return product
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
@@ -178,48 +129,24 @@ class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
         return ProductSerializer
     
     def perform_update(self, serializer):
-        # Save the product first
         product = serializer.save()
-        
-        # Validate and save files if provided
+
+        # Same cover-accepts-JPG fix as create; surface validation errors as a
+        # clean 400 rather than a 500.
         try:
-            # Handle cover image update
             if 'cover_image' in self.request.FILES:
                 cover_image = self.request.FILES['cover_image']
-                print(f"🔍 DEBUG: Updating cover image: {cover_image.name}")
-                
-                # Validate cover image
-                try:
-                    validate_uploaded_file(cover_image, 'png')
-                    print(f"✅ Cover image validation passed")
-                except ValidationError as e:
-                    print(f"❌ Cover image validation failed: {str(e)}")
-                    raise e
-                
+                validate_cover_image(cover_image)
                 product.cover_image = cover_image
                 product.save()
-                print(f"✅ Cover image updated: {product.cover_image.name}")
-            
-            # Handle product file update
+
             if 'file' in self.request.FILES:
                 product_file = self.request.FILES['file']
-                print(f"🔍 DEBUG: Updating product file: {product_file.name}")
-                
-                # Validate product file based on product type
-                try:
-                    validate_uploaded_file(product_file, product.product_type)
-                    print(f"✅ Product file validation passed for type: {product.product_type}")
-                except ValidationError as e:
-                    print(f"❌ Product file validation failed: {str(e)}")
-                    raise e
-                
+                validate_uploaded_file(product_file, product.product_type)
                 product.file = product_file
                 product.save()
-                print(f"✅ Product file updated: {product.file.name}")
-                
-        except Exception as e:
-            print(f"❌ DEBUG: File update error: {str(e)}")
-            raise e
+        except DjangoValidationError as e:
+            raise DRFValidationError({'detail': e.messages})
 
 class ProductListView(generics.ListAPIView):
     serializer_class = ProductSerializer
