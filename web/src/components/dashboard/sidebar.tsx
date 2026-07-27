@@ -94,8 +94,8 @@ export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
       {/* Logo */}
       <div className="flex h-16 items-center px-5">
         <Link href="/" className="flex items-center gap-2.5" onClick={onNavigate}>
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-brand-500">
-            <span className="text-base font-bold text-white">D</span>
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white">
+            <img src="/logo.svg" alt="Darra" className="h-7 w-auto" />
           </div>
           <span className="text-base font-semibold text-white">Darra</span>
         </Link>

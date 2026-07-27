@@ -8,8 +8,8 @@ export function SiteFooter() {
             {/* Brand */}
             <div className="md:col-span-2">
               <div className="mb-4 flex items-center gap-2.5">
-                <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
-                  <span className="text-lg font-bold text-white">D</span>
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white">
+                  <img src="/logo.svg" alt="Darra" className="h-8 w-auto" />
                 </div>
                 <span className="text-lg font-semibold text-white">Darra</span>
               </div>
