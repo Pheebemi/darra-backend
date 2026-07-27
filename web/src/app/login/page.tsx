@@ -18,8 +18,8 @@ export default function LoginPage() {
       {/* Left — brand */}
       <div className="hidden flex-col justify-between bg-brand-950 p-12 lg:flex lg:w-1/2">
         <div className="flex items-center gap-2.5">
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
-            <span className="text-lg font-bold text-white">D</span>
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white">
+            <img src="/logo.svg" alt="Darra" className="h-8 w-auto" />
           </div>
           <span className="text-lg font-semibold text-white">Darra</span>
         </div>
@@ -46,8 +46,8 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-brand-500">
-              <span className="text-lg font-bold text-white">D</span>
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-gray-200">
+              <img src="/logo.svg" alt="Darra" className="h-8 w-auto" />
             </div>
             <span className="text-lg font-semibold text-ink">Darra</span>
           </div>
