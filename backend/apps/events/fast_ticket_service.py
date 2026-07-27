@@ -27,6 +27,11 @@ class FastTicketService:
     MUTED = (120, 118, 132)
     WHITE = (255, 255, 255)
 
+    # Pre-rendered logo (the SVG is rasterised offline so the server needs no
+    # SVG library). If the file is missing the header falls back to the
+    # wordmark alone — a ticket never fails to generate over a logo.
+    _LOGO_PATH = os.path.join(os.path.dirname(__file__), 'assets', 'logo.png')
+
     @staticmethod
     def _font(size):
         # Pillow's scalable built-in font: renders identically on the server,
@@ -89,8 +94,24 @@ class FastTicketService:
             # Header band (rounded top, square bottom)
             draw.rounded_rectangle([0, 0, W, 132], 24, fill=self.INDIGO)
             draw.rectangle([0, 108, W, 132], fill=self.INDIGO)
-            bold(draw, (28, 40), "DARRA", f(30), self.WHITE)
-            draw.text((W - 28, 52), "E-TICKET", font=f(13), fill=(206, 196, 255), anchor="ra")
+
+            # Brand: the logo in a white tile + wordmark. Falls back to the
+            # wordmark alone if the logo asset can't be loaded.
+            wordmark_x, wordmark_y, wordmark_size = 28, 40, 30
+            try:
+                logo = Image.open(self._LOGO_PATH).convert('RGBA')
+                tile, tx, ty = 58, 26, 30
+                draw.rounded_rectangle([tx, ty, tx + tile, ty + tile], 15, fill=self.WHITE)
+                logo_h = 42
+                logo_w = max(1, int(logo.width / logo.height * logo_h))
+                logo = logo.resize((logo_w, logo_h))
+                img.paste(logo, (tx + (tile - logo_w) // 2, ty + (tile - logo_h) // 2), logo)
+                wordmark_x, wordmark_y, wordmark_size = tx + tile + 14, 46, 28
+            except Exception as e:
+                print(f"Ticket logo not loaded, using wordmark only: {e}")
+
+            bold(draw, (wordmark_x, wordmark_y), "DARRA", f(wordmark_size), self.WHITE)
+            draw.text((W - 26, 50), "E-TICKET", font=f(13), fill=(206, 196, 255), anchor="ra")
 
             # Event title
             y = 152
