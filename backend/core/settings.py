@@ -330,12 +330,16 @@ EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 # Check if email credentials are configured
 if not DEBUG and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    EMAIL_HOST = 'smtp.gmail.com'
-    EMAIL_PORT = 587
-    EMAIL_USE_TLS = True
-    EMAIL_USE_SSL = False
+    # Host/port are env-driven so any SMTP provider works (Resend, Brevo, SES,
+    # Gmail, …). Defaults to Gmail for backwards compatibility. For Resend use
+    # EMAIL_HOST=smtp.resend.com, EMAIL_HOST_USER=resend, password = the API key.
+    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+    EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+    EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
+    # TLS (STARTTLS) on 587 by default; if SSL is chosen, TLS must be off.
+    EMAIL_USE_TLS = not EMAIL_USE_SSL and os.getenv('EMAIL_USE_TLS', 'True') == 'True'
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
-    print("Email: Production mode - SMTP configured")
+    print(f"Email: Production mode - SMTP via {EMAIL_HOST}:{EMAIL_PORT}")
 else:
     EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
     print("Email: Development mode - console backend")
