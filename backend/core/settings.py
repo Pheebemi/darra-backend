@@ -326,9 +326,20 @@ CORS_ALLOW_METHODS = [
 # Email settings
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 
 # Check if email credentials are configured
-if not DEBUG and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+if not DEBUG and RESEND_API_KEY:
+    # Send through Resend's HTTPS API, not SMTP. PythonAnywhere's free tier
+    # blocks outbound SMTP, but api.resend.com is on its allowlist — so the API
+    # backend is what lets us send from @darra.com.ng without a paid plan.
+    # django-anymail is a drop-in backend: every existing send_mail /
+    # EmailMultiAlternatives call keeps working, it just goes over HTTPS.
+    EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
+    ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
+    DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'support@darra.com.ng')
+    print("Email: Production mode - Resend HTTP API")
+elif not DEBUG and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
     # Host/port are env-driven so any SMTP provider works (Resend, Brevo, SES,
     # Gmail, …). Defaults to Gmail for backwards compatibility. For Resend use
