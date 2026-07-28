@@ -24,7 +24,7 @@ requests>=2.33.0
 # Additional utilities
 Pillow>=10.0.0  # For image handling
 img2pdf>=0.5.1  # For converting images to PDF
-qrcode>=7.4.2  # For generating QR codes
+qrcode>=8.2  # For generating QR codes
 
 # Cloudinary integration (commented out for local storage)
 # cloudinary>=1.40.0
