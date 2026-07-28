@@ -19,7 +19,7 @@ dj-database-url>=2.1.0
 django-anymail>=10.0
 
 # HTTP requests (for Paystack API integration)
-requests>=2.33.0
+requests>=2.34.2
 
 # Additional utilities
 Pillow>=10.0.0  # For image handling
