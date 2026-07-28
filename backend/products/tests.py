@@ -171,7 +171,7 @@ class R2DirectUploadTests(TestCase):
         from products.file_validation import max_file_size_for
         self.assertEqual(max_file_size_for('mp3'), 50 * 1024 * 1024)
         self.assertEqual(max_file_size_for('pdf'), 25 * 1024 * 1024)
-        self.assertEqual(max_file_size_for('png'), 4 * 1024 * 1024)
+        self.assertEqual(max_file_size_for('png'), 500 * 1024)  # cover cap
 
     @override_settings(**R2)
     def test_attach_rejects_a_key_from_another_user(self):
