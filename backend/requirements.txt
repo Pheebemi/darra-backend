@@ -16,7 +16,7 @@ dj-database-url>=2.1.0
 # Transactional email via Resend's HTTPS API (works on PythonAnywhere free,
 # where outbound SMTP is blocked but api.resend.com is allowlisted). Only used
 # when RESEND_API_KEY is set; otherwise SMTP/console backends are used.
-django-anymail>=10.0
+django-anymail>=15.0
 
 # HTTP requests (for Paystack API integration)
 requests>=2.33.0
