@@ -41,7 +41,7 @@ jobs:
         # A bare `manage.py test` misses the apps/ package, so the labels are
         # listed explicitly. --buffer hides app print() output for passing
         # tests and shows it only on failure.
-        run: python manage.py test users products apps.payments.tests apps.support.tests --buffer
+        run: python manage.py test core users products apps.payments.tests apps.support.tests --buffer
 
   frontend:
     name: Frontend type-check
@@ -72,3 +72,48 @@ jobs:
         # Catches TypeScript errors before they reach Vercel. Vercel still runs
         # the full production build; this is the cheap early signal.
         run: npx tsc --noEmit
+
+  security:
+    name: Security scan
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Python scanners
+        run: pip install bandit pip-audit
+
+      # Static analysis of OUR code. Gates the PR (fails the job) on High
+      # severity + High confidence findings only — actionable, low false-positive.
+      - name: Code scan (bandit)
+        working-directory: backend
+        run: bandit -r users products apps core -x '*/migrations/*,*/tests.py' -lll -iii
+
+      # Known CVEs in Python dependencies. Advisory (continue-on-error) because
+      # new CVEs are published constantly and a transitive one shouldn't block an
+      # unrelated PR — Dependabot opens fix PRs for these. Findings still show in
+      # the log. Flip continue-on-error to false to make it a hard gate.
+      - name: Dependency CVEs — Python (pip-audit)
+        working-directory: backend
+        continue-on-error: true
+        run: pip-audit -r requirements.txt --progress-spinner off
+
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      # Known CVEs in frontend dependencies (advisory, same reasoning).
+      - name: Dependency CVEs — frontend (pnpm audit)
+        working-directory: web
+        continue-on-error: true
+        run: pnpm audit --audit-level high

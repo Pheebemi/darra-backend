@@ -36,7 +36,7 @@ class CacheManager:
                 qs = request.GET.urlencode()
             parts = [cls_name] + [f"{k}{v}" for k, v in sorted(url_kwargs.items())]
             if qs:
-                parts.append(hashlib.md5(qs.encode()).hexdigest()[:8])
+                parts.append(hashlib.md5(qs.encode(), usedforsecurity=False).hexdigest()[:8])
             return "_".join(parts)
         return str(arg)
 
@@ -46,7 +46,7 @@ class CacheManager:
         # Memcached keys must not contain whitespace or control chars
         key = re.sub(r'[\s\x00-\x1f\x7f<>]', '_', key)
         if len(key) > 250:
-            key = hashlib.md5(key.encode()).hexdigest()
+            key = hashlib.md5(key.encode(), usedforsecurity=False).hexdigest()
         return key
 
     @staticmethod
