@@ -21,8 +21,8 @@ Three things:
    sermons, podcasts. The buyer downloads the file after paying, the same way
    as an eBook.
 3. Event tickets - the buyer receives a QR code that is scanned at the event.
-Product files can be up to 10MB, which is roughly ten minutes of audio at
-normal quality. Cover images up to 5MB.
+Product files can be up to 50MB (audio and zip) or 25MB (PDF and DOCX). Cover
+images must be small - up to 500KB.
 
 ACCOUNTS
 - Anyone can create an account as a Buyer or a Seller.

@@ -182,7 +182,7 @@ function CreateEventInner() {
     const f = e.target.files?.[0];
     if (!f) return;
     if (!f.type.startsWith("image/")) { toast.error("Please select a valid image file"); return; }
-    if (f.size > 5 * 1024 * 1024) { toast.error("Image too large. Max 5MB"); return; }
+    if (f.size > 500 * 1024) { toast.error("Cover image too large. Max 500KB"); return; }
     setCoverImage(f);
     const reader = new FileReader();
     reader.onloadend = () => setCoverImagePreview(reader.result as string);
@@ -574,7 +574,7 @@ function CreateEventInner() {
                     <div className="space-y-2">
                       <div>
                         <Label className="text-sm font-medium text-gray-900">Cover Image {!isEditing && "*"}</Label>
-                        <p className="text-xs text-gray-600">16:9 recommended · max 5MB</p>
+                        <p className="text-xs text-gray-600">16:9 recommended · max 500KB</p>
                       </div>
                       {/* Dropzone-style preview/upload */}
                       <label className="relative block cursor-pointer">
@@ -588,7 +588,7 @@ function CreateEventInner() {
                                 <ImageIcon className="h-6 w-6 text-brand-500" />
                               </div>
                               <p className="text-sm font-medium text-ink">Click to upload cover image</p>
-                              <p className="text-xs text-gray-500">JPG or PNG · up to 5MB</p>
+                              <p className="text-xs text-gray-500">JPG or PNG · up to 500KB</p>
                             </div>
                           )}
                           {coverImagePreview && (
