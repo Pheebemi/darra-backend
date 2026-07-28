@@ -49,7 +49,7 @@ ACCEPTABLE_MIMES = {
 MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB default for documents
 # Cover images still travel through the Vercel serverless proxy, which has a
 # hard 4.5MB request-body limit — keep covers safely under it.
-MAX_IMAGE_SIZE = 4 * 1024 * 1024   # 4MB for images
+MAX_IMAGE_SIZE = 500 * 1024   # 500KB for cover images
 
 # Product files (audio, zip bundles, ebooks) upload directly to R2, bypassing
 # the proxy, so they can be much larger than a document form field.
@@ -186,10 +186,19 @@ def validate_file_size(file, product_type):
 
     if file_size > max_size:
         raise ValidationError(
-            f"{size_type.capitalize()} too large. Maximum size is {max_size // (1024*1024)}MB, got {file_size // (1024*1024)}MB"
+            f"{size_type.capitalize()} too large. Maximum size is "
+            f"{_human_size(max_size)}, got {_human_size(file_size)}."
         )
 
     return True
+
+
+def _human_size(num_bytes):
+    """Format a byte count as MB (>=1MB) or KB, so a 500KB limit doesn't read
+    as '0MB'."""
+    if num_bytes >= 1024 * 1024:
+        return f"{num_bytes // (1024 * 1024)}MB"
+    return f"{max(1, num_bytes // 1024)}KB"
 
 def get_mime_from_extension(filename):
     """
