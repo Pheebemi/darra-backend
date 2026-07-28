@@ -105,6 +105,7 @@ MIDDLEWARE = [
     'whitenoise.middleware.WhiteNoiseMiddleware',  # Add WhiteNoise for static files
     'csp.middleware.CSPMiddleware',  # Content Security Policy
     'core.middleware.CustomSecurityMiddleware',  # Custom security headers
+    'core.middleware.AdminLoginRateLimitMiddleware',  # Brute-force guard on admin login
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -371,6 +372,12 @@ FLUTTERWAVE_SECRET_HASH = os.getenv('FLUTTERWAVE_SECRET_HASH', '')
 # Payment provider selection (can be 'paystack' or 'flutterwave')
 PAYMENT_PROVIDER = os.getenv('PAYMENT_PROVIDER', 'paystack')
 BASE_URL = os.getenv('BASE_URL', 'http://localhost:8000')
+
+# Django admin path. The REAL path is set via ADMIN_URL in .env (never
+# committed) so it stays out of this public repo — set it to something only you
+# know, e.g. ADMIN_URL=arrad/. The 'admin/' default here is just a fallback for
+# local dev. Must end with a trailing slash.
+ADMIN_URL = os.getenv('ADMIN_URL', 'admin/')
 
 # Public site address used for links inside emails (receipts, sale alerts).
 # This is the FRONTEND, not the API — set FRONTEND_URL in .env per environment.

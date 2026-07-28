@@ -25,7 +25,9 @@ from django.conf.urls.static import static
 from .views import test_rate_limiting, test_burst_limit, test_sustained_limit
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    # Admin path is configurable: set ADMIN_URL in prod to a non-obvious value
+    # so bots scanning for /admin/ find nothing. Defaults to 'admin/'.
+    path(settings.ADMIN_URL, admin.site.urls),
     path('api/auth/', include('users.urls')),
     path('api/users/', include('users.urls')),  # Add this line for bank-detail access
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
