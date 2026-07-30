@@ -271,6 +271,33 @@ class PresignEndpointTests(TestCase):
         self.assertEqual(res.status_code, 400)
 
 
+class ProductSlugTests(TestCase):
+    """Products get a URL slug from their title; the detail endpoint resolves
+    either the slug or the numeric id."""
+
+    def test_slug_is_generated_from_title(self):
+        p = make_product(title='Great E-Book!')
+        self.assertEqual(p.slug, 'great-e-book')
+
+    def test_duplicate_titles_get_distinct_slugs(self):
+        a = make_product(title='Same Title')
+        b = make_product(title='Same Title')
+        self.assertNotEqual(a.slug, b.slug)
+        self.assertTrue(b.slug.startswith('same-title'))
+
+    def test_detail_resolves_by_slug_and_by_id(self):
+        p = make_product(title='Findable Thing')
+        by_slug = self.client.get(f'/api/products/{p.slug}/')
+        by_id = self.client.get(f'/api/products/{p.id}/')
+        self.assertEqual(by_slug.status_code, 200)
+        self.assertEqual(by_id.status_code, 200)
+        self.assertEqual(by_slug.json()['id'], p.id)
+        self.assertEqual(by_id.json()['slug'], p.slug)
+
+    def test_unknown_slug_404s(self):
+        self.assertEqual(self.client.get('/api/products/does-not-exist/').status_code, 404)
+
+
 class ProductFilePrivacyTests(TestCase):
     """A paid file must never be discoverable from the public product API."""
 

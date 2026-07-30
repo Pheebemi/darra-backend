@@ -7,6 +7,7 @@ import { Store, Clock, CheckCircle2, XCircle, Package, ArrowRight } from "lucide
 
 interface Product {
   id: number;
+  slug?: string;
   title: string;
   description: string;
   price: string;
@@ -173,7 +174,7 @@ export default function PublicStorePage() {
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {store.products.map(product => (
-              <Link key={product.id} href={`/products/${product.id}`} className="group block">
+              <Link key={product.id} href={`/products/${product.slug || product.id}`} className="group block">
                 <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl">
                   {/* Image */}
                   <div className="relative h-52 w-full overflow-hidden bg-brand-50">

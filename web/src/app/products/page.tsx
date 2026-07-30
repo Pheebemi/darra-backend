@@ -24,6 +24,7 @@ interface TicketTier {
 
 interface Product {
   id: number;
+  slug?: string;
   title: string;
   description: string;
   price: number;
@@ -256,7 +257,7 @@ function ProductsContent() {
               return (
                 <Link
                   key={product.id}
-                  href={`/products/${product.id}`}
+                  href={`/products/${product.slug || product.id}`}
                   className="group overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl"
                 >
                   {/* Thumbnail */}
