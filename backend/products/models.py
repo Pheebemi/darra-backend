@@ -176,7 +176,7 @@ class Product(models.Model):
     title = models.CharField(max_length=255)
     # Human-readable URL slug (e.g. /products/great-ebook) generated from the
     # title. Kept globally unique so it can identify a product in the URL.
-    slug = models.SlugField(max_length=280, unique=True, blank=True, null=True)
+    slug = models.SlugField(max_length=255, unique=True, blank=True, null=True)
     description = models.TextField(blank=True)
     description_html = models.TextField(blank=True)  # Rich text HTML content
     price = models.DecimalField(max_digits=10, decimal_places=2)
