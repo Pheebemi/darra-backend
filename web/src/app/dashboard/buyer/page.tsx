@@ -24,6 +24,7 @@ interface LibraryItem {
 
 interface Product {
   id: number;
+  slug?: string;
   title: string;
   price: number;
   cover_image?: string;
@@ -216,7 +217,7 @@ export default function BuyerDashboard() {
               {featured.map((p) => (
                 <Link
                   key={p.id}
-                  href={`/products/${p.id}`}
+                  href={`/products/${p.slug || p.id}`}
                   className="group overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl"
                 >
                   <div className="relative h-32 w-full bg-brand-50">

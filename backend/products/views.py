@@ -239,6 +239,17 @@ class PublicProductDetailView(generics.RetrieveAPIView):
     def get_queryset(self):
         return Product.objects.select_related('owner', 'ticket_category').prefetch_related('ticket_tiers')
 
+    def get_object(self):
+        # The URL segment can be a slug (great-ebook) or a numeric id — resolve
+        # either, so slug links and any old /products/<id> links both work.
+        from django.shortcuts import get_object_or_404
+        identifier = str(self.kwargs.get('identifier', ''))
+        queryset = self.get_queryset()
+        lookup = {'pk': identifier} if identifier.isdigit() else {'slug': identifier}
+        obj = get_object_or_404(queryset, **lookup)
+        self.check_object_permissions(self.request, obj)
+        return obj
+
 class SellerOrdersView(generics.ListAPIView):
     permission_classes = [IsAuthenticated]
     serializer_class = PurchaseSerializer

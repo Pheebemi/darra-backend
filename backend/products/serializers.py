@@ -156,12 +156,12 @@ class ProductSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product
         fields = [
-            'id', 'title', 'description', 'description_html', 'price', 'product_type',
+            'id', 'slug', 'title', 'description', 'description_html', 'price', 'product_type',
             'cover_image', 'has_file', 'file_url', 'cover_image_url', 'thumbnail_url',
             'created_at', 'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
             'seller_name', 'seller_id', 'ticket_category', 'ticket_tiers', 'is_ticket_event'
         ]
-        read_only_fields = ['owner', 'created_at']
+        read_only_fields = ['owner', 'created_at', 'slug']
 
     def get_has_file(self, obj):
         """Whether a downloadable file exists — safe to expose publicly."""

@@ -7,6 +7,7 @@ import { Search, ShoppingBag, Store, Shield, Download, QrCode, Wallet, ArrowRigh
 type TicketTier = { id: number; name: string; price: number; is_sold_out?: boolean };
 type Product = {
   id: number;
+  slug?: string;
   title: string;
   description: string;
   price: number;
@@ -282,7 +283,7 @@ function ProductCard({ product }: { product: Product }) {
 
   return (
     <Link
-      href={`/products/${product.id}`}
+      href={`/products/${product.slug || product.id}`}
       className="group overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl"
     >
       <div className="relative h-52 overflow-hidden bg-brand-50">
