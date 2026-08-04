@@ -57,6 +57,6 @@ psutil>=5.9.0  # System monitoring
 
 # Background task processing
 celery>=5.3.0  # Background task queue
-django-celery-beat>=2.5.0  # Periodic tasks
+django-celery-beat>=2.9.0  # Periodic tasks
 django-celery-results>=2.5.0  # Task results backend
 
