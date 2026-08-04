@@ -7,7 +7,7 @@ djangorestframework-simplejwt>=5.3.0
 PyJWT>=2.13.0
 
 # CORS handling
-django-cors-headers>=4.3.1
+django-cors-headers>=4.9.0
 
 # Environment variables
 python-dotenv>=1.2.2
