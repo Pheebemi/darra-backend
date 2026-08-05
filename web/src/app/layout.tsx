@@ -17,9 +17,34 @@ const geistMono = Geist_Mono({
   subsets: ["latin"],
 });
 
+const SITE_URL = "https://darra.com.ng";
+const OG_DESCRIPTION =
+  "Discover, buy, and sell digital products — eBooks, audio, and event tickets — on Darra.";
+
 export const metadata: Metadata = {
-  title: "Darra — Digital Products Marketplace",
-  description: "Discover, buy, and sell digital products on Darra.",
+  // Makes relative URLs (og-image, icons) resolve to absolute ones for scrapers.
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "Darra — Digital Products Marketplace",
+    template: "%s · Darra",
+  },
+  description: OG_DESCRIPTION,
+  applicationName: "Darra",
+  openGraph: {
+    type: "website",
+    siteName: "Darra",
+    url: SITE_URL,
+    title: "Darra — Digital Products Marketplace",
+    description: OG_DESCRIPTION,
+    locale: "en_NG",
+    images: [{ url: "/og-image.png", width: 1200, height: 630, alt: "Darra" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Darra — Digital Products Marketplace",
+    description: OG_DESCRIPTION,
+    images: ["/og-image.png"],
+  },
 };
 
 export default function RootLayout({
