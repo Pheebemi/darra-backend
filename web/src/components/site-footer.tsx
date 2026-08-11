@@ -52,6 +52,7 @@ export function SiteFooter() {
                   { name: "About Us", href: "/about" },
                   { name: "Careers", href: "/careers" },
                   { name: "Blog", href: "/blog" },
+                  { name: "FAQ", href: "/faq" },
                   { name: "Contact", href: "/contact" },
                 ].map((l) => (
                   <li key={l.name}>
