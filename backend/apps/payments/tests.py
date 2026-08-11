@@ -258,3 +258,40 @@ class PayoutTransferWebhookTests(TestCase):
     def test_unknown_reference_is_acknowledged(self):
         res = self._post(self._body(ref='does-not-exist'), HTTP_VERIF_HASH=FLW_HASH)
         self.assertEqual(res.status_code, 200)
+
+
+class PayoutSyncStatusTests(TestCase):
+    """sync_payout_status reconciles a stuck 'processing' payout against
+    Flutterwave — the one-click fix for a missed webhook."""
+
+    def setUp(self):
+        self.seller = make_seller()
+        self.payout = PayoutRequest.objects.create(
+            seller=self.seller, amount=Decimal('1000'), bank_details=_bank_for(self.seller),
+            status='processing', flutterwave_transfer_id='999',
+            transfer_reference='DARRA-PO-1-abc',
+        )
+
+    def _resp(self, status):
+        m = Mock(); m.content = b'{}'
+        m.json.return_value = {'data': {'status': status, 'complete_message': 'x'}}
+        return m
+
+    @patch('apps.payments.services.requests.get')
+    def test_successful_marks_completed(self, mock_get):
+        mock_get.return_value = self._resp('SUCCESSFUL')
+        self.assertEqual(FlutterwaveService().sync_payout_status(self.payout), 'completed')
+        self.payout.refresh_from_db()
+        self.assertEqual(self.payout.status, 'completed')
+
+    @patch('apps.payments.services.requests.get')
+    def test_failed_marks_failed(self, mock_get):
+        mock_get.return_value = self._resp('FAILED')
+        self.assertEqual(FlutterwaveService().sync_payout_status(self.payout), 'failed')
+
+    @patch('apps.payments.services.requests.get')
+    def test_already_final_is_a_noop(self, mock_get):
+        self.payout.status = 'completed'
+        self.payout.save()
+        FlutterwaveService().sync_payout_status(self.payout)
+        mock_get.assert_not_called()   # never re-queries a final payout
