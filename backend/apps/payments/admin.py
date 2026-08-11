@@ -91,7 +91,35 @@ class PayoutRequestAdmin(admin.ModelAdmin):
         return 'N/A'
     transfer_provider.short_description = 'Provider'
     
-    actions = ['mark_as_processing', 'mark_as_completed', 'mark_as_failed']
+    actions = ['approve_and_send', 'mark_as_completed', 'mark_as_failed']
+
+    def approve_and_send(self, request, queryset):
+        """
+        Approve pending payouts and fire the Flutterwave transfer for each.
+        The request moves to 'processing'; the final completed/failed outcome
+        (and its email) arrives on the transfer webhook.
+        """
+        from apps.payments.services import PayoutService
+        svc = PayoutService()
+        initiated = failed = skipped = 0
+        for payout in queryset:
+            if payout.status != 'pending':
+                skipped += 1
+                continue
+            svc.process_payout(payout)
+            payout.refresh_from_db()
+            if payout.status == 'processing':
+                self._notify_status_change(payout, 'processing')
+                initiated += 1
+            else:
+                self._notify_status_change(payout, 'failed')
+                failed += 1
+        self.message_user(
+            request,
+            f"{initiated} transfer(s) initiated (now processing — completion arrives via "
+            f"webhook); {failed} rejected at send; {skipped} skipped (not pending)."
+        )
+    approve_and_send.short_description = "Approve & send payout (Flutterwave)"
 
     def _notify_status_change(self, payout, new_status):
         """
@@ -143,6 +171,9 @@ class PayoutRequestAdmin(admin.ModelAdmin):
         super().save_model(request, obj, form, change)
 
         if previous_status != obj.status:
+            if obj.status == 'failed':
+                from apps.payments.services import FlutterwaveService
+                FlutterwaveService().update_seller_earnings(obj.seller)
             self._notify_status_change(obj, obj.status)
 
     def _bulk_transition(self, request, queryset, new_status, label):
@@ -155,6 +186,10 @@ class PayoutRequestAdmin(admin.ModelAdmin):
             if new_status == 'completed' and not payout.processed_at:
                 payout.processed_at = timezone.now()
             payout.save()
+            if new_status == 'failed':
+                # A failed payout is no longer reserved — release the balance.
+                from apps.payments.services import FlutterwaveService
+                FlutterwaveService().update_seller_earnings(payout.seller)
             changed += 1
             if self._notify_status_change(payout, new_status):
                 notified += 1

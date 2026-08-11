@@ -355,6 +355,62 @@ def _amounts_match(expected, actual):
         return False
 
 
+def _handle_transfer_webhook(request, webhook_data):
+    """
+    Flutterwave transfer (payout) webhook. Transfers are async: the payout was
+    initiated as 'processing', and this confirms the real outcome — SUCCESSFUL
+    or FAILED. Authenticated by the same verif-hash secret as charge webhooks,
+    and idempotent (a final state never changes; providers re-send).
+    """
+    if not _flutterwave_signature_ok(request):
+        logger.error("Rejected transfer webhook: signature verification failed.")
+        return HttpResponse(status=401)
+
+    data = (webhook_data.get('data') or {}) if isinstance(webhook_data, dict) else {}
+    reference = data.get('reference')
+    transfer_id = data.get('id')
+
+    payout = None
+    if reference:
+        payout = PayoutRequest.objects.filter(transfer_reference=reference).first()
+    if not payout and transfer_id:
+        payout = PayoutRequest.objects.filter(flutterwave_transfer_id=str(transfer_id)).first()
+
+    if not payout:
+        logger.warning("Transfer webhook for unknown payout (ref=%s id=%s)", reference, transfer_id)
+        return HttpResponse(status=200)  # stop FLW retrying something we don't know
+
+    if payout.status in ('completed', 'failed'):
+        return HttpResponse(status=200)  # already final — idempotent
+
+    flw_status = str(data.get('status', '')).upper()
+    if flw_status == 'SUCCESSFUL':
+        payout.status = 'completed'
+        if not payout.processed_at:
+            payout.processed_at = timezone.now()
+        payout.save(update_fields=['status', 'processed_at'])
+        FlutterwaveService().update_seller_earnings(payout.seller)
+        try:
+            from users.utils import send_payout_completed_email
+            send_payout_completed_email(payout)
+        except Exception as e:
+            logger.error("Payout completed email failed for %s: %s", payout.id, e)
+    else:
+        payout.status = 'failed'
+        payout.failure_reason = data.get('complete_message') or 'Transfer failed at Flutterwave'
+        payout.save(update_fields=['status', 'failure_reason'])
+        # Recompute earnings: a 'failed' payout is no longer reserved, so the
+        # seller's balance is released and they can retry.
+        FlutterwaveService().update_seller_earnings(payout.seller)
+        try:
+            from users.utils import send_payout_failed_email
+            send_payout_failed_email(payout)
+        except Exception as e:
+            logger.error("Payout failed email failed for %s: %s", payout.id, e)
+
+    return HttpResponse(status=200)
+
+
 @api_view(['POST'])
 @permission_classes([AllowAny])
 @throttle_classes([WebhookRateThrottle])
@@ -378,6 +434,11 @@ def payment_webhook(request):
         # raw body is no longer available, and the HMAC is over raw bytes.
         raw_body = request.body
         webhook_data = request.data
+
+        # Payout (transfer) webhooks are a different event type — route them to
+        # the transfer handler before the charge/payment logic below.
+        if isinstance(webhook_data, dict) and webhook_data.get('event') == 'transfer.completed':
+            return _handle_transfer_webhook(request, webhook_data)
 
         # Determine payment provider from webhook data
         reference = None
@@ -552,8 +613,16 @@ def request_payout(request):
         )
         serializer.is_valid(raise_exception=True)
         
-        # Create payout request — manual processing by admin
+        # Create the payout request. An admin approves it to fire the transfer.
         payout_request = serializer.save(seller=request.user, status='pending')
+
+        # Reserve the amount immediately so a second request can't be made
+        # against the same balance while this one is pending/processing.
+        try:
+            from apps.payments.services import FlutterwaveService
+            FlutterwaveService().update_seller_earnings(request.user)
+        except Exception as e:
+            print(f"Payout balance reservation error: {e}")
 
         # Notify seller
         try:
