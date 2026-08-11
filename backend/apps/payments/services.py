@@ -198,6 +198,53 @@ class FlutterwaveService:
                      payout_request.id, payout_request.failure_reason)
         return False
 
+    def sync_payout_status(self, payout_request):
+        """
+        Reconcile a payout against Flutterwave's actual transfer status — for
+        when the confirmation webhook was missed (downtime, a config gap, etc.).
+        Mirrors the webhook: on SUCCESSFUL/FAILED it updates the record, releases
+        the reserved balance if failed, and emails the seller. Idempotent — a
+        payout that is already final, or was never sent, is left alone. Returns
+        the resolved status.
+        """
+        if payout_request.status in ('completed', 'failed') or not payout_request.flutterwave_transfer_id:
+            return payout_request.status
+
+        try:
+            resp = requests.get(
+                f"{self.base_url}/transfers/{payout_request.flutterwave_transfer_id}",
+                headers=self._get_headers(), timeout=30,
+            )
+            data = (resp.json() or {}).get('data') or {}
+        except Exception as e:
+            logger.error("Sync payout %s failed: %s", payout_request.id, e)
+            return payout_request.status
+
+        flw_status = str(data.get('status', '')).upper()
+        if flw_status == 'SUCCESSFUL':
+            payout_request.status = 'completed'
+            if not payout_request.processed_at:
+                payout_request.processed_at = timezone.now()
+            payout_request.save()
+            self.update_seller_earnings(payout_request.seller)
+            try:
+                from users.utils import send_payout_completed_email
+                send_payout_completed_email(payout_request)
+            except Exception as e:
+                logger.error("Payout completed email failed for %s: %s", payout_request.id, e)
+        elif flw_status == 'FAILED':
+            payout_request.status = 'failed'
+            payout_request.failure_reason = data.get('complete_message') or 'Transfer failed at Flutterwave'
+            payout_request.save()
+            self.update_seller_earnings(payout_request.seller)  # release reservation
+            try:
+                from users.utils import send_payout_failed_email
+                send_payout_failed_email(payout_request)
+            except Exception as e:
+                logger.error("Payout failed email failed for %s: %s", payout_request.id, e)
+        # else: still NEW/PENDING at Flutterwave — leave it processing.
+        return payout_request.status
+
     def calculate_seller_commission(self, product_price):
         """Calculate 4% commission and seller payout"""
         commission = product_price * Decimal('0.04')

@@ -91,7 +91,7 @@ class PayoutRequestAdmin(admin.ModelAdmin):
         return 'N/A'
     transfer_provider.short_description = 'Provider'
     
-    actions = ['approve_and_send', 'mark_as_completed', 'mark_as_failed']
+    actions = ['approve_and_send', 'sync_status_from_flutterwave', 'mark_as_completed', 'mark_as_failed']
 
     def approve_and_send(self, request, queryset):
         """
@@ -120,6 +120,31 @@ class PayoutRequestAdmin(admin.ModelAdmin):
             f"webhook); {failed} rejected at send; {skipped} skipped (not pending)."
         )
     approve_and_send.short_description = "Approve & send payout (Flutterwave)"
+
+    def sync_status_from_flutterwave(self, request, queryset):
+        """
+        Reconcile stuck 'processing' payouts against Flutterwave's real transfer
+        status — the one-click fix for a missed confirmation webhook. Updates the
+        record, releases the balance if it failed, and emails the seller.
+        """
+        from apps.payments.services import FlutterwaveService
+        svc = FlutterwaveService()
+        completed = failed = unchanged = 0
+        for payout in queryset:
+            before = payout.status
+            after = svc.sync_payout_status(payout)
+            if after == 'completed' and before != 'completed':
+                completed += 1
+            elif after == 'failed' and before != 'failed':
+                failed += 1
+            else:
+                unchanged += 1
+        self.message_user(
+            request,
+            f"Synced from Flutterwave — {completed} completed, {failed} failed, "
+            f"{unchanged} unchanged."
+        )
+    sync_status_from_flutterwave.short_description = "Sync status from Flutterwave (fix missed webhooks)"
 
     def _notify_status_change(self, payout, new_status):
         """
