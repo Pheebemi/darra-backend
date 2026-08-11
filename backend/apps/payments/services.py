@@ -1,3 +1,4 @@
+import logging
 import requests
 import uuid
 from decimal import Decimal
@@ -8,6 +9,9 @@ from .models import Payment, Purchase, UserLibrary, SellerCommission, SellerEarn
 from products.models import Product
 from users.utils import send_purchase_receipt_email, send_seller_notification_email, send_event_ticket_email
 from apps.notifications.services import NotificationService
+
+logger = logging.getLogger(__name__)
+
 
 class FlutterwaveService:
     def __init__(self):
@@ -81,53 +85,118 @@ class FlutterwaveService:
         except requests.exceptions.RequestException as e:
             raise ValidationError(f"Flutterwave API error: {str(e)}")
 
-    def process_seller_payout(self, payout_request):
-        """Process seller payout using Flutterwave Transfer API"""
+    def _transfer_fee_tier(self, amount):
+        """Flutterwave NGN transfer fee tiers — the fallback if the live fee
+        lookup can't be reached. Kept slightly conservative so the platform is
+        never left short."""
+        amount = Decimal(str(amount))
+        if amount <= Decimal('5000'):
+            return Decimal('10')
+        if amount <= Decimal('50000'):
+            return Decimal('25')
+        return Decimal('50')
+
+    def get_transfer_fee(self, amount):
+        """
+        The Flutterwave fee for an NGN transfer of `amount`. The seller bears
+        this fee (per business decision), so we deduct it from what we send.
+        Asks Flutterwave's /transfers/fee for the exact figure, falling back to
+        the known tier table if that call fails.
+        """
         try:
-            # Get seller's bank details
-            bank_details = payout_request.bank_details
-            
-            # Flutterwave transfer payload
-            transfer_data = {
-                'account_bank': bank_details.bank_code,
-                'account_number': bank_details.account_number,
-                'amount': float(payout_request.amount),
-                'narration': f'Payout for {payout_request.seller.brand_name or payout_request.seller.email}',
-                'currency': 'NGN',
-                'reference': f"DARRA_PAYOUT_{payout_request.id}",
-                'beneficiary_name': bank_details.account_name
-            }
-            
-            url = f"{self.base_url}/transfers"
-            response = requests.post(url, json=transfer_data, headers=self._get_headers())
-            response.raise_for_status()
-            
-            data = response.json()
-            
-            # Update payout request
-            payout_request.status = 'completed'
-            payout_request.flutterwave_transfer_id = data['data']['id']
-            payout_request.processed_at = timezone.now()
+            resp = requests.get(
+                f"{self.base_url}/transfers/fee",
+                params={'amount': float(amount), 'currency': 'NGN'},
+                headers=self._get_headers(), timeout=15,
+            )
+            body = resp.json() if resp.content else {}
+            rows = (body or {}).get('data') or []
+            if resp.ok and rows and rows[0].get('fee') is not None:
+                return Decimal(str(rows[0]['fee']))
+        except Exception as e:
+            logger.warning("Transfer-fee lookup failed (%s); using tier fallback.", e)
+        return self._transfer_fee_tier(amount)
+
+    def process_seller_payout(self, payout_request):
+        """
+        Initiate a Flutterwave transfer for an approved payout.
+
+        Transfers are ASYNCHRONOUS: this only kicks the transfer off and moves
+        the request to 'processing'. The final 'completed' / 'failed' outcome
+        arrives later on the transfer.completed webhook — never mark it complete
+        here. Returns True if the transfer was accepted for processing.
+
+        Idempotent: refuses to send if the request isn't 'pending' or already
+        has a transfer id, so a double-click can't pay twice.
+        """
+        if payout_request.status != 'pending' or payout_request.flutterwave_transfer_id:
+            logger.warning("Payout %s not eligible to send (status=%s, txid=%s)",
+                           payout_request.id, payout_request.status,
+                           payout_request.flutterwave_transfer_id)
+            return False
+
+        bank_details = payout_request.bank_details
+        reference = payout_request.transfer_reference or f"DARRA-PO-{payout_request.id}-{uuid.uuid4().hex[:8]}"
+        payout_request.transfer_reference = reference
+
+        # The seller bears the transfer fee: we send (requested amount − fee),
+        # so their full requested amount still leaves their Darra balance but the
+        # fee comes out of it. requested ₦1,000, fee ₦10 → seller receives ₦990.
+        fee = self.get_transfer_fee(payout_request.amount)
+        net_amount = payout_request.amount - fee
+        if net_amount <= 0:
+            payout_request.status = 'failed'
+            payout_request.failure_reason = (
+                f"Amount NGN {payout_request.amount} is too small to cover the "
+                f"NGN {fee} transfer fee."
+            )
             payout_request.save()
-            
-            # Update seller earnings
-            try:
-                earnings = payout_request.seller.earnings
-                earnings.total_payouts += payout_request.amount
-                earnings.calculate_available_balance()
-                earnings.save()
-            except Exception as e:
-                print(f"DEBUG: Warning - Could not update earnings: {str(e)}")
-            
-            print(f"DEBUG: Flutterwave payout successful for {payout_request.seller.email}: ₦{payout_request.amount}")
-            return True
-            
+            self.update_seller_earnings(payout_request.seller)  # release reservation
+            return False
+
+        transfer_data = {
+            'account_bank': bank_details.bank_code,
+            'account_number': bank_details.account_number,
+            'amount': float(net_amount),   # requested minus fee — seller pays the fee
+            'narration': f'Darra payout - {payout_request.seller.brand_name or payout_request.seller.email}',
+            'currency': 'NGN',
+            'reference': reference,
+            'beneficiary_name': bank_details.account_name,
+        }
+
+        try:
+            response = requests.post(
+                f"{self.base_url}/transfers", json=transfer_data,
+                headers=self._get_headers(), timeout=30,
+            )
+            body = response.json() if response.content else {}
         except Exception as e:
             payout_request.status = 'failed'
-            payout_request.failure_reason = str(e)
+            payout_request.failure_reason = f"Could not reach Flutterwave: {e}"
             payout_request.save()
-            print(f"DEBUG: Flutterwave payout failed: {str(e)}")
+            self.update_seller_earnings(payout_request.seller)  # release the reservation
+            logger.error("Payout %s transfer request failed: %s", payout_request.id, e)
             return False
+
+        data = (body or {}).get('data') or {}
+        # FLW replies status='success' + data.status NEW/PENDING when queued.
+        if response.ok and body.get('status') == 'success' and data.get('id'):
+            payout_request.flutterwave_transfer_id = str(data['id'])
+            payout_request.status = 'processing'
+            payout_request.processed_at = timezone.now()
+            payout_request.save()
+            logger.info("Payout %s transfer initiated (ref %s)", payout_request.id, reference)
+            return True
+
+        payout_request.status = 'failed'
+        payout_request.failure_reason = (
+            body.get('message') if isinstance(body, dict) else None
+        ) or 'Transfer was rejected by Flutterwave'
+        payout_request.save()
+        self.update_seller_earnings(payout_request.seller)  # release the reservation
+        logger.error("Payout %s rejected by Flutterwave: %s",
+                     payout_request.id, payout_request.failure_reason)
+        return False
 
     def calculate_seller_commission(self, product_price):
         """Calculate 4% commission and seller payout"""
@@ -169,10 +238,12 @@ class FlutterwaveService:
             total_sales = sum(c.product_price for c in commissions)
             total_commission = sum(c.commission_amount for c in commissions)
             
-            # Get total payouts
+            # Count in-flight payouts (pending/processing) as reserved too, so a
+            # seller cannot request two payouts against the same balance. A
+            # 'failed' payout is excluded here, which releases its funds back.
             total_payouts = sum(p.amount for p in PayoutRequest.objects.filter(
-                seller=seller, 
-                status='completed'
+                seller=seller,
+                status__in=['pending', 'processing', 'completed'],
             ))
             
             # Get or create earnings record
@@ -288,10 +359,12 @@ class PaystackService:
             total_sales = sum(c.product_price for c in commissions)
             total_commission = sum(c.commission_amount for c in commissions)
             
-            # Get total payouts
+            # Count in-flight payouts (pending/processing) as reserved too, so a
+            # seller cannot request two payouts against the same balance. A
+            # 'failed' payout is excluded here, which releases its funds back.
             total_payouts = sum(p.amount for p in PayoutRequest.objects.filter(
-                seller=seller, 
-                status='completed'
+                seller=seller,
+                status__in=['pending', 'processing', 'completed'],
             ))
             
             # Update or create earnings record
