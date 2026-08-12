@@ -1,11 +1,9 @@
 "use client";
 import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { CheckCircle2, XCircle, Loader2 } from "lucide-react";
+import Link from "next/link";
+import { XCircle, Loader2 } from "lucide-react";
 import { useCart } from "@/lib/cart/cart-context";
-import { toast } from "sonner";
 
 function CallbackInner() {
   const searchParams = useSearchParams();
@@ -58,10 +56,10 @@ function CallbackInner() {
         payment?.status === "completed"
       ) {
         setStatus("success");
-        setMessage("Payment successful! Your tickets are being generated...");
+        setMessage("Your order is confirmed and ready in your library.");
         clearCart();
         setTimeout(() => {
-          router.push("/account/tickets");
+          router.push("/dashboard/buyer/library");
         }, 2500);
       } else {
         setStatus("failed");
@@ -73,59 +71,68 @@ function CallbackInner() {
     }
   };
 
+  if (status === "loading") {
+    return (
+      <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center bg-page px-6 text-center">
+        <Loader2 className="h-12 w-12 animate-spin text-brand-500" />
+        <h1 className="mt-6 text-xl font-semibold text-ink">Verifying payment</h1>
+        <p className="mt-2 text-sm text-gray-500">Please wait while we confirm your payment...</p>
+      </div>
+    );
+  }
+
+  if (status === "failed") {
+    return (
+      <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center bg-page px-6 text-center">
+        <XCircle className="h-14 w-14 text-destructive" />
+        <h1 className="mt-6 text-2xl font-semibold text-ink">Payment failed</h1>
+        <p className="mt-2 max-w-sm text-sm text-gray-500">{message}</p>
+        <div className="mt-6 flex gap-3">
+          <Link
+            href="/cart"
+            className="rounded-full border border-brand-500 px-6 py-2.5 text-sm font-medium text-brand-500 transition-colors hover:bg-brand-50"
+          >
+            Try again
+          </Link>
+          <Link
+            href="/products"
+            className="rounded-full bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+          >
+            Browse products
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center px-6">
-      <Card className="w-full max-w-md">
-        <CardContent className="p-8 text-center">
-          {status === "loading" && (
-            <>
-              <Loader2 className="mx-auto h-16 w-16 animate-spin text-primary" />
-              <h2 className="mt-4 text-2xl font-semibold">Verifying Payment</h2>
-              <p className="mt-2 text-foreground/70">Please wait while we verify your payment...</p>
-            </>
-          )}
-
-          {status === "success" && (
-            <>
-              <CheckCircle2 className="mx-auto h-16 w-16 text-green-500" />
-              <h2 className="mt-4 text-2xl font-semibold">Payment Successful!</h2>
-              <p className="mt-2 text-foreground/70">{message}</p>
-              <p className="mt-4 text-sm text-foreground/60">Redirecting to your tickets...</p>
-            </>
-          )}
-
-          {status === "failed" && (
-            <>
-              <XCircle className="mx-auto h-16 w-16 text-destructive" />
-              <h2 className="mt-4 text-2xl font-semibold">Payment Failed</h2>
-              <p className="mt-2 text-foreground/70">{message}</p>
-              <div className="mt-6 flex gap-3">
-                <Button variant="outline" onClick={() => router.push("/cart")}>Try Again</Button>
-                <Button onClick={() => router.push("/tickets")}>Browse Tickets</Button>
-              </div>
-            </>
-          )}
-        </CardContent>
-      </Card>
+    <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center bg-page px-6 py-12 text-center">
+      <img src="/illustrations/order-confirmed.svg" alt="" className="w-64 max-w-full sm:w-80" />
+      <p className="mt-6 text-xs font-semibold uppercase tracking-widest text-brand-500">Payment successful</p>
+      <h1 className="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Thank you for your purchase!</h1>
+      <p className="mt-2 max-w-sm text-sm text-gray-500">{message}</p>
+      <p className="mt-1 text-xs text-gray-400">Taking you to your library...</p>
+      <Link
+        href="/dashboard/buyer/library"
+        className="mt-6 rounded-full bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600"
+      >
+        Go to my library
+      </Link>
     </div>
   );
 }
 
 export default function PaymentCallbackPage() {
   return (
-    <Suspense fallback={
-      <div className="flex min-h-[calc(100dvh-8rem)] items-center justify-center px-6">
-        <Card className="w-full max-w-md">
-          <CardContent className="p-8 text-center">
-            <Loader2 className="mx-auto h-16 w-16 animate-spin text-primary" />
-            <h2 className="mt-4 text-2xl font-semibold">Processing payment...</h2>
-          </CardContent>
-        </Card>
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center bg-page px-6 text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-brand-500" />
+          <h1 className="mt-6 text-xl font-semibold text-ink">Processing payment...</h1>
+        </div>
+      }
+    >
       <CallbackInner />
     </Suspense>
   );
 }
-
-
