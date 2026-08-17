@@ -51,6 +51,12 @@ def support_chat(request):
         for m in serializer.validated_data['messages']
     ]
 
+    # Keep the recent conversation only so the model has enough room to answer
+    # without the prompt exhausting the token budget. The system prompt stays
+    # pinned at the front, then the most recent chat turns are used.
+    if len(messages) > 10:
+        messages = [messages[0]] + messages[-9:]
+
     try:
         resp = requests.post(
             settings.SUPPORT_AI_API_URL,
@@ -62,7 +68,7 @@ def support_chat(request):
                 'model': settings.SUPPORT_AI_MODEL,
                 'messages': messages,
                 'temperature': 0.2,
-                'max_tokens': 400,
+                'max_tokens': settings.SUPPORT_AI_MAX_TOKENS,
             },
             timeout=30,
         )
