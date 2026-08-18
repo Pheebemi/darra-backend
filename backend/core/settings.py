@@ -407,6 +407,7 @@ SUPPORT_AI_API_URL = os.getenv(
     'SUPPORT_AI_API_URL', 'https://api.groq.com/openai/v1/chat/completions'
 )
 SUPPORT_AI_MODEL = os.getenv('SUPPORT_AI_MODEL', 'llama-3.3-70b-versatile')
+SUPPORT_AI_MAX_TOKENS = int(os.getenv('SUPPORT_AI_MAX_TOKENS', '800'))
 
 # Who receives operational alerts (e.g. "a seller requested a payout").
 # Deliberately optional: leave it unset and alerts go to every active
