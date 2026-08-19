@@ -3,12 +3,18 @@ from .views import (
     SellerProductListCreateView, ProductDetailView,
     SellerAnalyticsView, ProductListView, PublicProductDetailView,
     SellerOrdersView, TicketCategoryListView, TicketTierListView,
-    TicketTierCreateView, PresignProductFileUploadView
+    TicketTierCreateView, PresignProductFileUploadView,
+    GenerateProductDescriptionView,
 )
 
 urlpatterns = [
     path('', ProductListView.as_view(), name='all-products'),
     path('my-products/', SellerProductListCreateView.as_view(), name='seller-products'),
+    path(
+        'my-products/generate-description/',
+        GenerateProductDescriptionView.as_view(),
+        name='generate-product-description',
+    ),
     path('my-products/<int:pk>/', ProductDetailView.as_view(), name='product-detail'),
     path('upload/presign/', PresignProductFileUploadView.as_view(), name='presign-upload'),
     path('analytics/', SellerAnalyticsView.as_view(), name='seller-analytics'),
