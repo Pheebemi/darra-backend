@@ -168,7 +168,7 @@ export function SupportChat() {
                 {messages.map((m, i) => (
                   <div key={i} className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}>
                     <div
-                      className={`max-w-[85%] whitespace-pre-wrap rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
+                      className={`max-w-[85%] min-w-0 whitespace-pre-wrap wrap-break-word rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                         m.role === "user"
                           ? "bg-brand-500 text-white"
                           : "border border-gray-100 bg-white text-gray-800"
