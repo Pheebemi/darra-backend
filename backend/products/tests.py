@@ -140,6 +140,75 @@ class ProductDescriptionGenerationTests(TestCase):
         self.assertEqual(Product.objects.get(title='My Custom Guide').description, 'Written by the seller.')
 
 
+class ProductDescriptionPromptTests(TestCase):
+    """
+    A seller who hasn't set up an event should never get event-flavoured
+    copy back — the prompt built for the model must not carry event-only
+    fields (or event language) for a plain digital download, and must still
+    carry them for an actual event.
+    """
+
+    @staticmethod
+    def _capture_prompt(product_data, ticket_types=None):
+        from unittest import mock
+        from products.ai import generate_product_description
+
+        captured = {}
+
+        def fake_post(url, headers, json, timeout):
+            captured['payload'] = json
+
+            class FakeResponse:
+                def raise_for_status(self):
+                    pass
+
+                def json(self):
+                    return {'choices': [{'message': {'content': 'Generated copy.'}}]}
+
+            return FakeResponse()
+
+        with mock.patch('products.ai.requests.post', side_effect=fake_post):
+            generate_product_description(product_data, ticket_types)
+
+        return captured['payload']['messages'][1]['content']
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_ebook_prompt_omits_event_fields(self):
+        prompt = self._capture_prompt({
+            'title': 'My eBook',
+            'product_type': 'pdf',
+            'price': '2500',
+            'event_date': '',
+            'venue_name': '',
+            'location': '',
+            'speakers': '',
+        })
+
+        self.assertIn('eBook (PDF download)', prompt)
+        self.assertNotIn('Venue', prompt)
+        self.assertNotIn('Speakers', prompt)
+        self.assertNotIn('Ticket options', prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_event_prompt_includes_event_fields(self):
+        prompt = self._capture_prompt(
+            {
+                'title': 'Music Night',
+                'product_type': 'event',
+                'price': '5000',
+                'event_date': '2026-09-01T18:00',
+                'venue_name': 'City Hall',
+                'location': 'Lagos',
+                'speakers': '',
+            },
+            ticket_types=[{'name': 'VIP', 'price': 10000, 'quantity': 50}],
+        )
+
+        self.assertIn('Event with tickets', prompt)
+        self.assertIn('City Hall', prompt)
+        self.assertIn('Ticket options', prompt)
+
+
 class DocxUploadValidationTests(TestCase):
     """
     A .docx is a ZIP container, so content detectors report it as
