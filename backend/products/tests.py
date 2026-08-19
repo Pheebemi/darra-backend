@@ -100,6 +100,46 @@ class ProductCreateUploadTests(TestCase):
         )
 
 
+class ProductDescriptionGenerationTests(TestCase):
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_seller_can_generate_description_from_product_details(self):
+        from unittest import mock
+        from rest_framework.test import APIClient
+
+        seller = make_seller()
+        client = APIClient()
+        client.force_authenticate(user=seller)
+
+        with mock.patch(
+            'products.views.generate_product_description',
+            return_value='A practical guide to taking better product photos.',
+        ) as generate:
+            response = client.post('/api/products/my-products/generate-description/', {
+                'title': 'Learn Product Photography',
+                'price': '2500',
+                'product_type': 'pdf',
+            }, format='json')
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.data['description'], 'A practical guide to taking better product photos.')
+        generate.assert_called_once()
+        self.assertEqual(generate.call_args.args[0]['title'], 'Learn Product Photography')
+
+    def test_product_creation_does_not_generate_description(self):
+        from rest_framework.test import APIClient
+        seller = make_seller()
+        client = APIClient()
+        client.force_authenticate(user=seller)
+        response = client.post('/api/products/my-products/', {
+            'title': 'My Custom Guide',
+            'description': 'Written by the seller.',
+            'price': '2500',
+            'product_type': 'pdf',
+        }, format='json')
+        self.assertIn(response.status_code, (200, 201))
+        self.assertEqual(Product.objects.get(title='My Custom Guide').description, 'Written by the seller.')
+
+
 class DocxUploadValidationTests(TestCase):
     """
     A .docx is a ZIP container, so content detectors report it as

@@ -29,6 +29,7 @@ import {
   FileText,
   Ticket,
   Settings,
+  Sparkles,
 } from "lucide-react";
 import { toast } from "sonner";
 import { uploadProductFileToR2 } from "@/lib/api/upload";
@@ -102,6 +103,7 @@ function CreateEventInner() {
   const [loading, setLoading] = useState(false);
   const [fetchingProduct, setFetchingProduct] = useState(isEditing);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isGeneratingDescription, setIsGeneratingDescription] = useState(false);
   const [uploadPct, setUploadPct] = useState<number | null>(null);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
@@ -239,6 +241,45 @@ function CreateEventInner() {
       if (!isEditing && !file) { toast.error("Please upload a file"); return false; }
     }
     return true;
+  };
+
+  const handleGenerateDescription = async () => {
+    if (!title.trim() || isGeneratingDescription) {
+      toast.error("Enter a product title first");
+      return;
+    }
+
+    setIsGeneratingDescription(true);
+    try {
+      const res = await fetch("/api/seller/products/generate-description", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: title.trim(),
+          product_type: productType,
+          price: price || "0",
+          event_date: eventDate && eventTime ? `${eventDate}T${eventTime}` : "",
+          event_end_date: eventEndDate && eventEndTime ? `${eventEndDate}T${eventEndTime}` : "",
+          venue_name: venueName.trim(),
+          location: location.trim(),
+          speakers: speakers.trim(),
+          ticket_types: ticketTypes.map((ticket) => ({
+            name: ticket.name,
+            price: ticket.price,
+            quantity: ticket.quantity,
+          })),
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Failed to generate description");
+      setDescription(data.description || "");
+      toast.success("Description generated");
+    } catch (err: any) {
+      toast.error(err.message || "Failed to generate description");
+    } finally {
+      setIsGeneratingDescription(false);
+    }
   };
 
   const handleSubmit = async () => {
@@ -399,7 +440,20 @@ function CreateEventInner() {
                     </div>
 
                     <div className="space-y-1.5">
-                      <Label htmlFor="description" className="text-sm font-medium text-gray-900">Description</Label>
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="description" className="text-sm font-medium text-gray-900">Description</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGenerateDescription}
+                          disabled={isGeneratingDescription || !title.trim()}
+                          title="Generate a description with AI"
+                        >
+                          {isGeneratingDescription ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                          {isGeneratingDescription ? "Generating..." : "Generate with AI"}
+                        </Button>
+                      </div>
                       <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your product..." rows={4} />
                     </div>
 

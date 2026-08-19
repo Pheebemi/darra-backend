@@ -28,6 +28,7 @@ from core.cache_utils import (
     performance_monitor, CacheManager
 )
 from django.core.cache import cache
+from .ai import generate_product_description
 # Removed Cloudinary dependency - using local storage
 
 # Create your views here.
@@ -116,6 +117,53 @@ class SellerProductListCreateView(generics.ListCreateAPIView):
             raise DRFValidationError({'detail': e.messages})
 
         return product
+
+
+class GenerateProductDescriptionView(APIView):
+    """Generate product copy when a seller explicitly requests it."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request):
+        if getattr(request.user, 'user_type', None) != 'seller':
+            return Response(
+                {'message': 'Only sellers can generate product descriptions.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        title = str(request.data.get('title') or '').strip()
+        if not title:
+            return Response(
+                {'message': 'A product title is required.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        ticket_types = request.data.get('ticket_types', [])
+        if isinstance(ticket_types, str):
+            import json
+            try:
+                ticket_types = json.loads(ticket_types)
+            except json.JSONDecodeError:
+                ticket_types = []
+
+        description = generate_product_description(
+            {
+                'title': title,
+                'product_type': request.data.get('product_type', ''),
+                'price': request.data.get('price', ''),
+                'event_date': request.data.get('event_date', ''),
+                'event_end_date': request.data.get('event_end_date', ''),
+                'venue_name': request.data.get('venue_name', ''),
+                'location': request.data.get('location', ''),
+                'speakers': request.data.get('speakers', ''),
+            },
+            ticket_types,
+        )
+        if not description:
+            return Response(
+                {'message': 'The AI description could not be generated right now.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        return Response({'description': description})
 
 class ProductDetailView(generics.RetrieveUpdateDestroyAPIView):
     permission_classes = [permissions.IsAuthenticated]

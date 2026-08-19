@@ -1,6 +1,7 @@
 import json
 
 from rest_framework import serializers
+
 from .models import Product, TicketCategory, TicketTier, media_url_for
 
 DEFAULT_TICKET_COLOR = '#5465FF'
