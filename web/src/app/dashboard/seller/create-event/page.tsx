@@ -81,6 +81,11 @@ function CreateEventInner() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [productType, setProductType] = useState("event");
+  // "event" above is just the initial Select value, not a seller choice — the
+  // AI generator needs to know the seller actually confirmed it, otherwise a
+  // click before they've touched this field would describe an eBook/audio
+  // upload as an event.
+  const [productTypeConfirmed, setProductTypeConfirmed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
@@ -141,6 +146,7 @@ function CreateEventInner() {
       setDescription(data.description || "");
       setPrice(data.price?.toString() || "");
       setProductType(data.product_type || "event");
+      setProductTypeConfirmed(true);
 
       if (data.cover_image) {
         setExistingCoverUrl(data.cover_image);
@@ -246,6 +252,10 @@ function CreateEventInner() {
   const handleGenerateDescription = async () => {
     if (!title.trim() || isGeneratingDescription) {
       toast.error("Enter a product title first");
+      return;
+    }
+    if (!productTypeConfirmed) {
+      toast.error("Select a product type first");
       return;
     }
 
@@ -447,8 +457,12 @@ function CreateEventInner() {
                           variant="outline"
                           size="sm"
                           onClick={handleGenerateDescription}
-                          disabled={isGeneratingDescription || !title.trim()}
-                          title="Generate a description with AI"
+                          disabled={isGeneratingDescription || !title.trim() || !productTypeConfirmed}
+                          title={
+                            !productTypeConfirmed
+                              ? "Select a product type first"
+                              : "Generate a description with AI"
+                          }
                         >
                           {isGeneratingDescription ? <Loader2 className="animate-spin" /> : <Sparkles />}
                           {isGeneratingDescription ? "Generating..." : "Generate with AI"}
@@ -460,7 +474,10 @@ function CreateEventInner() {
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="productType" className="text-sm font-medium text-gray-900">Product Type</Label>
-                        <Select value={productType} onValueChange={setProductType}>
+                        <Select
+                          value={productType}
+                          onValueChange={(value) => { setProductType(value); setProductTypeConfirmed(true); }}
+                        >
                           <SelectTrigger className="h-11 w-full">
                             <SelectValue placeholder="Select type" />
                           </SelectTrigger>
