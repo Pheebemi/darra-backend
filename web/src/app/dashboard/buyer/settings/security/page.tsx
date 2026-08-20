@@ -65,13 +65,13 @@ export default function BuyerSecurityPage() {
         <div className="mb-8">
           <Link
             href="/dashboard/buyer/settings"
-            className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-brand-500"
+            className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-body transition-colors hover:text-accent-link"
           >
             <ArrowLeft className="h-4 w-4" /> Settings
           </Link>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Security</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Security</p>
           <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Change Password</h1>
-          <p className="mt-1 text-sm text-gray-600">Update your account password</p>
+          <p className="mt-1 text-sm text-body">Update your account password</p>
         </div>
 
         <Card>

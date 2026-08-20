@@ -172,9 +172,9 @@ export default function SellerStorePage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between gap-4">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Storefront</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Storefront</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">My Store</h1>
-            <p className="mt-1 text-sm text-gray-600">{profile?.brand_name}</p>
+            <p className="mt-1 text-sm text-body">{profile?.brand_name}</p>
           </div>
           {profile?.brand_slug && (
             <Button variant="outline" size="sm" asChild>
@@ -189,18 +189,18 @@ export default function SellerStorePage() {
         <Card className="mb-6">
           <CardContent className="flex items-center justify-between p-5">
             <div className="flex items-center gap-3">
-              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${profile?.store_active ? "bg-[#EBFBF0]" : "bg-gray-100"}`}>
+              <div className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full ${profile?.store_active ? "bg-ok-soft" : "bg-inset"}`}>
                 {profile?.store_active ? (
-                  <CheckCircle2 className="h-5 w-5 text-[#00B42A]" />
+                  <CheckCircle2 className="h-5 w-5 text-ok" />
                 ) : (
-                  <XCircle className="h-5 w-5 text-gray-500" />
+                  <XCircle className="h-5 w-5 text-subtle" />
                 )}
               </div>
               <div>
                 <p className="font-semibold text-ink">
                   Store is {profile?.store_active ? "Open" : "Closed"}
                 </p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-body">
                   {profile?.store_active
                     ? "Customers can browse and buy your products"
                     : "Your store is hidden from customers"}
@@ -335,7 +335,7 @@ export default function SellerStorePage() {
           <Card>
             <CardContent className="p-5">
               <h2 className="mb-2 text-base font-semibold text-foreground">Your Store Link</h2>
-              <div className="flex items-center gap-3 rounded-2xl bg-brand-50 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-2xl bg-brand-soft px-4 py-3">
                 <span className="flex-1 truncate text-sm text-muted-foreground">
                   {typeof window !== "undefined" ? window.location.origin : ""}/store/{profile.brand_slug}
                 </span>

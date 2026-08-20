@@ -3,6 +3,7 @@ import { useState } from "react";
 import { DashboardSidebar } from "./sidebar";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [open, setOpen] = useState(false);
@@ -29,6 +30,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
             </SheetContent>
           </Sheet>
           <span className="text-sm font-medium text-white">Dashboard</span>
+          <ThemeToggle tone="onDark" className="ml-auto" />
         </header>
 
         {/* Page content */}

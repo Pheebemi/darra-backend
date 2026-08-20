@@ -344,7 +344,7 @@ export default function VerifyTicketsPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Events</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Events</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
               Verify Tickets
             </h1>
@@ -443,11 +443,11 @@ export default function VerifyTicketsPage() {
         <Dialog open={showManualEntry} onOpenChange={setShowManualEntry}>
           <DialogContent>
             <DialogHeader>
-              <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100">
-                <Keyboard className="h-7 w-7 text-brand-500" />
+              <div className="mx-auto mb-2 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-softer">
+                <Keyboard className="h-7 w-7 text-accent-link" />
               </div>
               <DialogTitle className="text-center text-xl text-ink">Enter Ticket ID</DialogTitle>
-              <p className="text-center text-sm text-gray-600">
+              <p className="text-center text-sm text-body">
                 Type or paste the ID printed on the ticket
               </p>
             </DialogHeader>
@@ -462,7 +462,7 @@ export default function VerifyTicketsPage() {
                     handleManualVerify();
                   }
                 }}
-                className="h-13 rounded-2xl bg-brand-50 text-center font-mono text-base tracking-wide focus-visible:ring-brand-300"
+                className="h-13 rounded-2xl bg-brand-soft text-center font-mono text-base tracking-wide focus-visible:ring-brand-300"
               />
               <div className="flex flex-col gap-2">
                 <button
@@ -518,8 +518,8 @@ export default function VerifyTicketsPage() {
                     </div>
                     <span className={`inline-flex shrink-0 items-center rounded-full px-4 py-1.5 text-sm font-semibold ${
                       ticketDetails.is_used
-                        ? "bg-red-50 text-[#b3261e]"
-                        : "bg-[#EBFBF0] text-[#00B42A]"
+                        ? "bg-err-soft text-err"
+                        : "bg-ok-soft text-ok"
                     }`}>
                       {ticketDetails.is_used ? (
                         <XCircle className="mr-1.5 h-4 w-4" />
@@ -550,22 +550,22 @@ export default function VerifyTicketsPage() {
                 <div className="space-y-5 p-6">
                   {/* Info tiles */}
                   <div className="grid grid-cols-2 gap-3">
-                    <div className="rounded-2xl bg-brand-50 p-4">
-                      <p className="text-xs text-gray-600">Amount</p>
-                      <p className="mt-0.5 text-lg font-bold text-brand-600">
+                    <div className="rounded-2xl bg-brand-soft p-4">
+                      <p className="text-xs text-body">Amount</p>
+                      <p className="mt-0.5 text-lg font-bold text-accent-link">
                         {formatCurrency(ticketDetails.payment_amount)}
                       </p>
                     </div>
-                    <div className="rounded-2xl bg-brand-50 p-4">
-                      <p className="text-xs text-gray-600">Quantity</p>
+                    <div className="rounded-2xl bg-brand-soft p-4">
+                      <p className="text-xs text-body">Quantity</p>
                       <p className="mt-0.5 text-lg font-bold text-ink">
                         {ticketDetails.quantity}
                       </p>
                     </div>
                     {ticketDetails.ticket_tier && (
                       <>
-                        <div className="rounded-2xl bg-brand-50 p-4">
-                          <p className="text-xs text-gray-600">Category</p>
+                        <div className="rounded-2xl bg-brand-soft p-4">
+                          <p className="text-xs text-body">Category</p>
                           <span
                             className="mt-1 inline-block rounded-full px-3 py-0.5 text-xs font-semibold"
                             style={{
@@ -576,8 +576,8 @@ export default function VerifyTicketsPage() {
                             {ticketDetails.ticket_tier.display_name || ticketDetails.ticket_tier.name}
                           </span>
                         </div>
-                        <div className="rounded-2xl bg-brand-50 p-4">
-                          <p className="text-xs text-gray-600">Tier</p>
+                        <div className="rounded-2xl bg-brand-soft p-4">
+                          <p className="text-xs text-body">Tier</p>
                           <p className="mt-0.5 text-sm font-semibold text-ink">
                             {ticketDetails.ticket_tier.name}
                           </p>
@@ -589,13 +589,13 @@ export default function VerifyTicketsPage() {
                   {/* References */}
                   <div className="space-y-2 rounded-2xl border border-dashed border-brand-200 p-4">
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-xs text-gray-600">Ticket ID</span>
+                      <span className="text-xs text-body">Ticket ID</span>
                       <span className="truncate font-mono text-xs font-medium text-ink">
                         {ticketDetails.ticket_id}
                       </span>
                     </div>
                     <div className="flex items-center justify-between gap-4">
-                      <span className="text-xs text-gray-600">Reference</span>
+                      <span className="text-xs text-body">Reference</span>
                       <span className="truncate font-mono text-xs font-medium text-ink">
                         {ticketDetails.purchase_reference}
                       </span>
@@ -605,16 +605,16 @@ export default function VerifyTicketsPage() {
                   {/* Usage Information */}
                   {ticketDetails.is_used && (
                     <div className="rounded-2xl bg-page-warm p-4">
-                      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-gray-500">
+                      <p className="mb-2 text-xs font-semibold uppercase tracking-widest text-subtle">
                         Usage
                       </p>
                       {ticketDetails.used_at && (
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-body">
                           Used at <span className="font-medium text-ink">{formatDate(ticketDetails.used_at)}</span>
                         </p>
                       )}
                       {ticketDetails.verified_by && (
-                        <p className="text-sm text-gray-600">
+                        <p className="text-sm text-body">
                           Verified by <span className="font-medium text-ink">{ticketDetails.verified_by.full_name}</span>
                         </p>
                       )}

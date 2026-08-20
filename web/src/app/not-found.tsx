@@ -8,13 +8,13 @@ export default function NotFound() {
         alt=""
         className="w-full max-w-[280px]"
       />
-      <p className="mt-10 text-sm font-semibold uppercase tracking-widest text-brand-500">
+      <p className="mt-10 text-sm font-semibold uppercase tracking-widest text-accent-link">
         404 — Page not found
       </p>
       <h1 className="mt-3 text-3xl font-semibold text-ink sm:text-4xl">
         We couldn&apos;t find that page
       </h1>
-      <p className="mt-3 max-w-md text-sm leading-relaxed text-gray-600">
+      <p className="mt-3 max-w-md text-sm leading-relaxed text-body">
         The link may be broken, or the page may have moved. Let&apos;s get you back
         on track.
       </p>
@@ -27,7 +27,7 @@ export default function NotFound() {
         </Link>
         <Link
           href="/products"
-          className="rounded-full border border-brand-500 px-6 py-3 text-sm font-medium text-brand-500 transition-colors hover:bg-brand-50"
+          className="rounded-full border border-brand-500 px-6 py-3 text-sm font-medium text-accent-link transition-colors hover:bg-brand-soft"
         >
           Browse products
         </Link>

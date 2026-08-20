@@ -107,18 +107,18 @@ export default function OrdersPage() {
   const statusPill = (status: string) => {
     const s = status?.toLowerCase() || "";
     if (s.includes("success") || s.includes("completed"))
-      return "bg-[#EBFBF0] text-[#00B42A]";
+      return "bg-ok-soft text-ok";
     if (s.includes("pending"))
-      return "bg-[#FFF9E5] text-[#B08600]";
+      return "bg-warn-soft text-warn";
     if (s.includes("failed") || s.includes("cancelled"))
-      return "bg-red-50 text-[#b3261e]";
-    return "bg-brand-50 text-brand-600";
+      return "bg-err-soft text-err";
+    return "bg-brand-soft text-accent-link";
   };
 
   if (!initialized || !isAuthenticated) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-page">
-        <p className="text-gray-600">Loading...</p>
+        <p className="text-body">Loading...</p>
       </div>
     );
   }
@@ -141,7 +141,7 @@ export default function OrdersPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Sales</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Sales</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Orders</h1>
           </div>
           <div className="flex items-center gap-2">
@@ -165,8 +165,8 @@ export default function OrdersPage() {
             { label: "Completed", value: loading ? null : completedCount.toString() },
             { label: "Revenue", value: loading ? null : formatCurrency(totalRevenue) },
           ].map(({ label, value }) => (
-            <div key={label} className="rounded-3xl border border-gray-100 bg-white p-5">
-              <p className="text-xs text-gray-600">{label}</p>
+            <div key={label} className="rounded-3xl border border-line bg-surface p-5">
+              <p className="text-xs text-body">{label}</p>
               {value === null ? (
                 <Skeleton className="mt-1 h-7 w-16" />
               ) : (
@@ -188,13 +188,13 @@ export default function OrdersPage() {
             {orders.map((order) => {
               const isOpen = expanded === order.id;
               return (
-                <div key={order.id} className="overflow-hidden rounded-3xl border border-gray-100 bg-white">
+                <div key={order.id} className="overflow-hidden rounded-3xl border border-line bg-surface">
                   {/* Row */}
                   <button
                     onClick={() => setExpanded(isOpen ? null : order.id)}
-                    className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-brand-50/40 sm:p-5"
+                    className="flex w-full items-center gap-4 p-4 text-left transition-colors hover:bg-brand-soft/40 sm:p-5"
                   >
-                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-brand-50">
+                    <div className="relative h-12 w-12 shrink-0 overflow-hidden rounded-2xl bg-brand-soft">
                       {order.product.cover_image ? (
                         <SafeImage
                           src={order.product.cover_image}
@@ -210,8 +210,8 @@ export default function OrdersPage() {
                     </div>
 
                     <div className="min-w-0 flex-1">
-                      <p className="truncate font-medium text-gray-900">{order.product.title}</p>
-                      <p className="truncate text-xs text-gray-500">
+                      <p className="truncate font-medium text-strong">{order.product.title}</p>
+                      <p className="truncate text-xs text-subtle">
                         {order.customer?.name || "Customer"} · Qty {order.quantity} · {formatDate(order.created_at)}
                       </p>
                     </div>
@@ -221,33 +221,33 @@ export default function OrdersPage() {
                     </span>
 
                     <span className="shrink-0 font-semibold text-ink">{formatCurrency(order.total_price)}</span>
-                    <ChevronDown className={`h-4 w-4 shrink-0 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`} />
+                    <ChevronDown className={`h-4 w-4 shrink-0 text-faint transition-transform ${isOpen ? "rotate-180" : ""}`} />
                   </button>
 
                   {/* Expanded details */}
                   {isOpen && (
-                    <div className="grid gap-3 border-t border-gray-100 bg-page-soft px-5 py-4 sm:grid-cols-2">
+                    <div className="grid gap-3 border-t border-line bg-page-soft px-5 py-4 sm:grid-cols-2">
                       <span className={`w-fit rounded-full px-3 py-1 text-xs font-medium sm:hidden ${statusPill(order.payment_status || order.status)}`}>
                         {(order.payment_status || order.status || "pending").toUpperCase()}
                       </span>
                       {order.customer && (
                         <div className="flex items-center gap-2 text-sm">
-                          <Mail className="h-4 w-4 shrink-0 text-brand-500" />
-                          <span className="truncate text-gray-600">{order.customer.email}</span>
+                          <Mail className="h-4 w-4 shrink-0 text-accent-link" />
+                          <span className="truncate text-body">{order.customer.email}</span>
                         </div>
                       )}
                       {order.unit_price !== undefined && order.unit_price !== null && (
-                        <div className="text-sm text-gray-600">
+                        <div className="text-sm text-body">
                           Unit price: <span className="font-medium text-ink">{formatCurrency(order.unit_price)}</span>
                         </div>
                       )}
-                      <div className="text-sm capitalize text-gray-600">
+                      <div className="text-sm capitalize text-body">
                         Type: <span className="font-medium text-ink">{order.product.product_type || "Product"}</span>
                       </div>
                       {order.payment_reference && (
                         <div className="flex items-center gap-2 text-sm sm:col-span-2">
-                          <Receipt className="h-4 w-4 shrink-0 text-brand-500" />
-                          <span className="truncate font-mono text-xs text-gray-600">{order.payment_reference}</span>
+                          <Receipt className="h-4 w-4 shrink-0 text-accent-link" />
+                          <span className="truncate font-mono text-xs text-body">{order.payment_reference}</span>
                         </div>
                       )}
                     </div>
@@ -257,10 +257,10 @@ export default function OrdersPage() {
             })}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-white py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-surface py-16 text-center">
             <img src="/illustrations/no-data.svg" alt="" className="mb-6 h-32 w-auto" />
             <h2 className="mb-1 text-xl font-semibold text-ink">No orders yet</h2>
-            <p className="mb-6 text-sm text-gray-600">
+            <p className="mb-6 text-sm text-body">
               Orders will appear here once customers start buying your products
             </p>
             <Button asChild>

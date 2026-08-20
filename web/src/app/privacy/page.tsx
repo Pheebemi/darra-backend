@@ -9,21 +9,21 @@ export const metadata: Metadata = {
 const prose =
   "mx-auto max-w-3xl px-6 py-12 " +
   "[&_h2]:mt-9 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h2]:text-ink " +
-  "[&_p]:mb-3 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-gray-600 " +
+  "[&_p]:mb-3 [&_p]:text-sm [&_p]:leading-relaxed [&_p]:text-body " +
   "[&_ul]:mb-4 [&_ul]:list-disc [&_ul]:space-y-1 [&_ul]:pl-5 " +
-  "[&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-gray-600 " +
-  "[&_a]:font-medium [&_a]:text-brand-600 [&_a]:underline";
+  "[&_li]:text-sm [&_li]:leading-relaxed [&_li]:text-body " +
+  "[&_a]:font-medium [&_a]:text-accent-link [&_a]:underline";
 
 export default function PrivacyPage() {
   return (
     <div className="bg-page">
-      <div className="border-b border-gray-100 bg-white">
+      <div className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-6 py-12 text-center sm:flex-row sm:text-left">
           <img src="/illustrations/happy-customer.svg" alt="" className="w-40 shrink-0" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand-500">Legal</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent-link">Legal</p>
             <h1 className="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Privacy Policy</h1>
-            <p className="mt-2 text-sm text-gray-500">Last updated: 30 July 2026</p>
+            <p className="mt-2 text-sm text-subtle">Last updated: 30 July 2026</p>
           </div>
         </div>
       </div>

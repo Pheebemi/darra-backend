@@ -83,22 +83,22 @@ export default function AllStoresPage() {
       <section className="mx-auto max-w-7xl px-5 sm:px-16">
         <div className="grid grid-cols-1 items-center gap-8 py-12 sm:grid-cols-2 sm:py-16">
           <div>
-            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-brand-500">
+            <p className="mb-3 text-sm font-semibold uppercase tracking-widest text-accent-link">
               Sellers
             </p>
             <h1 className="mb-4 text-4xl font-semibold leading-tight text-ink sm:text-5xl">
               Browse Stores
             </h1>
-            <p className="mb-8 max-w-[45ch] text-lg text-gray-600">
+            <p className="mb-8 max-w-[45ch] text-lg text-body">
               Discover independent creators and explore their digital products.
             </p>
             <div className="relative max-w-md">
-              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+              <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
               <Input
                 placeholder="Search stores..."
                 value={search}
                 onChange={e => setSearch(e.target.value)}
-                className="h-12 rounded-full border-gray-200 bg-white pl-11 focus-visible:ring-brand-300"
+                className="h-12 rounded-full border-line-strong bg-surface pl-11 focus-visible:ring-brand-300"
               />
             </div>
           </div>
@@ -116,36 +116,36 @@ export default function AllStoresPage() {
           {loading ? (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {[1,2,3,4,5,6].map(i => (
-                <div key={i} className="h-44 w-full animate-pulse rounded-3xl border border-gray-100 bg-white" />
+                <div key={i} className="h-44 w-full animate-pulse rounded-3xl border border-line bg-surface" />
               ))}
             </div>
           ) : filtered.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-16 text-center">
               <img src="/illustrations/web-search.svg" alt="" className="mb-6 h-40 w-auto" />
               <p className="text-xl font-semibold text-ink">No stores found</p>
-              <p className="mt-1 text-gray-600">Try a different search term</p>
+              <p className="mt-1 text-body">Try a different search term</p>
             </div>
           ) : (
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
               {filtered.map(store => (
                 <Link key={store.brand_slug} href={`/store/${store.brand_slug}`} className="group">
-                  <div className="flex h-full flex-col rounded-3xl border border-gray-100 bg-white p-6 transition-shadow duration-300 hover:shadow-xl">
+                  <div className="flex h-full flex-col rounded-3xl border border-line bg-surface p-6 transition-shadow duration-300 hover:shadow-xl">
                     <div className="mb-4 flex items-center gap-3">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-100">
-                        <Store className="h-5 w-5 text-brand-500" />
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-brand-softer">
+                        <Store className="h-5 w-5 text-accent-link" />
                       </div>
-                      <h2 className="line-clamp-1 text-xl font-semibold text-gray-900 transition-colors group-hover:text-brand-500">
+                      <h2 className="line-clamp-1 text-xl font-semibold text-strong transition-colors group-hover:text-accent-link">
                         {store.brand_name}
                       </h2>
                     </div>
                     {stripHtml(store.about) && (
-                      <p className="mb-4 line-clamp-2 text-sm text-gray-600">{stripHtml(store.about)}</p>
+                      <p className="mb-4 line-clamp-2 text-sm text-body">{stripHtml(store.about)}</p>
                     )}
                     <div className="mt-auto flex items-center justify-between">
-                      <span className="text-sm font-medium text-brand-500">
+                      <span className="text-sm font-medium text-accent-link">
                         {store.product_count} {store.product_count === 1 ? "product" : "products"}
                       </span>
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-500 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-accent-link opacity-0 transition-opacity group-hover:opacity-100">
                         Visit store <ArrowRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
@@ -157,14 +157,14 @@ export default function AllStoresPage() {
 
           {!loading && filtered.length > 0 && (
             <div className="mt-10 flex flex-col items-center gap-3">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-body">
                 Showing {filtered.length} of {total} {total === 1 ? "store" : "stores"}
               </p>
               {hasNext && (
                 <button
                   onClick={() => fetchStores(page + 1, search)}
                   disabled={loadingMore}
-                  className="rounded-full border border-brand-500 px-8 py-3 font-medium text-brand-500 transition-colors hover:bg-brand-500 hover:text-white disabled:opacity-50"
+                  className="rounded-full border border-brand-500 px-8 py-3 font-medium text-accent-link transition-colors hover:bg-brand-500 hover:text-white disabled:opacity-50"
                 >
                   {loadingMore ? "Loading..." : "Load more stores"}
                 </button>

@@ -267,13 +267,13 @@ export default function BankDetailsPage() {
           <div>
             <Link
               href="/dashboard/seller/settings"
-              className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-brand-500"
+              className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-body transition-colors hover:text-accent-link"
             >
               <ArrowLeft className="h-4 w-4" /> Settings
             </Link>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Payouts</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Payouts</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Bank Accounts</h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-body">
               {savedAccounts.length > 0
                 ? `You have ${savedAccounts.length} bank account${savedAccounts.length > 1 ? "s" : ""}`
                 : "No bank accounts added yet"}
@@ -308,11 +308,11 @@ export default function BankDetailsPage() {
             <h2 className="mb-4 text-lg font-semibold text-ink">Your Bank Accounts</h2>
             <div className="space-y-4">
               {savedAccounts.map((account) => (
-                <div key={account.id} className="rounded-3xl border border-gray-100 bg-white p-6">
+                <div key={account.id} className="rounded-3xl border border-line bg-surface p-6">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex items-start gap-4">
-                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-100">
-                        <Building2 className="h-6 w-6 text-brand-500" />
+                      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-brand-softer">
+                        <Building2 className="h-6 w-6 text-accent-link" />
                       </div>
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
@@ -320,13 +320,13 @@ export default function BankDetailsPage() {
                             {account.account_name}
                           </p>
                           {account.is_primary && (
-                            <span className="rounded-full bg-brand-100 px-2.5 py-0.5 text-[10px] font-semibold text-brand-700">
+                            <span className="rounded-full bg-brand-softer px-2.5 py-0.5 text-[10px] font-semibold text-brand-700">
                               PRIMARY
                             </span>
                           )}
                         </div>
-                        <p className="mt-0.5 text-sm text-gray-600">{account.bank_name}</p>
-                        <p className="mt-0.5 flex items-center gap-1.5 font-mono text-sm text-gray-500">
+                        <p className="mt-0.5 text-sm text-body">{account.bank_name}</p>
+                        <p className="mt-0.5 flex items-center gap-1.5 font-mono text-sm text-subtle">
                           <CreditCard className="h-3.5 w-3.5" />
                           {account.account_number}
                         </p>
@@ -423,8 +423,8 @@ export default function BankDetailsPage() {
                                   className="cursor-pointer py-3"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-100">
-                                      <Building2 className="h-4 w-4 text-brand-500" />
+                                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-brand-softer">
+                                      <Building2 className="h-4 w-4 text-accent-link" />
                                     </div>
                                     <span className="font-medium">{bank.name}</span>
                                   </div>
@@ -468,9 +468,9 @@ export default function BankDetailsPage() {
 
                 {/* Account Name Preview */}
                 {accountName && (
-                  <div className="rounded-2xl border border-brand-200 bg-brand-50 p-4">
+                  <div className="rounded-2xl border border-brand-200 bg-brand-soft p-4">
                     <div className="flex items-center gap-2">
-                      <CheckCircle2 className="h-4 w-4 text-[#00B42A]" />
+                      <CheckCircle2 className="h-4 w-4 text-ok" />
                       <p className="font-medium text-foreground">Account Verified</p>
                     </div>
                     <p className="mt-1 text-sm text-muted-foreground">
@@ -515,8 +515,8 @@ export default function BankDetailsPage() {
 
                 {/* Validation Help */}
                 {accountNumber.length > 0 && accountNumber.length !== 10 && (
-                  <div className="rounded-2xl border border-[#F7B500]/30 bg-[#FFF9E5] p-3">
-                    <p className="text-sm text-amber-800">
+                  <div className="rounded-2xl border border-warn/30 bg-warn-soft p-3">
+                    <p className="text-sm text-warn">
                       Please enter a complete 10-digit account number
                     </p>
                   </div>

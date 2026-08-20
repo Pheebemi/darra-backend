@@ -241,7 +241,7 @@ export default function RequestPayoutPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Finance</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Finance</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Request Payout</h1>
           </div>
           <Button variant="ghost" size="sm" asChild>
@@ -267,11 +267,11 @@ export default function RequestPayoutPage() {
         </div>
 
         {/* Amount Input */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6">
+        <div className="rounded-3xl border border-line bg-surface p-6">
           <Label htmlFor="amount" className="mb-4 block text-lg font-semibold text-ink">
             Payout Amount
           </Label>
-          <div className="flex items-center gap-2 rounded-2xl bg-brand-50 p-4 focus-within:ring-2 focus-within:ring-brand-300">
+          <div className="flex items-center gap-2 rounded-2xl bg-brand-soft p-4 focus-within:ring-2 focus-within:ring-brand-300">
             <span className="text-2xl font-bold text-ink">₦</span>
             <Input
               id="amount"
@@ -283,30 +283,30 @@ export default function RequestPayoutPage() {
               maxLength={10}
             />
           </div>
-          <p className="mt-3 text-center text-xs text-gray-600">
+          <p className="mt-3 text-center text-xs text-body">
             Minimum: ₦1,000 • Maximum:{" "}
             {earnings ? formatCurrency(earnings.available_balance) : "₦0"}
           </p>
         </div>
 
         {/* Bank Account Selection */}
-        <div className="rounded-3xl border border-gray-100 bg-white p-6">
+        <div className="rounded-3xl border border-line bg-surface p-6">
           <Label className="mb-4 block text-lg font-semibold text-ink">Select Bank Account</Label>
 
           {loadingBanks ? (
             <div className="flex flex-col items-center justify-center py-8">
-              <Loader2 className="mb-4 h-6 w-6 animate-spin text-brand-500" />
-              <p className="text-sm text-gray-600">Loading bank accounts...</p>
+              <Loader2 className="mb-4 h-6 w-6 animate-spin text-accent-link" />
+              <p className="text-sm text-body">Loading bank accounts...</p>
             </div>
           ) : (
             <>
               {bankAccounts.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-8">
-                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100">
-                    <CreditCard className="h-7 w-7 text-brand-500" />
+                  <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-softer">
+                    <CreditCard className="h-7 w-7 text-accent-link" />
                   </div>
                   <h3 className="mb-1 text-lg font-semibold text-ink">No bank accounts found</h3>
-                  <p className="mb-6 text-center text-sm text-gray-600">
+                  <p className="mb-6 text-center text-sm text-body">
                     Add a bank account in your profile to request payouts
                   </p>
                   <Button asChild>
@@ -321,25 +321,25 @@ export default function RequestPayoutPage() {
                       onClick={() => setSelectedBank(bank)}
                       className={`w-full rounded-2xl border-2 p-4 text-left transition-colors ${
                         selectedBank?.id === bank.id
-                          ? "border-brand-500 bg-brand-50"
-                          : "border-gray-100 hover:border-brand-200 hover:bg-brand-50/40"
+                          ? "border-brand-500 bg-brand-soft"
+                          : "border-line hover:border-brand-200 hover:bg-brand-soft/40"
                       }`}
                     >
                       <div className="flex items-center justify-between">
                         <div className="flex items-center gap-4">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-100">
-                            <Building2 className="h-5 w-5 text-brand-500" />
+                          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-brand-softer">
+                            <Building2 className="h-5 w-5 text-accent-link" />
                           </div>
                           <div>
                             <p className="font-semibold text-ink">{bank.bank_name}</p>
-                            <p className="text-sm text-gray-600">
+                            <p className="text-sm text-body">
                               {bank.account_number}
                             </p>
-                            <p className="text-xs text-gray-500">{bank.account_name}</p>
+                            <p className="text-xs text-subtle">{bank.account_name}</p>
                           </div>
                         </div>
                         {selectedBank?.id === bank.id && (
-                          <CheckCircle2 className="h-6 w-6 text-brand-500" />
+                          <CheckCircle2 className="h-6 w-6 text-accent-link" />
                         )}
                       </div>
                     </button>
@@ -352,7 +352,7 @@ export default function RequestPayoutPage() {
 
         {/* Payout Summary */}
         {amount && selectedBank && (
-          <div className="rounded-3xl bg-brand-50 p-6">
+          <div className="rounded-3xl bg-brand-soft p-6">
             <h3 className="mb-4 text-lg font-semibold text-ink">Payout Summary</h3>
             <div className="space-y-3">
               {[
@@ -361,8 +361,8 @@ export default function RequestPayoutPage() {
                 { k: "Account", v: selectedBank.account_number },
                 { k: "Recipient", v: selectedBank.account_name },
               ].map(({ k, v }) => (
-                <div key={k} className="flex items-center justify-between rounded-xl bg-white px-4 py-2.5">
-                  <span className="text-sm font-medium text-gray-600">{k}</span>
+                <div key={k} className="flex items-center justify-between rounded-xl bg-surface px-4 py-2.5">
+                  <span className="text-sm font-medium text-body">{k}</span>
                   <span className="text-sm font-semibold text-ink">{v}</span>
                 </div>
               ))}
@@ -392,10 +392,10 @@ export default function RequestPayoutPage() {
         {/* Info Section */}
         <div className="rounded-3xl bg-page-warm p-6">
           <div className="mb-4 flex items-center gap-2">
-            <Info className="h-5 w-5 text-brand-500" />
+            <Info className="h-5 w-5 text-accent-link" />
             <h3 className="text-lg font-semibold text-ink">Important Information</h3>
           </div>
-          <ul className="space-y-2 text-sm text-gray-600">
+          <ul className="space-y-2 text-sm text-body">
             <li>• Payouts are processed within 12-14 hours</li>
             <li>• You'll receive a confirmation email once processed</li>
             <li>• Minimum payout amount is ₦1,000</li>

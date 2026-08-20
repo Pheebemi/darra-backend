@@ -46,15 +46,15 @@ export default function LoginPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-gray-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-line-strong">
               <img src="/logo.svg" alt="Darra" className="h-8 w-auto" />
             </div>
             <span className="text-lg font-semibold text-ink">Darra</span>
           </div>
 
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">Sign in</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-accent-link">Sign in</p>
           <h1 className="mb-1 text-3xl font-semibold text-ink">Welcome back</h1>
-          <p className="mb-8 text-gray-600">Sign in to your Darra account</p>
+          <p className="mb-8 text-body">Sign in to your Darra account</p>
 
           <form
             className="space-y-5"
@@ -64,7 +64,7 @@ export default function LoginPage() {
             }}
           >
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-900">Email address</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-strong">Email address</Label>
               <Input
                 id="email"
                 type="email"
@@ -72,14 +72,14 @@ export default function LoginPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 disabled={isLoading}
-                className="h-12 rounded-xl border-gray-200 bg-white px-4 focus-visible:ring-brand-300"
+                className="h-12 rounded-xl border-line-strong bg-surface px-4 focus-visible:ring-brand-300"
               />
             </div>
 
             <div className="space-y-1.5">
               <div className="flex items-center justify-between">
-                <Label htmlFor="password" className="text-sm font-medium text-gray-900">Password</Label>
-                <Link href="/forgot-password" className="text-sm font-medium text-brand-500 transition-colors hover:text-brand-600">
+                <Label htmlFor="password" className="text-sm font-medium text-strong">Password</Label>
+                <Link href="/forgot-password" className="text-sm font-medium text-accent-link transition-colors hover:text-accent-link">
                   Forgot password?
                 </Link>
               </div>
@@ -91,12 +91,12 @@ export default function LoginPage() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   disabled={isLoading}
-                  className="h-12 rounded-xl border-gray-200 bg-white px-4 pr-11 focus-visible:ring-brand-300"
+                  className="h-12 rounded-xl border-line-strong bg-surface px-4 pr-11 focus-visible:ring-brand-300"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-ink"
+                  className="absolute right-3.5 top-1/2 -translate-y-1/2 text-faint hover:text-ink"
                 >
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
@@ -117,9 +117,9 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-body">
             Don&apos;t have an account?{" "}
-            <Link href="/register" className="font-medium text-brand-500 transition-colors hover:text-brand-600">
+            <Link href="/register" className="font-medium text-accent-link transition-colors hover:text-accent-link">
               Create one
             </Link>
           </p>

@@ -171,7 +171,7 @@ export default function SellerDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Overview</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Overview</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
               {user?.brand_name || user?.full_name || "Your Store"}
             </h1>
@@ -185,7 +185,7 @@ export default function SellerDashboard() {
         </div>
 
         {/* Time range */}
-        <div className="flex w-fit gap-1 rounded-full border border-gray-200 bg-white p-1">
+        <div className="flex w-fit gap-1 rounded-full border border-line-strong bg-surface p-1">
           {(["7d", "30d", "90d", "1y"] as const).map((r) => (
             <button
               key={r}
@@ -193,7 +193,7 @@ export default function SellerDashboard() {
               className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
                 timeRange === r
                   ? "bg-brand-500 text-white"
-                  : "text-gray-600 hover:text-brand-500"
+                  : "text-body hover:text-accent-link"
               }`}
             >
               {r === "7d" ? "7 days" : r === "30d" ? "30 days" : r === "90d" ? "90 days" : "1 year"}
@@ -206,9 +206,9 @@ export default function SellerDashboard() {
           {statCards.map(({ label, value, growth, icon: Icon }) => (
             <Card key={label} className="shadow-none">
               <CardHeader className="flex flex-row items-center justify-between px-5 pb-1 pt-5">
-                <span className="text-xs text-gray-600">{label}</span>
-                <span className="rounded-lg bg-brand-100 p-2">
-                  <Icon className="h-3.5 w-3.5 text-brand-500" />
+                <span className="text-xs text-body">{label}</span>
+                <span className="rounded-lg bg-brand-softer p-2">
+                  <Icon className="h-3.5 w-3.5 text-accent-link" />
                 </span>
               </CardHeader>
               <CardContent className="px-5 pb-5">
@@ -218,7 +218,7 @@ export default function SellerDashboard() {
                   <>
                     <p className="text-2xl font-semibold text-ink">{value}</p>
                     {growth !== undefined && (
-                      <p className={`mt-0.5 flex items-center gap-0.5 text-xs ${growth >= 0 ? "text-[#00B42A]" : "text-[#b3261e]"}`}>
+                      <p className={`mt-0.5 flex items-center gap-0.5 text-xs ${growth >= 0 ? "text-ok" : "text-err"}`}>
                         {growth >= 0 ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
                         {growth > 0 ? "+" : ""}{growth}%
                       </p>
@@ -334,7 +334,7 @@ export default function SellerDashboard() {
                 <div className="divide-y">
                   {analytics.top_products.map((p, i) => (
                     <div key={i} className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0">
-                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-100 text-[10px] font-medium text-brand-700">
+                      <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-brand-softer text-[10px] font-medium text-brand-700">
                         {i + 1}
                       </span>
                       <div className="min-w-0 flex-1">
@@ -342,7 +342,7 @@ export default function SellerDashboard() {
                         <p className="text-xs text-muted-foreground">{fmtNum(p.sales)} sales · {fmt(p.revenue)}</p>
                       </div>
                       {p.growth !== undefined && (
-                        <span className={`text-xs font-medium ${p.growth >= 0 ? "text-emerald-600" : "text-red-500"}`}>
+                        <span className={`text-xs font-medium ${p.growth >= 0 ? "text-ok" : "text-err"}`}>
                           {p.growth > 0 ? "+" : ""}{p.growth}%
                         </span>
                       )}

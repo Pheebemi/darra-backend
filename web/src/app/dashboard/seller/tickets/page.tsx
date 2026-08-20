@@ -105,7 +105,7 @@ export default function SellerPurchasesPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Sales</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Sales</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Purchases</h1>
           </div>
           <Button size="sm" variant="outline" onClick={onRefresh} disabled={refreshing}>
@@ -118,18 +118,18 @@ export default function SellerPurchasesPage() {
         <div className="grid grid-cols-3 gap-4">
           {[
             { label: "Total", value: stats.total, color: "text-ink" },
-            { label: "Valid", value: stats.valid, color: "text-[#00B42A]" },
-            { label: "Used", value: stats.used, color: "text-gray-500" },
+            { label: "Valid", value: stats.valid, color: "text-ok" },
+            { label: "Used", value: stats.used, color: "text-subtle" },
           ].map(({ label, value, color }) => (
-            <div key={label} className="rounded-3xl border border-gray-100 bg-white p-5 text-center">
+            <div key={label} className="rounded-3xl border border-line bg-surface p-5 text-center">
               <p className={`text-2xl font-semibold ${color}`}>{value}</p>
-              <p className="text-xs text-gray-600">{label}</p>
+              <p className="text-xs text-body">{label}</p>
             </div>
           ))}
         </div>
 
         {/* Filter tabs */}
-        <div className="flex w-fit gap-1 rounded-full border border-gray-200 bg-white p-1">
+        <div className="flex w-fit gap-1 rounded-full border border-line-strong bg-surface p-1">
           {([
             { key: "all", label: `All (${stats.total})` },
             { key: "valid", label: `Valid (${stats.valid})` },
@@ -141,7 +141,7 @@ export default function SellerPurchasesPage() {
               className={`rounded-full px-4 py-1.5 text-xs font-medium transition-colors ${
                 filter === key
                   ? "bg-brand-500 text-white"
-                  : "text-gray-600 hover:text-brand-500"
+                  : "text-body hover:text-accent-link"
               }`}
             >
               {label}
@@ -157,67 +157,67 @@ export default function SellerPurchasesPage() {
         ) : filtered.length > 0 ? (
           <div className="space-y-3">
             {filtered.map((ticket) => (
-              <div key={ticket.ticket_id} className="flex items-start gap-4 rounded-3xl border border-gray-100 bg-white p-5">
+              <div key={ticket.ticket_id} className="flex items-start gap-4 rounded-3xl border border-line bg-surface p-5">
                 {/* Status icon */}
-                <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ticket.is_used ? "bg-gray-100" : "bg-[#EBFBF0]"}`}>
+                <div className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full ${ticket.is_used ? "bg-inset" : "bg-ok-soft"}`}>
                   {ticket.is_used ? (
-                    <XCircle className="h-4 w-4 text-gray-500" />
+                    <XCircle className="h-4 w-4 text-subtle" />
                   ) : (
-                    <CheckCircle2 className="h-4 w-4 text-[#00B42A]" />
+                    <CheckCircle2 className="h-4 w-4 text-ok" />
                   )}
                 </div>
 
                 {/* Info */}
                 <div className="min-w-0 flex-1">
                   <div className="flex flex-wrap items-center gap-2">
-                    <p className="truncate font-medium text-gray-900">{ticket.event.title}</p>
+                    <p className="truncate font-medium text-strong">{ticket.event.title}</p>
                     <span className={`shrink-0 rounded-full px-2.5 py-0.5 text-[11px] font-medium ${
-                      ticket.is_used ? "bg-gray-100 text-gray-500" : "bg-[#EBFBF0] text-[#00B42A]"
+                      ticket.is_used ? "bg-inset text-subtle" : "bg-ok-soft text-ok"
                     }`}>
                       {ticket.is_used ? "Used" : "Valid"}
                     </span>
                   </div>
 
                   <div className="mt-1 flex flex-wrap gap-x-4 gap-y-0.5">
-                    <span className="flex items-center gap-1 text-xs text-gray-600">
-                      <User className="h-3 w-3 text-brand-500" />
+                    <span className="flex items-center gap-1 text-xs text-body">
+                      <User className="h-3 w-3 text-accent-link" />
                       {ticket.buyer.full_name}
                     </span>
-                    <span className="text-xs text-gray-600">
+                    <span className="text-xs text-body">
                       Qty: {ticket.quantity}
                     </span>
-                    <span className="font-mono text-xs text-gray-500">
+                    <span className="font-mono text-xs text-subtle">
                       {ticket.purchase_reference}
                     </span>
                   </div>
 
                   {ticket.is_used && ticket.verified_by && (
-                    <p className="mt-0.5 text-xs text-gray-500">
+                    <p className="mt-0.5 text-xs text-subtle">
                       Verified by {ticket.verified_by.full_name}
                       {ticket.verified_at ? ` · ${fmtDate(ticket.verified_at)}` : ""}
                     </p>
                   )}
 
-                  <p className="mt-0.5 text-xs text-gray-500">
+                  <p className="mt-0.5 text-xs text-subtle">
                     {fmtDate(ticket.created_at)}
                   </p>
                 </div>
 
                 {/* Amount */}
                 <div className="shrink-0 text-right">
-                  <p className="font-semibold text-brand-500">{fmt(ticket.payment_amount)}</p>
+                  <p className="font-semibold text-accent-link">{fmt(ticket.payment_amount)}</p>
                   {ticket.ticket_tier && (
-                    <p className="text-[11px] text-gray-500">{ticket.ticket_tier.display_name || ticket.ticket_tier.name}</p>
+                    <p className="text-[11px] text-subtle">{ticket.ticket_tier.display_name || ticket.ticket_tier.name}</p>
                   )}
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-white py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-surface py-16 text-center">
             <img src="/illustrations/no-data.svg" alt="" className="mb-6 h-28 w-auto" />
             <p className="font-medium text-ink">No purchases found</p>
-            <p className="mt-1 text-xs text-gray-600">
+            <p className="mt-1 text-xs text-body">
               {filter !== "all" ? "Try switching to All" : "Purchases will appear once customers buy your products"}
             </p>
             {filter !== "all" && (

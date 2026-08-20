@@ -98,15 +98,15 @@ const sections: FaqSection[] = [
 export default function FaqPage() {
   return (
     <div className="bg-page">
-      <div className="border-b border-gray-100 bg-white">
+      <div className="border-b border-line bg-surface">
         <div className="mx-auto flex max-w-4xl flex-col items-center gap-6 px-6 py-12 text-center sm:flex-row sm:text-left">
           <img src="/illustrations/web-search.svg" alt="" className="w-40 shrink-0" />
           <div>
-            <p className="text-xs font-semibold uppercase tracking-widest text-brand-500">Support</p>
+            <p className="text-xs font-semibold uppercase tracking-widest text-accent-link">Support</p>
             <h1 className="mt-2 text-3xl font-semibold text-ink sm:text-4xl">
               Frequently Asked Questions
             </h1>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-subtle">
               Answers to common questions about buying, selling, and getting paid on Darra.
             </p>
           </div>
@@ -116,9 +116,9 @@ export default function FaqPage() {
       <div className="mx-auto max-w-3xl px-6 py-12">
         <FaqAccordion sections={sections} />
 
-        <div className="mt-12 rounded-xl border border-gray-100 bg-white p-6 text-center shadow-sm">
+        <div className="mt-12 rounded-xl border border-line bg-surface p-6 text-center shadow-sm">
           <p className="text-sm font-semibold text-ink">Still have questions?</p>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-body">
             Can&apos;t find what you&apos;re looking for? Reach out and we&apos;ll help.
           </p>
           <a

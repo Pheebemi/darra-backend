@@ -69,7 +69,7 @@ export default function ForgotPasswordPage() {
       <div className="flex w-full flex-col items-center justify-center bg-page px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-gray-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-line-strong">
               <img src="/logo.svg" alt="Darra" className="h-8 w-auto" />
             </div>
             <span className="text-lg font-semibold text-ink">Darra</span>
@@ -77,39 +77,39 @@ export default function ForgotPasswordPage() {
 
           {sent ? (
             <div>
-              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-100">
-                <MailCheck className="h-7 w-7 text-brand-500" />
+              <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-brand-softer">
+                <MailCheck className="h-7 w-7 text-accent-link" />
               </div>
               <h1 className="mb-2 text-3xl font-semibold text-ink">Check your email</h1>
-              <p className="mb-2 text-gray-600">
+              <p className="mb-2 text-body">
                 If an account exists for <span className="font-medium text-ink">{email}</span>,
                 a reset link is on its way.
               </p>
-              <p className="mb-8 text-sm text-gray-500">
+              <p className="mb-8 text-sm text-subtle">
                 It can take a minute to arrive. Check your spam folder too.
               </p>
 
               <button
                 onClick={() => { setSent(false); setEmail(""); }}
-                className="mb-4 w-full rounded-full border border-brand-500 px-6 py-3 font-medium text-brand-500 transition-colors hover:bg-brand-500 hover:text-white"
+                className="mb-4 w-full rounded-full border border-brand-500 px-6 py-3 font-medium text-accent-link transition-colors hover:bg-brand-500 hover:text-white"
               >
                 Use a different email
               </button>
 
               <Link
                 href="/login"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-brand-500"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-body transition-colors hover:text-accent-link"
               >
                 <ArrowLeft className="h-4 w-4" /> Back to sign in
               </Link>
             </div>
           ) : (
             <>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-accent-link">
                 Password
               </p>
               <h1 className="mb-1 text-3xl font-semibold text-ink">Forgot your password?</h1>
-              <p className="mb-8 text-gray-600">
+              <p className="mb-8 text-body">
                 Enter the email you signed up with and we'll send a reset link.
               </p>
 
@@ -136,9 +136,9 @@ export default function ForgotPasswordPage() {
                 </button>
               </form>
 
-              <p className="mt-8 text-sm text-gray-600">
+              <p className="mt-8 text-sm text-body">
                 Remembered it?{" "}
-                <Link href="/login" className="font-medium text-brand-500 hover:text-brand-600">
+                <Link href="/login" className="font-medium text-accent-link hover:text-accent-link">
                   Sign in
                 </Link>
               </p>

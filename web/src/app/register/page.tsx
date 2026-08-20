@@ -117,18 +117,18 @@ export default function RegisterPage() {
         <div className="w-full max-w-sm">
           {/* Mobile logo */}
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-gray-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-line-strong">
               <img src="/logo.svg" alt="Darra" className="h-8 w-auto" />
             </div>
             <span className="text-lg font-semibold text-ink">Darra</span>
           </div>
 
-          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">Sign up</p>
+          <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-accent-link">Sign up</p>
           <h1 className="mb-1 text-3xl font-semibold text-ink">Create an account</h1>
-          <p className="mb-8 text-gray-600">Get started on Darra for free</p>
+          <p className="mb-8 text-body">Get started on Darra for free</p>
 
           {/* Role selector */}
-          <div className="mb-6 flex overflow-hidden rounded-full border border-gray-200 bg-white p-1">
+          <div className="mb-6 flex overflow-hidden rounded-full border border-line-strong bg-surface p-1">
             {(["BUYER", "SELLER"] as UserType[]).map((type) => (
               <button
                 key={type}
@@ -137,7 +137,7 @@ export default function RegisterPage() {
                 className={`flex flex-1 items-center justify-center gap-2 rounded-full py-2.5 text-sm font-medium transition-colors ${
                   userType === type
                     ? "bg-brand-500 text-white"
-                    : "text-gray-600 hover:text-brand-500"
+                    : "text-body hover:text-accent-link"
                 }`}
               >
                 {type === "BUYER" ? <ShoppingBag className="h-3.5 w-3.5" /> : <Store className="h-3.5 w-3.5" />}
@@ -178,23 +178,23 @@ export default function RegisterPage() {
             }}
           >
             <div className="space-y-1.5">
-              <Label htmlFor="fullName" className="text-sm font-medium text-gray-900">Full name</Label>
+              <Label htmlFor="fullName" className="text-sm font-medium text-strong">Full name</Label>
               <Input id="fullName" placeholder="Your full name" value={fullName} onChange={(e) => setFullName(e.target.value)} disabled={isLoading}
-                className="h-12 rounded-xl border-gray-200 bg-white px-4 focus-visible:ring-brand-300" />
+                className="h-12 rounded-xl border-line-strong bg-surface px-4 focus-visible:ring-brand-300" />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="email" className="text-sm font-medium text-gray-900">Email address</Label>
+              <Label htmlFor="email" className="text-sm font-medium text-strong">Email address</Label>
               <Input id="email" type="email" placeholder="you@example.com" value={email} onChange={(e) => setEmail(e.target.value)} disabled={isLoading}
-                className="h-12 rounded-xl border-gray-200 bg-white px-4 focus-visible:ring-brand-300" />
+                className="h-12 rounded-xl border-line-strong bg-surface px-4 focus-visible:ring-brand-300" />
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="password" className="text-sm font-medium text-gray-900">Password</Label>
+              <Label htmlFor="password" className="text-sm font-medium text-strong">Password</Label>
               <div className="relative">
                 <Input id="password" type={showPassword ? "text" : "password"} placeholder="Create a password" value={password} onChange={(e) => setPassword(e.target.value)} disabled={isLoading}
-                  className="h-12 rounded-xl border-gray-200 bg-white px-4 pr-11 focus-visible:ring-brand-300" />
-                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-ink">
+                  className="h-12 rounded-xl border-line-strong bg-surface px-4 pr-11 focus-visible:ring-brand-300" />
+                <button type="button" onClick={() => setShowPassword(!showPassword)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-faint hover:text-ink">
                   {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -205,7 +205,7 @@ export default function RegisterPage() {
                   {passwordChecks.map((c) => (
                     <li
                       key={c.label}
-                      className={`flex items-center gap-1.5 text-xs ${c.ok ? "text-[#00B42A]" : "text-gray-500"}`}
+                      className={`flex items-center gap-1.5 text-xs ${c.ok ? "text-ok" : "text-subtle"}`}
                     >
                       {c.ok ? (
                         <CheckCircle2 className="h-3.5 w-3.5 shrink-0" />
@@ -220,11 +220,11 @@ export default function RegisterPage() {
             </div>
 
             <div className="space-y-1.5">
-              <Label htmlFor="confirm" className="text-sm font-medium text-gray-900">Confirm password</Label>
+              <Label htmlFor="confirm" className="text-sm font-medium text-strong">Confirm password</Label>
               <div className="relative">
                 <Input id="confirm" type={showConfirm ? "text" : "password"} placeholder="Repeat your password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} disabled={isLoading}
-                  className="h-12 rounded-xl border-gray-200 bg-white px-4 pr-11 focus-visible:ring-brand-300" />
-                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-ink">
+                  className="h-12 rounded-xl border-line-strong bg-surface px-4 pr-11 focus-visible:ring-brand-300" />
+                <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-faint hover:text-ink">
                   {showConfirm ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                 </button>
               </div>
@@ -232,10 +232,10 @@ export default function RegisterPage() {
 
             {/* Seller fields */}
             {userType === "SELLER" && (
-              <div className="space-y-4 rounded-2xl bg-brand-50 p-4">
+              <div className="space-y-4 rounded-2xl bg-brand-soft p-4">
                 <p className="text-sm font-medium text-brand-700">Seller information</p>
                 <div className="space-y-1.5">
-                  <Label htmlFor="brandName" className="text-sm font-medium text-gray-900">Brand name *</Label>
+                  <Label htmlFor="brandName" className="text-sm font-medium text-strong">Brand name *</Label>
                   <div className="relative">
                     <Input
                       id="brandName"
@@ -243,27 +243,27 @@ export default function RegisterPage() {
                       value={brandName}
                       onChange={(e) => setBrandName(e.target.value)}
                       disabled={isLoading}
-                      className={`h-12 rounded-xl border-gray-200 bg-white px-4 pr-11 focus-visible:ring-brand-300 ${brandAvailable === false ? "border-[#b3261e] focus-visible:ring-[#b3261e]" : brandAvailable === true ? "border-[#00B42A] focus-visible:ring-[#00B42A]" : ""}`}
+                      className={`h-12 rounded-xl border-line-strong bg-surface px-4 pr-11 focus-visible:ring-brand-300 ${brandAvailable === false ? "border-err focus-visible:ring-[#b3261e]" : brandAvailable === true ? "border-ok focus-visible:ring-[#00B42A]" : ""}`}
                     />
                     <div className="absolute right-3.5 top-1/2 -translate-y-1/2">
-                      {checkingBrand && <Loader2 className="h-4 w-4 animate-spin text-gray-400" />}
-                      {!checkingBrand && brandAvailable === true && <CheckCircle2 className="h-4 w-4 text-[#00B42A]" />}
-                      {!checkingBrand && brandAvailable === false && <XCircle className="h-4 w-4 text-[#b3261e]" />}
+                      {checkingBrand && <Loader2 className="h-4 w-4 animate-spin text-faint" />}
+                      {!checkingBrand && brandAvailable === true && <CheckCircle2 className="h-4 w-4 text-ok" />}
+                      {!checkingBrand && brandAvailable === false && <XCircle className="h-4 w-4 text-err" />}
                     </div>
                   </div>
                   {!checkingBrand && brandAvailable === true && (
-                    <p className="text-xs text-[#00B42A]">Brand name is available</p>
+                    <p className="text-xs text-ok">Brand name is available</p>
                   )}
                   {!checkingBrand && brandAvailable === false && (
-                    <p className="text-xs text-[#b3261e]">Brand name is already taken</p>
+                    <p className="text-xs text-err">Brand name is already taken</p>
                   )}
                 </div>
                 <div className="space-y-1.5">
-                  <Label htmlFor="brandSlug" className="text-sm font-medium text-gray-900">
-                    Brand URL <span className="font-normal text-gray-500">(optional)</span>
+                  <Label htmlFor="brandSlug" className="text-sm font-medium text-strong">
+                    Brand URL <span className="font-normal text-subtle">(optional)</span>
                   </Label>
-                  <div className="flex items-center rounded-xl border border-gray-200 bg-white focus-within:ring-2 focus-within:ring-brand-300">
-                    <span className="border-r border-gray-200 px-3 py-3 text-xs text-gray-500">darra.com/</span>
+                  <div className="flex items-center rounded-xl border border-line-strong bg-surface focus-within:ring-2 focus-within:ring-brand-300">
+                    <span className="border-r border-line-strong px-3 py-3 text-xs text-subtle">darra.com/</span>
                     <input
                       id="brandSlug"
                       placeholder="your-brand"
@@ -291,9 +291,9 @@ export default function RegisterPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-sm text-gray-600">
+          <p className="mt-6 text-center text-sm text-body">
             Already have an account?{" "}
-            <Link href="/login" className="font-medium text-brand-500 transition-colors hover:text-brand-600">
+            <Link href="/login" className="font-medium text-accent-link transition-colors hover:text-accent-link">
               Sign in
             </Link>
           </p>
