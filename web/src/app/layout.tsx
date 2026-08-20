@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "sonner";
+import { ThemedToaster } from "@/components/themed-toaster";
 import { LayoutWrapper } from "@/components/layout-wrapper";
 import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/auth/auth-context";
@@ -66,7 +66,7 @@ export default function RootLayout({
           <AuthProvider>
             <CartProvider>
               <LayoutWrapper>{children}</LayoutWrapper>
-              <Toaster richColors position="top-right" theme="system" />
+              <ThemedToaster />
               <Analytics />
             </CartProvider>
           </AuthProvider>
