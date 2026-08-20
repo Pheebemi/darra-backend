@@ -49,13 +49,13 @@ export default function Home() {
       <section className="mx-auto max-w-7xl px-5 sm:px-16">
         <div className="grid grid-cols-1 items-center gap-8 py-16 sm:grid-cols-2 sm:gap-12 sm:py-24">
           <div>
-            <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-brand-500">
+            <p className="mb-4 text-sm font-semibold uppercase tracking-widest text-accent-link">
               Digital marketplace
             </p>
             <h1 className="mb-5 text-4xl font-semibold leading-tight text-ink sm:text-5xl">
               Your marketplace for digital products
             </h1>
-            <p className="mb-8 max-w-[45ch] text-lg text-gray-600">
+            <p className="mb-8 max-w-[45ch] text-lg text-body">
               Discover, buy, and sell eBooks, templates, courses & more.
               Instant delivery, secure payments.
             </p>
@@ -69,14 +69,14 @@ export default function Home() {
               </Link>
               <Link
                 href="/register"
-                className="inline-flex items-center gap-2 rounded-full border border-brand-500 px-6 py-3 font-medium text-brand-500 transition-colors hover:bg-brand-500 hover:text-white"
+                className="inline-flex items-center gap-2 rounded-full border border-brand-500 px-6 py-3 font-medium text-accent-link transition-colors hover:bg-brand-500 hover:text-white"
               >
                 <Store className="h-4 w-4" />
                 Start Selling
               </Link>
               <Link
                 href="/stores"
-                className="inline-flex items-center gap-1.5 rounded-full px-4 py-3 font-medium text-brand-500 transition-colors hover:text-brand-600"
+                className="inline-flex items-center gap-1.5 rounded-full px-4 py-3 font-medium text-accent-link transition-colors hover:text-accent-link"
               >
                 Browse Stores <ArrowRight className="h-4 w-4" />
               </Link>
@@ -84,17 +84,17 @@ export default function Home() {
 
             {/* Stat pills */}
             <div className="mt-10 flex flex-wrap gap-3">
-              <div className="flex max-w-[28ch] items-center space-x-4 rounded-lg bg-gray-100 p-3">
-                <div className="rounded-sm bg-brand-100 p-3">
-                  <Download className="h-4 w-4 text-brand-500" />
+              <div className="flex max-w-[28ch] items-center space-x-4 rounded-lg bg-inset p-3">
+                <div className="rounded-sm bg-brand-softer p-3">
+                  <Download className="h-4 w-4 text-accent-link" />
                 </div>
-                <p className="text-sm text-gray-600">Instant delivery on every purchase</p>
+                <p className="text-sm text-body">Instant delivery on every purchase</p>
               </div>
-              <div className="flex max-w-[28ch] items-center space-x-4 rounded-lg bg-gray-100 p-3">
-                <div className="rounded-sm bg-brand-100 p-3">
-                  <Shield className="h-4 w-4 text-brand-500" />
+              <div className="flex max-w-[28ch] items-center space-x-4 rounded-lg bg-inset p-3">
+                <div className="rounded-sm bg-brand-softer p-3">
+                  <Shield className="h-4 w-4 text-accent-link" />
                 </div>
-                <p className="text-sm text-gray-600">Secure payments, protected checkout</p>
+                <p className="text-sm text-body">Secure payments, protected checkout</p>
               </div>
             </div>
           </div>
@@ -115,7 +115,7 @@ export default function Home() {
         <div className="mx-auto max-w-7xl px-5 sm:px-16">
           <div className="mb-10 flex items-end justify-between">
             <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-accent-link">
                 Featured
               </p>
               <h2 className="text-3xl font-semibold text-ink sm:text-4xl">
@@ -124,7 +124,7 @@ export default function Home() {
             </div>
             <Link
               href="/products"
-              className="hidden items-center gap-1 font-medium text-brand-500 transition-colors hover:text-brand-600 sm:inline-flex"
+              className="hidden items-center gap-1 font-medium text-accent-link transition-colors hover:text-accent-link sm:inline-flex"
             >
               View all <ArrowRight className="h-4 w-4" />
             </Link>
@@ -133,27 +133,27 @@ export default function Home() {
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {loading
               ? [...Array(6)].map((_, i) => (
-                  <div key={i} className="overflow-hidden rounded-3xl border border-gray-100 bg-white">
-                    <div className="h-52 animate-pulse bg-brand-50" />
+                  <div key={i} className="overflow-hidden rounded-3xl border border-line bg-surface">
+                    <div className="h-52 animate-pulse bg-brand-soft" />
                     <div className="space-y-2 p-5">
-                      <div className="h-4 w-3/4 animate-pulse rounded bg-gray-100" />
-                      <div className="h-3 w-1/2 animate-pulse rounded bg-gray-100" />
+                      <div className="h-4 w-3/4 animate-pulse rounded bg-inset" />
+                      <div className="h-3 w-1/2 animate-pulse rounded bg-inset" />
                       <div className="flex justify-between pt-1">
-                        <div className="h-4 w-16 animate-pulse rounded bg-gray-100" />
-                        <div className="h-8 w-16 animate-pulse rounded-full bg-gray-100" />
+                        <div className="h-4 w-16 animate-pulse rounded bg-inset" />
+                        <div className="h-8 w-16 animate-pulse rounded-full bg-inset" />
                       </div>
                     </div>
                   </div>
                 ))
               : featured.length === 0
               ? (
-                  <div className="col-span-full flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-white py-16 text-center">
+                  <div className="col-span-full flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-surface py-16 text-center">
                     <img
                       src="/illustrations/no-data.svg"
                       alt=""
                       className="mb-5 h-32 w-auto"
                     />
-                    <p className="text-gray-600">No products yet. Check back soon.</p>
+                    <p className="text-body">No products yet. Check back soon.</p>
                   </div>
                 )
               : featured.map((product) => <ProductCard key={product.id} product={product} />)}
@@ -162,7 +162,7 @@ export default function Home() {
           <div className="mt-8 text-center sm:hidden">
             <Link
               href="/products"
-              className="inline-flex items-center gap-1 font-medium text-brand-500 hover:text-brand-600"
+              className="inline-flex items-center gap-1 font-medium text-accent-link hover:text-accent-link"
             >
               View all products <ArrowRight className="h-4 w-4" />
             </Link>
@@ -174,7 +174,7 @@ export default function Home() {
       <section className="py-16 sm:py-24">
         <div className="mx-auto max-w-7xl px-5 sm:px-16">
           <div className="mb-12 text-center">
-            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-accent-link">
               Why Darra
             </p>
             <h2 className="text-3xl font-semibold text-ink sm:text-4xl">
@@ -189,12 +189,12 @@ export default function Home() {
               { icon: QrCode, title: "QR Access Codes", body: "Every purchase includes a unique QR code for access verification." },
               { icon: Wallet, title: "Seller Tools", body: "Manage products, track orders, and withdraw earnings with ease." },
             ].map(({ icon: Icon, title, body }) => (
-              <div key={title} className="flex flex-col gap-3 rounded-2xl bg-brand-50 p-6 text-left">
+              <div key={title} className="flex flex-col gap-3 rounded-2xl bg-brand-soft p-6 text-left">
                 <div className="mb-1 inline-flex w-fit rounded-lg bg-brand-500 p-3">
                   <Icon className="h-5 w-5 text-white" />
                 </div>
-                <h3 className="text-xl font-semibold text-gray-900">{title}</h3>
-                <p className="text-sm text-gray-600">{body}</p>
+                <h3 className="text-xl font-semibold text-strong">{title}</h3>
+                <p className="text-sm text-body">{body}</p>
               </div>
             ))}
           </div>
@@ -207,13 +207,13 @@ export default function Home() {
               className="mx-auto w-full max-w-sm"
             />
             <div>
-              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">
+              <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-accent-link">
                 For sellers
               </p>
               <h2 className="mb-4 text-3xl font-semibold text-ink sm:text-4xl">
                 Turn your craft into income
               </h2>
-              <p className="mb-6 text-gray-600 text-lg">
+              <p className="mb-6 text-body text-lg">
                 Open your store in minutes. Upload eBooks, courses, art, music,
                 or software — Darra handles payments, delivery, and access codes
                 so you can focus on creating.
@@ -284,9 +284,9 @@ function ProductCard({ product }: { product: Product }) {
   return (
     <Link
       href={`/products/${product.slug || product.id}`}
-      className="group overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl"
+      className="group overflow-hidden rounded-3xl border border-line bg-surface transition-shadow duration-300 hover:shadow-xl"
     >
-      <div className="relative h-52 overflow-hidden bg-brand-50">
+      <div className="relative h-52 overflow-hidden bg-brand-soft">
         {product.cover_image ? (
           <SafeImage src={product.cover_image} alt={product.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
         ) : (
@@ -299,14 +299,14 @@ function ProductCard({ product }: { product: Product }) {
         </span>
       </div>
       <div className="p-5">
-        <h3 className="truncate text-xl font-semibold text-gray-900 transition-colors group-hover:text-brand-500">
+        <h3 className="truncate text-xl font-semibold text-strong transition-colors group-hover:text-accent-link">
           {product.title}
         </h3>
         <div className="mt-4 flex items-center justify-between">
           <span className="font-semibold text-ink">
             {price !== null ? `₦${price.toLocaleString()}` : "Sold out"}
           </span>
-          <span className="rounded-full border border-brand-500 px-4 py-1.5 text-sm font-medium text-brand-500 transition-colors group-hover:bg-brand-500 group-hover:text-white">
+          <span className="rounded-full border border-brand-500 px-4 py-1.5 text-sm font-medium text-accent-link transition-colors group-hover:bg-brand-500 group-hover:text-white">
             View
           </span>
         </div>

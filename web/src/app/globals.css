@@ -1,5 +1,9 @@
 @import "tailwindcss";
 
+/* Dark mode is driven by a `class` on <html> (next-themes), not the OS media
+   query, so the in-app toggle can override the system preference. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 /* ─── Tailwind v4 → shadcn bridge ──────────────────────────────────────── */
 @theme inline {
   --color-background:           var(--background);
@@ -25,7 +29,12 @@
   --font-sans:                  var(--font-geist-sans);
   --font-mono:                  var(--font-geist-mono);
 
-  /* ─── Thrive brand palette ─────────────────────────────────────────── */
+  /* ─── Thrive brand palette ─────────────────────────────────────────────
+     Literal in both themes on purpose. These shades do double duty: the
+     light end is accent *text* on permanently-dark sections (the footer,
+     hero bands), while the dark end is accent text on light surfaces.
+     Flipping the ramp would fix one role and break the other, so tinted
+     *surfaces* get their own theme-aware tokens below instead. */
   --color-brand-50:   #ECF2FF;
   --color-brand-100:  #DDE8FF;
   --color-brand-200:  #C2D4FF;
@@ -38,17 +47,71 @@
   --color-brand-900:  #262B89;
   --color-brand-950:  #161750;
 
-  --color-ink:        #060E53;  /* headings */
-  --color-ink-dark:   #151937;  /* dark section backgrounds */
-  --color-ink-soft:   #2D3561;  /* secondary dark */
-  --color-page:       #F1F2FF;  /* main site page background */
-  --color-page-soft:  #FCFCFF;  /* near-white surfaces */
-  --color-page-warm:  #FAF9F7;  /* warm off-white section */
+  /* ─── Theme-aware semantic tokens ──────────────────────────────────────
+     Every one of these resolves through a var() that is redefined under
+     `.dark`, so the utilities built from them (bg-surface, text-muted,
+     border-line, …) flip automatically without touching call sites. */
+  --color-ink:          var(--ink);          /* headings */
+  --color-ink-soft:     var(--ink-soft);     /* secondary heading */
+  /* Named `body`, not `muted`: shadcn already owns --color-muted above and
+     redefining it here would silently repoint bg-muted at a text colour. */
+  --color-body:         var(--text-body);    /* body / secondary text */
+  --color-strong:       var(--text-strong);  /* high-contrast body heading */
+  --color-subtle:       var(--text-subtle);  /* tertiary text */
+  --color-faint:        var(--text-faint);   /* captions, placeholders */
+  --color-page:         var(--page);         /* page background */
+  --color-surface:      var(--surface);      /* cards, panels (was bg-white) */
+  --color-surface-2:    var(--surface-2);    /* raised / inset surfaces */
+  --color-inset:        var(--inset);        /* filled wells (was bg-gray-100) */
+  --color-line:         var(--line);         /* borders, dividers */
+  --color-line-strong:  var(--line-strong);  /* stronger dividers, inputs */
+  --color-brand-soft:   var(--brand-soft);   /* subtle brand tint bg */
+  --color-brand-softer: var(--brand-softer); /* stronger brand tint bg */
+  --color-accent-link:  var(--accent-link);  /* brand-coloured text/icons */
+
+  /* Status chips. The pale pastel fills used in light mode would glow on a
+     near-black page, so both the fill and its label are theme-aware. */
+  --color-ok:        var(--ok);
+  --color-ok-soft:   var(--ok-soft);
+  --color-warn:      var(--warn);
+  --color-warn-soft: var(--warn-soft);
+  --color-err:       var(--err);
+  --color-err-soft:  var(--err-soft);
+
+  /* Permanently dark sections — same in both themes, so the light text
+     inside them keeps working without per-theme overrides. */
+  --color-ink-dark:   #151937;
+  --color-page-soft:  var(--surface-2);
+  --color-page-warm:  var(--surface-2);
 }
 
 /* ─── Light theme ───────────────────────────────────────────────────────── */
 :root {
   --radius: 0.5rem;
+
+  /* The neutral values below are exactly the Tailwind grays they replaced
+     (gray-900/700/600/500/400/200/100), so light mode renders unchanged. */
+  --ink:          #060E53;
+  --ink-soft:     #2D3561;
+  --text-strong:  #111827;
+  --text-body:    #4B5563;
+  --text-subtle:  #6B7280;
+  --text-faint:   #9CA3AF;
+  --page:         #F1F2FF;
+  --surface:      #FFFFFF;
+  --surface-2:    #FCFCFF;
+  --inset:        #F3F4F6;
+  --line:         #F3F4F6;
+  --line-strong:  #E5E7EB;
+  --brand-soft:   #ECF2FF;
+  --brand-softer: #DDE8FF;
+  --accent-link:  #5465FF;
+  --ok:        #00B42A;
+  --ok-soft:   #EBFBF0;
+  --warn:      #B08600;
+  --warn-soft: #FFF9E5;
+  --err:       #B3261E;
+  --err-soft:  #FEF2F2;
 
   --background:           oklch(1 0 0);
   --foreground:           oklch(0.09 0 0);
@@ -82,33 +145,62 @@
 
 /* ─── Dark theme ────────────────────────────────────────────────────────── */
 .dark {
-  --background:           oklch(0.09 0 0);
-  --foreground:           oklch(0.98 0 0);
+  /* Near-black neutrals with a faint cool cast, surfaces separated by
+     lightness rather than heavy borders. */
+  --ink:          #F4F5F8;
+  --ink-soft:     #C8CAD6;
+  --text-strong:  #F4F5F8;
+  --text-body:    #9C9EAF;
+  --text-subtle:  #8E90A2;
+  --text-faint:   #6B6D80;
+  --page:         #08080B;
+  --surface:      #121216;
+  --surface-2:    #191920;
+  --inset:        #1E1E26;
+  --line:         #24242D;
+  --line-strong:  #32323E;
+  /* Brand tints become low-alpha washes of the brand hue instead of the
+     light lavenders, so hover states read as a lift rather than a flash. */
+  --brand-soft:   #16182B;
+  --brand-softer: #1E2140;
+  /* Chips become deep tints of their hue with a lifted label, instead of the
+     pale pastels, so they sit down into the page rather than glowing. */
+  --ok:        #45D97A;
+  --ok-soft:   #0E2A1A;
+  --warn:      #EFC14A;
+  --warn-soft: #2C2410;
+  --err:       #FF8E86;
+  --err-soft:  #2E1517;
+  /* brand-500 only reaches ~3.7:1 on this background, so links and inline
+     brand text step up the ramp in dark mode. */
+  --accent-link:  #97A5FF;
 
-  --card:                 oklch(0.09 0 0);
-  --card-foreground:      oklch(0.98 0 0);
+  --background:           #08080B;
+  --foreground:           #F4F5F8;
 
-  --popover:              oklch(0.09 0 0);
-  --popover-foreground:   oklch(0.98 0 0);
+  --card:                 #121216;
+  --card-foreground:      #F4F5F8;
 
-  /* lighter brand blue for dark bg */
+  --popover:              #121216;
+  --popover-foreground:   #F4F5F8;
+
   --primary:              #758DFF;
-  --primary-foreground:   oklch(0.09 0 0);
+  --primary-foreground:   #08080B;
 
-  --secondary:            oklch(0.18 0 0);
-  --secondary-foreground: oklch(0.98 0 0);
+  --secondary:            #191920;
+  --secondary-foreground: #F4F5F8;
 
-  --muted:                oklch(0.18 0 0);
-  --muted-foreground:     oklch(0.64 0 0);
+  --muted:                #191920;
+  --muted-foreground:     #9C9EAF;
 
-  --accent:               oklch(0.18 0 0);
-  --accent-foreground:    oklch(0.98 0 0);
+  --accent:               #191920;
+  --accent-foreground:    #F4F5F8;
 
-  --destructive:          oklch(0.3 0.12 27);
-  --destructive-foreground: oklch(0.98 0 0);
+  --destructive:          #7F1D1D;
+  --destructive-foreground: #FEE2E2;
 
-  --border:               oklch(0.18 0 0);
-  --input:                oklch(0.18 0 0);
+  --border:               #24242D;
+  --input:                #24242D;
   --ring:                 #758DFF;
 }
 
@@ -116,7 +208,18 @@
 * { border-color: var(--border); }
 
 body {
-  background-color: var(--background);
+  background-color: var(--page);
   color: var(--foreground);
   font-feature-settings: "rlig" 1, "calt" 1;
+}
+
+/* Native form controls, scrollbars and the like should follow the theme. */
+:root { color-scheme: light; }
+.dark { color-scheme: dark; }
+
+/* The unDraw art is drawn for light backgrounds — its large white fills glare
+   against a near-black page. Knocking back brightness a little settles them
+   into the page without washing out the brand-coloured accents. */
+.dark img[src*="/illustrations/"] {
+  filter: brightness(0.86) contrast(1.04);
 }

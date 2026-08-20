@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { ShoppingCart, User, LogOut, LayoutDashboard, Menu, Library, Search, Store } from "lucide-react";
 import { useState } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function SiteHeader() {
   const { user, isAuthenticated, logout, initialized } = useAuth();
@@ -36,7 +37,7 @@ export function SiteHeader() {
 
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2.5">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-gray-200">
+          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-line-strong">
             <img src="/logo.svg" alt="Darra" className="h-8 w-auto" />
           </div>
           <span className="text-lg font-semibold text-ink">Darra</span>
@@ -45,26 +46,26 @@ export function SiteHeader() {
         {/* Search bar */}
         <form onSubmit={handleSearch} className="mx-6 hidden max-w-sm flex-1 md:flex">
           <div className="relative w-full">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
             <Input
               value={searchQuery}
               onChange={e => setSearchQuery(e.target.value)}
               placeholder="Search products..."
-              className="h-10 rounded-full border-gray-200 bg-white pl-11 pr-4 focus-visible:ring-brand-300"
+              className="h-10 rounded-full border-line-strong bg-surface pl-11 pr-4 focus-visible:ring-brand-300"
             />
           </div>
         </form>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-1 md:flex">
-          <Link href="/products" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-brand-50 hover:text-brand-600">
+          <Link href="/products" className="rounded-full px-4 py-2 text-sm font-medium text-body transition-colors hover:bg-brand-soft hover:text-accent-link">
             Browse
           </Link>
-          <Link href="/stores" className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-brand-50 hover:text-brand-600">
+          <Link href="/stores" className="rounded-full px-4 py-2 text-sm font-medium text-body transition-colors hover:bg-brand-soft hover:text-accent-link">
             Stores
           </Link>
           {isAuthenticated && (
-            <Link href="/cart" className="relative rounded-full p-2 text-gray-600 transition-colors hover:bg-brand-50 hover:text-brand-600">
+            <Link href="/cart" className="relative rounded-full p-2 text-body transition-colors hover:bg-brand-soft hover:text-accent-link">
               <ShoppingCart className="h-4 w-4" />
               {cartCount > 0 && (
                 <span className="absolute -right-0.5 -top-0.5 flex h-4 w-4 items-center justify-center rounded-full bg-brand-500 text-[10px] font-medium text-white">
@@ -77,30 +78,31 @@ export function SiteHeader() {
 
         {/* Desktop auth */}
         <div className="hidden items-center gap-2 md:flex">
+          <ThemeToggle />
           {initialized && (
             isAuthenticated ? (
               <div className="flex items-center gap-1">
                 <Link href={(user?.user_type || "buyer").toLowerCase() === "seller" ? "/dashboard/seller" : "/dashboard/buyer"}
-                  className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-brand-50 hover:text-brand-600">
+                  className="rounded-full px-4 py-2 text-sm font-medium text-body transition-colors hover:bg-brand-soft hover:text-accent-link">
                   Dashboard
                 </Link>
                 <Link href="/dashboard/buyer/library"
-                  className="rounded-full px-4 py-2 text-sm font-medium text-gray-600 transition-colors hover:bg-brand-50 hover:text-brand-600">
+                  className="rounded-full px-4 py-2 text-sm font-medium text-body transition-colors hover:bg-brand-soft hover:text-accent-link">
                   My Library
                 </Link>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="flex items-center gap-2 rounded-full px-2 py-1.5 transition-colors hover:bg-brand-50">
-                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-100 text-brand-500">
+                    <button className="flex items-center gap-2 rounded-full px-2 py-1.5 transition-colors hover:bg-brand-soft">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-softer text-accent-link">
                         <User className="h-3.5 w-3.5" />
                       </div>
-                      <span className="max-w-24 truncate text-xs font-medium text-gray-600">{user?.full_name || user?.email || "Account"}</span>
+                      <span className="max-w-24 truncate text-xs font-medium text-body">{user?.full_name || user?.email || "Account"}</span>
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48 rounded-2xl">
                     <div className="px-3 py-2">
                       <p className="truncate text-xs font-medium">{user?.full_name || "User"}</p>
-                      <p className="truncate text-xs text-gray-500">{user?.email}</p>
+                      <p className="truncate text-xs text-subtle">{user?.email}</p>
                     </div>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={logout} className="cursor-pointer gap-2 text-destructive focus:text-destructive">
@@ -121,36 +123,39 @@ export function SiteHeader() {
           )}
         </div>
 
-        {/* Mobile menu button */}
-        <button onClick={() => setOpen(!open)} className="rounded-full p-2 text-gray-600 hover:bg-brand-50 md:hidden">
-          <Menu className="h-5 w-5" />
-        </button>
+        {/* Mobile controls */}
+        <div className="flex items-center gap-1 md:hidden">
+          <ThemeToggle />
+          <button onClick={() => setOpen(!open)} className="rounded-full p-2 text-body hover:bg-brand-soft">
+            <Menu className="h-5 w-5" />
+          </button>
+        </div>
       </div>
 
       {/* Mobile menu */}
       {open && (
-        <div className="border-t border-brand-100 bg-page md:hidden">
+        <div className="border-t border-brand-softer bg-page md:hidden">
           <div className="space-y-0.5 px-5 py-4">
             <form onSubmit={handleSearch} className="mb-3">
               <div className="relative">
-                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+                <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
                 <Input
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
                   placeholder="Search products..."
-                  className="h-10 rounded-full border-gray-200 bg-white pl-11 pr-4 focus-visible:ring-brand-300"
+                  className="h-10 rounded-full border-line-strong bg-surface pl-11 pr-4 focus-visible:ring-brand-300"
                 />
               </div>
             </form>
-            <Link href="/products" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-brand-600">
+            <Link href="/products" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-body hover:bg-brand-soft hover:text-accent-link">
               Browse Products
             </Link>
-            <Link href="/stores" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-brand-600">
+            <Link href="/stores" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-body hover:bg-brand-soft hover:text-accent-link">
               <Store className="h-4 w-4" /> Stores
             </Link>
             {isAuthenticated && (
               <>
-                <Link href="/cart" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-brand-600">
+                <Link href="/cart" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-body hover:bg-brand-soft hover:text-accent-link">
                   <ShoppingCart className="h-4 w-4" /> Cart
                   {cartCount > 0 && (
                     <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-brand-500 px-1.5 text-[10px] font-medium text-white">
@@ -158,23 +163,23 @@ export function SiteHeader() {
                     </span>
                   )}
                 </Link>
-                <Link href={(user?.user_type || "buyer").toLowerCase() === "seller" ? "/dashboard/seller" : "/dashboard/buyer"} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-brand-600">
+                <Link href={(user?.user_type || "buyer").toLowerCase() === "seller" ? "/dashboard/seller" : "/dashboard/buyer"} onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-body hover:bg-brand-soft hover:text-accent-link">
                   <LayoutDashboard className="h-4 w-4" /> Dashboard
                 </Link>
-                <Link href="/dashboard/buyer/library" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-gray-600 hover:bg-brand-50 hover:text-brand-600">
+                <Link href="/dashboard/buyer/library" onClick={() => setOpen(false)} className="flex items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-body hover:bg-brand-soft hover:text-accent-link">
                   <Library className="h-4 w-4" /> My Library
                 </Link>
-                <div className="mt-2 border-t border-brand-100 pt-2">
+                <div className="mt-2 border-t border-brand-softer pt-2">
                   <div className="flex items-center gap-2 px-3 py-1.5">
-                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-100 text-brand-500">
+                    <div className="flex h-7 w-7 items-center justify-center rounded-full bg-brand-softer text-accent-link">
                       <User className="h-3.5 w-3.5" />
                     </div>
                     <div>
                       <p className="text-xs font-medium">{user?.full_name}</p>
-                      <p className="text-xs text-gray-500">{user?.email}</p>
+                      <p className="text-xs text-subtle">{user?.email}</p>
                     </div>
                   </div>
-                  <button onClick={() => { logout(); setOpen(false); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-[#b3261e] hover:bg-red-50">
+                  <button onClick={() => { logout(); setOpen(false); }} className="flex w-full items-center gap-2 rounded-xl px-3 py-2.5 text-sm font-medium text-err hover:bg-err-soft">
                     <LogOut className="h-4 w-4" /> Logout
                   </button>
                 </div>

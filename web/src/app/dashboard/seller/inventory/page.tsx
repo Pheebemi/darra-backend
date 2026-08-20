@@ -231,9 +231,9 @@ export default function InventoryPage() {
         {/* Header */}
         <div className="mb-8 flex items-center justify-between">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Catalog</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Catalog</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">My Products</h1>
-            <p className="mt-1 text-sm text-gray-600">
+            <p className="mt-1 text-sm text-body">
               {products.length} {products.length === 1 ? "product" : "products"}
             </p>
           </div>
@@ -248,7 +248,7 @@ export default function InventoryPage() {
         {/* Search and Filter Section */}
         <div className="mb-6 flex gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
+            <Search className="absolute left-4 top-1/2 h-4 w-4 -translate-y-1/2 text-faint" />
             <Input
               placeholder="Search products, descriptions..."
               value={search}
@@ -404,7 +404,7 @@ export default function InventoryPage() {
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </div>
-                    <CardTitle className="line-clamp-2 text-ink transition-colors group-hover:text-brand-500">{product.title}</CardTitle>
+                    <CardTitle className="line-clamp-2 text-ink transition-colors group-hover:text-accent-link">{product.title}</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <p className="mb-4 line-clamp-3 text-sm text-muted-foreground">
@@ -465,7 +465,7 @@ export default function InventoryPage() {
               <h2 className="mb-1 text-xl font-semibold text-ink">
                 {hasActiveFilters ? "No products found" : "No products yet"}
               </h2>
-              <p className="mb-6 text-center text-gray-600">
+              <p className="mb-6 text-center text-body">
                 {hasActiveFilters
                   ? "Try adjusting your search or filter criteria"
                   : "Create your first product to start selling"}

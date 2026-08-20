@@ -76,13 +76,13 @@ export default function SellerProfilePage() {
         <div className="mb-8">
           <Link
             href="/dashboard/seller/settings"
-            className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-brand-500"
+            className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-body transition-colors hover:text-accent-link"
           >
             <ArrowLeft className="h-4 w-4" /> Settings
           </Link>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Account</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Account</p>
           <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Edit Profile</h1>
-          <p className="mt-1 text-sm text-gray-600">Update your account information</p>
+          <p className="mt-1 text-sm text-body">Update your account information</p>
         </div>
 
         {loading ? (

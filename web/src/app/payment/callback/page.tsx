@@ -74,9 +74,9 @@ function CallbackInner() {
   if (status === "loading") {
     return (
       <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center bg-page px-6 text-center">
-        <Loader2 className="h-12 w-12 animate-spin text-brand-500" />
+        <Loader2 className="h-12 w-12 animate-spin text-accent-link" />
         <h1 className="mt-6 text-xl font-semibold text-ink">Verifying payment</h1>
-        <p className="mt-2 text-sm text-gray-500">Please wait while we confirm your payment...</p>
+        <p className="mt-2 text-sm text-subtle">Please wait while we confirm your payment...</p>
       </div>
     );
   }
@@ -86,11 +86,11 @@ function CallbackInner() {
       <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center bg-page px-6 text-center">
         <XCircle className="h-14 w-14 text-destructive" />
         <h1 className="mt-6 text-2xl font-semibold text-ink">Payment failed</h1>
-        <p className="mt-2 max-w-sm text-sm text-gray-500">{message}</p>
+        <p className="mt-2 max-w-sm text-sm text-subtle">{message}</p>
         <div className="mt-6 flex gap-3">
           <Link
             href="/cart"
-            className="rounded-full border border-brand-500 px-6 py-2.5 text-sm font-medium text-brand-500 transition-colors hover:bg-brand-50"
+            className="rounded-full border border-brand-500 px-6 py-2.5 text-sm font-medium text-accent-link transition-colors hover:bg-brand-soft"
           >
             Try again
           </Link>
@@ -108,10 +108,10 @@ function CallbackInner() {
   return (
     <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center bg-page px-6 py-12 text-center">
       <img src="/illustrations/order-confirmed.svg" alt="" className="w-64 max-w-full sm:w-80" />
-      <p className="mt-6 text-xs font-semibold uppercase tracking-widest text-brand-500">Payment successful</p>
+      <p className="mt-6 text-xs font-semibold uppercase tracking-widest text-accent-link">Payment successful</p>
       <h1 className="mt-2 text-3xl font-semibold text-ink sm:text-4xl">Thank you for your purchase!</h1>
-      <p className="mt-2 max-w-sm text-sm text-gray-500">{message}</p>
-      <p className="mt-1 text-xs text-gray-400">Taking you to your library...</p>
+      <p className="mt-2 max-w-sm text-sm text-subtle">{message}</p>
+      <p className="mt-1 text-xs text-faint">Taking you to your library...</p>
       <Link
         href="/dashboard/buyer/library"
         className="mt-6 rounded-full bg-brand-500 px-6 py-2.5 text-sm font-medium text-white transition-colors hover:bg-brand-600"
@@ -127,7 +127,7 @@ export default function PaymentCallbackPage() {
     <Suspense
       fallback={
         <div className="flex min-h-[calc(100dvh-8rem)] flex-col items-center justify-center bg-page px-6 text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-brand-500" />
+          <Loader2 className="h-12 w-12 animate-spin text-accent-link" />
           <h1 className="mt-6 text-xl font-semibold text-ink">Processing payment...</h1>
         </div>
       }

@@ -138,7 +138,7 @@ export function SupportChat() {
           leaves room for it so on short screens the top of the panel stops
           below the header instead of tucking under it. */}
       {open && (
-        <div className="fixed bottom-24 right-5 z-1000 flex h-[min(560px,calc(100dvh-11rem))] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-3xl border border-gray-200 bg-white shadow-2xl">
+        <div className="fixed bottom-24 right-5 z-1000 flex h-[min(560px,calc(100dvh-11rem))] w-[min(380px,calc(100vw-2.5rem))] flex-col overflow-hidden rounded-3xl border border-line-strong bg-surface shadow-2xl">
 
           {/* Header */}
           <div className="flex items-center gap-3 bg-brand-950 px-5 py-4">
@@ -171,7 +171,7 @@ export function SupportChat() {
                       className={`max-w-[85%] min-w-0 whitespace-pre-wrap wrap-break-word rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
                         m.role === "user"
                           ? "bg-brand-500 text-white"
-                          : "border border-gray-100 bg-white text-gray-800"
+                          : "border border-line bg-surface text-strong"
                       }`}
                     >
                       {m.content}
@@ -185,7 +185,7 @@ export function SupportChat() {
                       <button
                         key={s}
                         onClick={() => send(s)}
-                        className="block w-full rounded-2xl border border-brand-200 bg-white px-3.5 py-2 text-left text-xs text-brand-600 transition-colors hover:bg-brand-50"
+                        className="block w-full rounded-2xl border border-brand-200 bg-surface px-3.5 py-2 text-left text-xs text-accent-link transition-colors hover:bg-brand-soft"
                       >
                         {s}
                       </button>
@@ -195,14 +195,14 @@ export function SupportChat() {
 
                 {thinking && (
                   <div className="flex justify-start">
-                    <div className="flex items-center gap-2 rounded-2xl border border-gray-100 bg-white px-3.5 py-2.5 text-sm text-gray-500">
+                    <div className="flex items-center gap-2 rounded-2xl border border-line bg-surface px-3.5 py-2.5 text-sm text-subtle">
                       <Loader2 className="h-3.5 w-3.5 animate-spin" /> Thinking...
                     </div>
                   </div>
                 )}
 
                 {error && (
-                  <div className="rounded-2xl bg-red-50 px-3.5 py-2.5 text-xs text-[#b3261e]">
+                  <div className="rounded-2xl bg-err-soft px-3.5 py-2.5 text-xs text-err">
                     {error}
                   </div>
                 )}
@@ -211,7 +211,7 @@ export function SupportChat() {
               {/* Handoff prompt */}
               <button
                 onClick={openHandoff}
-                className="flex items-center justify-center gap-1.5 border-t border-gray-100 bg-white py-2.5 text-xs font-medium text-brand-500 transition-colors hover:bg-brand-50"
+                className="flex items-center justify-center gap-1.5 border-t border-line bg-surface py-2.5 text-xs font-medium text-accent-link transition-colors hover:bg-brand-soft"
               >
                 <UserRound className="h-3.5 w-3.5" />
                 Didn't help? Talk to a human
@@ -220,14 +220,14 @@ export function SupportChat() {
               {/* Composer */}
               <form
                 onSubmit={(e) => { e.preventDefault(); send(input); }}
-                className="flex items-center gap-2 border-t border-gray-100 bg-white p-3"
+                className="flex items-center gap-2 border-t border-line bg-surface p-3"
               >
                 <input
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   placeholder="Ask a question..."
                   maxLength={1000}
-                  className="h-10 flex-1 rounded-full border border-gray-200 bg-white px-4 text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-300"
+                  className="h-10 flex-1 rounded-full border border-line-strong bg-surface px-4 text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-300"
                 />
                 <button
                   type="submit"
@@ -244,45 +244,45 @@ export function SupportChat() {
           {/* Handoff form */}
           {view === "handoff" && (
             <form onSubmit={submitHandoff} className="flex-1 space-y-3 overflow-y-auto bg-page px-4 py-4">
-              <p className="text-xs leading-relaxed text-gray-600">
+              <p className="text-xs leading-relaxed text-body">
                 Leave your details and we'll email you back. Your chat so far is
                 included so you don't have to explain twice.
               </p>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Name</label>
+                <label className="mb-1 block text-xs font-medium text-body">Name</label>
                 <input
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Your name"
-                  className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-300"
+                  className="h-10 w-full rounded-xl border border-line-strong bg-surface px-3 text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-300"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">Email</label>
+                <label className="mb-1 block text-xs font-medium text-body">Email</label>
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
-                  className="h-10 w-full rounded-xl border border-gray-200 bg-white px-3 text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-300"
+                  className="h-10 w-full rounded-xl border border-line-strong bg-surface px-3 text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-300"
                 />
               </div>
 
               <div>
-                <label className="mb-1 block text-xs font-medium text-gray-700">What do you need help with?</label>
+                <label className="mb-1 block text-xs font-medium text-body">What do you need help with?</label>
                 <textarea
                   value={details}
                   onChange={(e) => setDetails(e.target.value)}
                   rows={4}
                   placeholder="Tell us what happened..."
-                  className="w-full rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-300"
+                  className="w-full rounded-xl border border-line-strong bg-surface px-3 py-2 text-sm outline-none focus:border-brand-400 focus:ring-1 focus:ring-brand-300"
                 />
               </div>
 
               {formError && (
-                <p className="rounded-xl bg-red-50 px-3 py-2 text-xs text-[#b3261e]">{formError}</p>
+                <p className="rounded-xl bg-err-soft px-3 py-2 text-xs text-err">{formError}</p>
               )}
 
               <button
@@ -298,17 +298,17 @@ export function SupportChat() {
           {/* Sent */}
           {view === "sent" && (
             <div className="flex flex-1 flex-col items-center justify-center bg-page px-6 text-center">
-              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EBFBF0]">
-                <CheckCircle2 className="h-7 w-7 text-[#00B42A]" />
+              <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-ok-soft">
+                <CheckCircle2 className="h-7 w-7 text-ok" />
               </div>
               <p className="mb-1 font-semibold text-ink">Message sent</p>
-              <p className="mb-6 text-sm text-gray-600">
+              <p className="mb-6 text-sm text-body">
                 We'll reply to <span className="font-medium text-ink">{email}</span> as
                 soon as we can.
               </p>
               <button
                 onClick={reset}
-                className="rounded-full border border-brand-500 px-5 py-2 text-sm font-medium text-brand-500 transition-colors hover:bg-brand-500 hover:text-white"
+                className="rounded-full border border-brand-500 px-5 py-2 text-sm font-medium text-accent-link transition-colors hover:bg-brand-500 hover:text-white"
               >
                 Start a new chat
               </button>

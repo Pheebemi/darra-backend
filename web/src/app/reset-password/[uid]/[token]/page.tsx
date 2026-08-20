@@ -97,7 +97,7 @@ export default function ResetPasswordPage() {
       <div className="flex w-full flex-col items-center justify-center bg-page px-6 py-12 lg:w-1/2">
         <div className="w-full max-w-sm">
           <div className="mb-8 flex items-center gap-2.5 lg:hidden">
-            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-gray-200">
+            <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white ring-1 ring-line-strong">
               <img src="/logo.svg" alt="Darra" className="h-8 w-auto" />
             </div>
             <span className="text-lg font-semibold text-ink">Darra</span>
@@ -111,8 +111,8 @@ export default function ResetPasswordPage() {
   if (checking) {
     return (
       <Shell>
-        <div className="flex items-center gap-3 text-gray-600">
-          <Loader2 className="h-5 w-5 animate-spin text-brand-500" />
+        <div className="flex items-center gap-3 text-body">
+          <Loader2 className="h-5 w-5 animate-spin text-accent-link" />
           Checking your link...
         </div>
       </Shell>
@@ -122,11 +122,11 @@ export default function ResetPasswordPage() {
   if (!linkValid) {
     return (
       <Shell>
-        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-red-50">
-          <XCircle className="h-7 w-7 text-[#b3261e]" />
+        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-err-soft">
+          <XCircle className="h-7 w-7 text-err" />
         </div>
         <h1 className="mb-2 text-3xl font-semibold text-ink">Link expired</h1>
-        <p className="mb-8 text-gray-600">
+        <p className="mb-8 text-body">
           This reset link is no longer valid. Links can only be used once and
           expire after a few hours — request a fresh one.
         </p>
@@ -143,11 +143,11 @@ export default function ResetPasswordPage() {
   if (done) {
     return (
       <Shell>
-        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-[#EBFBF0]">
-          <CheckCircle2 className="h-7 w-7 text-[#00B42A]" />
+        <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl bg-ok-soft">
+          <CheckCircle2 className="h-7 w-7 text-ok" />
         </div>
         <h1 className="mb-2 text-3xl font-semibold text-ink">Password updated</h1>
-        <p className="mb-8 text-gray-600">
+        <p className="mb-8 text-body">
           You can now sign in with your new password. Taking you there...
         </p>
         <Link
@@ -162,11 +162,11 @@ export default function ResetPasswordPage() {
 
   return (
     <Shell>
-      <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">
+      <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-accent-link">
         Password
       </p>
       <h1 className="mb-1 text-3xl font-semibold text-ink">Set a new password</h1>
-      <p className="mb-8 text-gray-600">
+      <p className="mb-8 text-body">
         {email ? <>For <span className="font-medium text-ink">{email}</span></> : "Choose something secure."}
       </p>
 
@@ -186,7 +186,7 @@ export default function ResetPasswordPage() {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-faint hover:text-body"
             >
               {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
             </button>
@@ -211,9 +211,9 @@ export default function ResetPasswordPage() {
             {rules.map((r) => (
               <li key={r.label} className="flex items-center gap-2 text-xs">
                 <CheckCircle2
-                  className={`h-3.5 w-3.5 ${r.ok ? "text-[#00B42A]" : "text-gray-300"}`}
+                  className={`h-3.5 w-3.5 ${r.ok ? "text-ok" : "text-faint"}`}
                 />
-                <span className={r.ok ? "text-gray-600" : "text-gray-400"}>{r.label}</span>
+                <span className={r.ok ? "text-body" : "text-faint"}>{r.label}</span>
               </li>
             ))}
           </ul>
@@ -228,8 +228,8 @@ export default function ResetPasswordPage() {
         </button>
       </form>
 
-      <p className="mt-8 text-sm text-gray-600">
-        <Link href="/login" className="font-medium text-brand-500 hover:text-brand-600">
+      <p className="mt-8 text-sm text-body">
+        <Link href="/login" className="font-medium text-accent-link hover:text-accent-link">
           Back to sign in
         </Link>
       </p>

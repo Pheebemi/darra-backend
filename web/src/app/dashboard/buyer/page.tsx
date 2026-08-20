@@ -92,7 +92,7 @@ export default function BuyerDashboard() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">My Library</p>
+            <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">My Library</p>
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
               Welcome back, {user?.full_name?.split(" ")[0] || "there"}
             </h1>
@@ -109,19 +109,19 @@ export default function BuyerDashboard() {
         <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
           <Card className="shadow-none">
             <CardHeader className="px-5 pb-1 pt-5">
-              <span className="text-xs text-gray-600">Purchased</span>
+              <span className="text-xs text-body">Purchased</span>
             </CardHeader>
             <CardContent className="px-5 pb-5">
               {loading ? <Skeleton className="h-7 w-12" /> : (
                 <p className="text-2xl font-semibold text-ink">{library.length}</p>
               )}
-              <p className="text-xs text-gray-600">products</p>
+              <p className="text-xs text-body">products</p>
             </CardContent>
           </Card>
 
           <Card className="shadow-none">
             <CardHeader className="px-5 pb-1 pt-5">
-              <span className="text-xs text-gray-600">Library</span>
+              <span className="text-xs text-body">Library</span>
             </CardHeader>
             <CardContent className="px-5 pb-5">
               <p className="text-2xl font-semibold text-ink">Access</p>
@@ -133,10 +133,10 @@ export default function BuyerDashboard() {
 
           <Card className="col-span-2 shadow-none md:col-span-1">
             <CardHeader className="px-5 pb-1 pt-5">
-              <span className="text-xs text-gray-600">Discover</span>
+              <span className="text-xs text-body">Discover</span>
             </CardHeader>
             <CardContent className="px-5 pb-5">
-              <p className="mb-2 text-sm text-gray-600">New products added daily</p>
+              <p className="mb-2 text-sm text-body">New products added daily</p>
               <Button size="sm" variant="outline" className="h-7 text-xs" asChild>
                 <Link href="/products">Browse →</Link>
               </Button>
@@ -188,7 +188,7 @@ export default function BuyerDashboard() {
               <div className="py-8 text-center">
                 <img src="/illustrations/no-data.svg" alt="" className="mx-auto mb-4 h-28 w-auto" />
                 <p className="text-sm font-medium text-ink">Library is empty</p>
-                <p className="text-xs text-gray-600">Products you purchase will appear here</p>
+                <p className="text-xs text-body">Products you purchase will appear here</p>
                 <Button size="sm" className="mt-4 h-8 text-xs" asChild>
                   <Link href="/products">
                     <ShoppingBag className="mr-1.5 h-3.5 w-3.5" />Browse Products
@@ -218,9 +218,9 @@ export default function BuyerDashboard() {
                 <Link
                   key={p.id}
                   href={`/products/${p.slug || p.id}`}
-                  className="group overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl"
+                  className="group overflow-hidden rounded-3xl border border-line bg-surface transition-shadow duration-300 hover:shadow-xl"
                 >
-                  <div className="relative h-32 w-full bg-brand-50">
+                  <div className="relative h-32 w-full bg-brand-soft">
                     {p.cover_image ? (
                       <SafeImage src={p.cover_image} alt={p.title} fill className="object-cover transition-transform duration-300 group-hover:scale-105" />
                     ) : (
@@ -230,14 +230,14 @@ export default function BuyerDashboard() {
                     )}
                   </div>
                   <div className="p-4">
-                    <p className="truncate text-sm font-semibold text-gray-900 transition-colors group-hover:text-brand-500">{p.title}</p>
-                    <p className="mt-0.5 text-xs font-medium text-brand-500">{fmt(p.price)}</p>
+                    <p className="truncate text-sm font-semibold text-strong transition-colors group-hover:text-accent-link">{p.title}</p>
+                    <p className="mt-0.5 text-xs font-medium text-accent-link">{fmt(p.price)}</p>
                   </div>
                 </Link>
               ))}
             </div>
           ) : (
-            <p className="text-sm text-gray-600">No products available yet.</p>
+            <p className="text-sm text-body">No products available yet.</p>
           )}
         </div>
       </div>

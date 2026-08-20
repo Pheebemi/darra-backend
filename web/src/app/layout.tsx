@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { Toaster } from "sonner";
 import { LayoutWrapper } from "@/components/layout-wrapper";
+import { ThemeProvider } from "@/components/theme-provider";
 import { AuthProvider } from "@/lib/auth/auth-context";
 import { CartProvider } from "@/lib/cart/cart-context";
 import { Analytics } from "@vercel/analytics/next";
@@ -56,15 +57,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
+    // next-themes writes the theme class onto <html> before paint, which the
+    // server render can't know about — suppressHydrationWarning scopes the
+    // expected mismatch to this element only.
+    <html lang="en" suppressHydrationWarning>
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AuthProvider>
-          <CartProvider>
-            <LayoutWrapper>{children}</LayoutWrapper>
-            <Toaster richColors position="top-right" />
-            <Analytics />
-          </CartProvider>
-        </AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
+            <CartProvider>
+              <LayoutWrapper>{children}</LayoutWrapper>
+              <Toaster richColors position="top-right" theme="system" />
+              <Analytics />
+            </CartProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

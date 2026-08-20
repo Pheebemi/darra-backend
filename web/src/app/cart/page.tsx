@@ -63,7 +63,7 @@ export default function CartPage() {
         <div className="text-center">
           <img src="/illustrations/empty-cart.svg" alt="" className="mx-auto mb-6 h-44 w-auto" />
           <h2 className="mb-1 text-2xl font-semibold text-ink">Your cart is empty</h2>
-          <p className="mb-6 text-gray-600">Add products to get started</p>
+          <p className="mb-6 text-body">Add products to get started</p>
           <Link
             href="/products"
             className="inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300"
@@ -82,13 +82,13 @@ export default function CartPage() {
         {/* Header */}
         <div className="mb-8 flex items-end justify-between">
           <div>
-            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-brand-500">Checkout</p>
+            <p className="mb-2 text-sm font-semibold uppercase tracking-widest text-accent-link">Checkout</p>
             <h1 className="text-3xl font-semibold text-ink sm:text-4xl">Cart</h1>
-            <p className="mt-1 text-gray-600">{totalItems} {totalItems === 1 ? "item" : "items"}</p>
+            <p className="mt-1 text-body">{totalItems} {totalItems === 1 ? "item" : "items"}</p>
           </div>
           <button
             onClick={clearCart}
-            className="text-sm font-medium text-gray-600 transition-colors hover:text-[#b3261e]"
+            className="text-sm font-medium text-body transition-colors hover:text-err"
           >
             Clear all
           </button>
@@ -104,10 +104,10 @@ export default function CartPage() {
               return (
                 <div
                   key={`${item.productId}-${item.tierId || "none"}-${index}`}
-                  className="flex gap-4 rounded-3xl border border-gray-100 bg-white p-4"
+                  className="flex gap-4 rounded-3xl border border-line bg-surface p-4"
                 >
                   {/* Cover */}
-                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-brand-50">
+                  <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl bg-brand-soft">
                     {item.product?.cover_image ? (
                       <SafeImage
                         src={item.product.cover_image}
@@ -126,12 +126,12 @@ export default function CartPage() {
                   <div className="flex min-w-0 flex-1 flex-col justify-between">
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate font-medium text-gray-900">{item.product?.title || "Product"}</p>
+                        <p className="truncate font-medium text-strong">{item.product?.title || "Product"}</p>
                         {item.tier && (
-                          <p className="text-sm text-gray-600">{item.tier.name}</p>
+                          <p className="text-sm text-body">{item.tier.name}</p>
                         )}
                       </div>
-                      <p className="shrink-0 font-semibold text-brand-500">
+                      <p className="shrink-0 font-semibold text-accent-link">
                         ₦{price.toLocaleString()}
                       </p>
                     </div>
@@ -141,14 +141,14 @@ export default function CartPage() {
                       <div className="flex items-center gap-2">
                         <button
                           onClick={() => updateQuantity(item.productId, item.tierId, item.quantity - 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-500"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-line-strong text-body transition-colors hover:border-brand-500 hover:text-accent-link"
                         >
                           <Minus className="h-3 w-3" />
                         </button>
                         <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
                         <button
                           onClick={() => updateQuantity(item.productId, item.tierId, item.quantity + 1)}
-                          className="flex h-7 w-7 items-center justify-center rounded-full border border-gray-200 text-gray-600 transition-colors hover:border-brand-500 hover:text-brand-500"
+                          className="flex h-7 w-7 items-center justify-center rounded-full border border-line-strong text-body transition-colors hover:border-brand-500 hover:text-accent-link"
                         >
                           <Plus className="h-3 w-3" />
                         </button>
@@ -158,7 +158,7 @@ export default function CartPage() {
                         <p className="font-semibold text-ink">₦{itemTotal.toLocaleString()}</p>
                         <button
                           onClick={() => removeItem(item.productId, item.tierId)}
-                          className="text-gray-400 transition-colors hover:text-[#b3261e]"
+                          className="text-faint transition-colors hover:text-err"
                         >
                           <Trash2 className="h-4 w-4" />
                         </button>
@@ -172,17 +172,17 @@ export default function CartPage() {
 
           {/* Order summary */}
           <div className="lg:col-span-1">
-            <div className="sticky top-20 space-y-4 rounded-3xl border border-gray-100 bg-white p-6">
+            <div className="sticky top-20 space-y-4 rounded-3xl border border-line bg-surface p-6">
               <h2 className="text-xl font-semibold text-ink">Order Summary</h2>
 
               <div className="space-y-2 text-sm">
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
-                  <span className="text-gray-900">₦{total.toLocaleString()}</span>
+                  <span className="text-body">Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
+                  <span className="text-strong">₦{total.toLocaleString()}</span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-gray-600">Processing fee</span>
-                  <span className="text-gray-600">Calculated at checkout</span>
+                  <span className="text-body">Processing fee</span>
+                  <span className="text-body">Calculated at checkout</span>
                 </div>
               </div>
 
@@ -190,20 +190,20 @@ export default function CartPage() {
 
               <div className="flex justify-between font-semibold">
                 <span className="text-ink">Total</span>
-                <span className="text-brand-500">₦{total.toLocaleString()}</span>
+                <span className="text-accent-link">₦{total.toLocaleString()}</span>
               </div>
 
               {/* Payment method */}
-              <div className="flex items-center gap-2 rounded-2xl bg-brand-50 px-4 py-3">
-                <CreditCard className="h-4 w-4 shrink-0 text-brand-500" />
-                <span className="text-xs text-gray-600">Flutterwave · Secure checkout</span>
+              <div className="flex items-center gap-2 rounded-2xl bg-brand-soft px-4 py-3">
+                <CreditCard className="h-4 w-4 shrink-0 text-accent-link" />
+                <span className="text-xs text-body">Flutterwave · Secure checkout</span>
               </div>
 
               {/* Trust */}
-              <div className="flex justify-around text-xs text-gray-600">
-                <span className="flex items-center gap-1"><Shield className="h-3 w-3 text-brand-500" />Secure</span>
-                <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-brand-500" />Instant</span>
-                <span className="flex items-center gap-1"><Package className="h-3 w-3 text-brand-500" />Guaranteed</span>
+              <div className="flex justify-around text-xs text-body">
+                <span className="flex items-center gap-1"><Shield className="h-3 w-3 text-accent-link" />Secure</span>
+                <span className="flex items-center gap-1"><Zap className="h-3 w-3 text-accent-link" />Instant</span>
+                <span className="flex items-center gap-1"><Package className="h-3 w-3 text-accent-link" />Guaranteed</span>
               </div>
 
               <button
@@ -226,7 +226,7 @@ export default function CartPage() {
 
               <Link
                 href="/products"
-                className="block w-full rounded-full border border-brand-500 px-6 py-2.5 text-center text-sm font-medium text-brand-500 transition-colors hover:bg-brand-500 hover:text-white"
+                className="block w-full rounded-full border border-brand-500 px-6 py-2.5 text-center text-sm font-medium text-accent-link transition-colors hover:bg-brand-500 hover:text-white"
               >
                 Continue shopping
               </Link>

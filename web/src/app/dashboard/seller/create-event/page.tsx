@@ -402,16 +402,16 @@ function CreateEventInner() {
         <div className="mb-8">
           <button
             onClick={() => router.back()}
-            className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-600 transition-colors hover:text-brand-500"
+            className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-body transition-colors hover:text-accent-link"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
           </button>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Catalog</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Catalog</p>
           <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
             {isEditing ? "Edit Product" : "Add Product"}
           </h1>
-          <p className="mt-1 text-sm text-gray-600">
+          <p className="mt-1 text-sm text-body">
             {isEditing ? "Update your product details" : "Set up your product details and pricing"}
           </p>
         </div>
@@ -437,21 +437,21 @@ function CreateEventInner() {
                 <Card className="shadow-none">
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-                        <Settings className="h-5 w-5 text-brand-500" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-softer">
+                        <Settings className="h-5 w-5 text-accent-link" />
                       </div>
                       <CardTitle className="text-lg font-semibold text-ink">Basic Information</CardTitle>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="space-y-1.5">
-                      <Label htmlFor="title" className="text-sm font-medium text-gray-900">Title *</Label>
+                      <Label htmlFor="title" className="text-sm font-medium text-strong">Title *</Label>
                       <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" className="h-11" />
                     </div>
 
                     <div className="space-y-1.5">
                       <div className="flex items-center justify-between gap-3">
-                        <Label htmlFor="description" className="text-sm font-medium text-gray-900">Description</Label>
+                        <Label htmlFor="description" className="text-sm font-medium text-strong">Description</Label>
                         <Button
                           type="button"
                           variant="outline"
@@ -473,7 +473,7 @@ function CreateEventInner() {
 
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
-                        <Label htmlFor="productType" className="text-sm font-medium text-gray-900">Product Type</Label>
+                        <Label htmlFor="productType" className="text-sm font-medium text-strong">Product Type</Label>
                         <Select
                           value={productType}
                           onValueChange={(value) => { setProductType(value); setProductTypeConfirmed(true); }}
@@ -491,7 +491,7 @@ function CreateEventInner() {
 
                       {productType !== "event" && (
                         <div className="space-y-1.5">
-                          <Label htmlFor="price" className="text-sm font-medium text-gray-900">Price (₦)</Label>
+                          <Label htmlFor="price" className="text-sm font-medium text-strong">Price (₦)</Label>
                           <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" step="0.01" min="0" className="h-11" />
                         </div>
                       )}
@@ -501,34 +501,34 @@ function CreateEventInner() {
                       <div className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="space-y-1.5">
-                            <Label htmlFor="eventDate" className="text-sm font-medium text-gray-900">Start Date *</Label>
+                            <Label htmlFor="eventDate" className="text-sm font-medium text-strong">Start Date *</Label>
                             <Input id="eventDate" type="date" value={eventDate} onChange={(e) => setEventDate(e.target.value)} min={new Date().toISOString().split("T")[0]} className="h-11" />
                           </div>
                           <div className="space-y-1.5">
-                            <Label htmlFor="eventTime" className="text-sm font-medium text-gray-900">Start Time *</Label>
+                            <Label htmlFor="eventTime" className="text-sm font-medium text-strong">Start Time *</Label>
                             <Input id="eventTime" type="time" value={eventTime} onChange={(e) => setEventTime(e.target.value)} className="h-11" />
                           </div>
                         </div>
                         <div className="grid gap-4 sm:grid-cols-2">
                           <div className="space-y-1.5">
-                            <Label htmlFor="eventEndDate" className="text-sm font-medium text-gray-900">End Date</Label>
+                            <Label htmlFor="eventEndDate" className="text-sm font-medium text-strong">End Date</Label>
                             <Input id="eventEndDate" type="date" value={eventEndDate} onChange={(e) => setEventEndDate(e.target.value)} min={eventDate || new Date().toISOString().split("T")[0]} className="h-11" />
                           </div>
                           <div className="space-y-1.5">
-                            <Label htmlFor="eventEndTime" className="text-sm font-medium text-gray-900">End Time</Label>
+                            <Label htmlFor="eventEndTime" className="text-sm font-medium text-strong">End Time</Label>
                             <Input id="eventEndTime" type="time" value={eventEndTime} onChange={(e) => setEventEndTime(e.target.value)} className="h-11" />
                           </div>
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="venueName" className="text-sm font-medium text-gray-900">Venue Name</Label>
+                          <Label htmlFor="venueName" className="text-sm font-medium text-strong">Venue Name</Label>
                           <Input id="venueName" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="e.g. Taraba State Event Centre" className="h-11" />
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="location" className="text-sm font-medium text-gray-900">Address / Location</Label>
+                          <Label htmlFor="location" className="text-sm font-medium text-strong">Address / Location</Label>
                           <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Jalingo, Taraba State, Nigeria" className="h-11" />
                         </div>
                         <div className="space-y-1.5">
-                          <Label htmlFor="speakers" className="text-sm font-medium text-gray-900">Speakers / Guests</Label>
+                          <Label htmlFor="speakers" className="text-sm font-medium text-strong">Speakers / Guests</Label>
                           <Textarea id="speakers" value={speakers} onChange={(e) => setSpeakers(e.target.value)} placeholder={"One speaker per line:\nJohn Doe\nJane Smith"} rows={3} />
                           <p className="text-[11px] text-muted-foreground">Enter one speaker or guest per line</p>
                         </div>
@@ -543,21 +543,21 @@ function CreateEventInner() {
                 <Card className="shadow-none">
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-                        <Ticket className="h-5 w-5 text-brand-500" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-softer">
+                        <Ticket className="h-5 w-5 text-accent-link" />
                       </div>
                       <div>
                         <CardTitle className="text-lg font-semibold text-ink">Ticket Configuration</CardTitle>
-                        <CardDescription className="text-sm text-gray-600">Add ticket tiers with different prices and quantities</CardDescription>
+                        <CardDescription className="text-sm text-body">Add ticket tiers with different prices and quantities</CardDescription>
                       </div>
                     </div>
                   </CardHeader>
                   <CardContent className="space-y-4">
                     {/* Add form */}
-                    <div className="space-y-3 rounded-2xl bg-brand-50 p-4">
+                    <div className="space-y-3 rounded-2xl bg-brand-soft p-4">
                       <p className="text-xs font-medium">Add Ticket Type</p>
                       <div className="space-y-1.5">
-                        <Label className="text-sm font-medium text-gray-900">Category name *</Label>
+                        <Label className="text-sm font-medium text-strong">Category name *</Label>
                         <Input
                           value={newTicketName}
                           onChange={(e) => setNewTicketName(e.target.value)}
@@ -574,24 +574,24 @@ function CreateEventInner() {
                               key={p.label}
                               type="button"
                               onClick={() => setNewTicketName(p.label)}
-                              className="inline-flex items-center gap-1.5 rounded-full border border-gray-200 bg-white px-2.5 py-1 text-xs text-gray-700 transition-colors hover:border-brand-300 hover:bg-brand-50"
+                              className="inline-flex items-center gap-1.5 rounded-full border border-line-strong bg-surface px-2.5 py-1 text-xs text-body transition-colors hover:border-brand-300 hover:bg-brand-soft"
                             >
                               <span className="h-2 w-2 rounded-full" style={{ backgroundColor: p.color }} />
                               {p.label}
                             </button>
                           ))}
                         </div>
-                        <p className="text-xs text-gray-500">
+                        <p className="text-xs text-subtle">
                           Name these however you like — they only apply to this event.
                         </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-medium text-gray-900">Price (₦) *</Label>
+                          <Label className="text-sm font-medium text-strong">Price (₦) *</Label>
                           <Input type="number" value={newTicketPrice} onChange={(e) => setNewTicketPrice(e.target.value)} placeholder="0.00" min="0" step="0.01" className="h-11" />
                         </div>
                         <div className="space-y-1.5">
-                          <Label className="text-sm font-medium text-gray-900">Quantity *</Label>
+                          <Label className="text-sm font-medium text-strong">Quantity *</Label>
                           <Input type="number" value={newTicketQuantity} onChange={(e) => setNewTicketQuantity(e.target.value)} placeholder="0" min="1" className="h-11" />
                         </div>
                       </div>
@@ -605,7 +605,7 @@ function CreateEventInner() {
                       <div className="space-y-2">
                         <p className="text-xs font-medium text-muted-foreground">Ticket Types ({ticketTypes.length})</p>
                         {ticketTypes.map((t) => (
-                          <div key={t.id} className="flex items-center justify-between rounded-2xl border border-gray-100 bg-page-soft p-4">
+                          <div key={t.id} className="flex items-center justify-between rounded-2xl border border-line bg-page-soft p-4">
                             <div className="flex items-center gap-3">
                               <Badge className="text-[10px]" style={{ backgroundColor: t.color }}>{t.name}</Badge>
                               <div>
@@ -634,8 +634,8 @@ function CreateEventInner() {
                 <Card className="shadow-none">
                   <CardHeader className="pb-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-100">
-                        <ImageIcon className="h-5 w-5 text-brand-500" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-brand-softer">
+                        <ImageIcon className="h-5 w-5 text-accent-link" />
                       </div>
                       <CardTitle className="text-lg font-semibold text-ink">Media & Files</CardTitle>
                     </div>
@@ -644,22 +644,22 @@ function CreateEventInner() {
                     {/* Cover image */}
                     <div className="space-y-2">
                       <div>
-                        <Label className="text-sm font-medium text-gray-900">Cover Image {!isEditing && "*"}</Label>
-                        <p className="text-xs text-gray-600">16:9 recommended · max 500KB</p>
+                        <Label className="text-sm font-medium text-strong">Cover Image {!isEditing && "*"}</Label>
+                        <p className="text-xs text-body">16:9 recommended · max 500KB</p>
                       </div>
                       {/* Dropzone-style preview/upload */}
                       <label className="relative block cursor-pointer">
                         <input type="file" accept="image/*" onChange={handleCoverImageChange} className="sr-only" />
-                        <div className="relative h-44 w-full overflow-hidden rounded-2xl border-2 border-dashed border-brand-200 bg-brand-50/50 transition-colors hover:border-brand-400 hover:bg-brand-50">
+                        <div className="relative h-44 w-full overflow-hidden rounded-2xl border-2 border-dashed border-brand-200 bg-brand-soft/50 transition-colors hover:border-brand-400 hover:bg-brand-soft">
                           {coverImagePreview ? (
                             <img src={coverImagePreview} alt="Preview" className="h-full w-full object-cover" />
                           ) : (
                             <div className="flex h-full flex-col items-center justify-center gap-2">
-                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-100">
-                                <ImageIcon className="h-6 w-6 text-brand-500" />
+                              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-softer">
+                                <ImageIcon className="h-6 w-6 text-accent-link" />
                               </div>
                               <p className="text-sm font-medium text-ink">Click to upload cover image</p>
-                              <p className="text-xs text-gray-500">JPG or PNG · up to 500KB</p>
+                              <p className="text-xs text-subtle">JPG or PNG · up to 500KB</p>
                             </div>
                           )}
                           {coverImagePreview && (
@@ -672,7 +672,7 @@ function CreateEventInner() {
                       {coverImagePreview && (
                         <button
                           type="button"
-                          className="text-xs font-medium text-[#b3261e] hover:underline"
+                          className="text-xs font-medium text-err hover:underline"
                           onClick={() => { setCoverImage(null); setCoverImagePreview(null); setExistingCoverUrl(null); }}
                         >
                           Remove image
@@ -686,7 +686,7 @@ function CreateEventInner() {
                     {/* Product file */}
                     {productType !== "event" && (
                       <div className="space-y-2">
-                        <Label className="text-sm font-medium text-gray-900">Product File {!isEditing && "*"}</Label>
+                        <Label className="text-sm font-medium text-strong">Product File {!isEditing && "*"}</Label>
                         <Input
                           type="file"
                           onChange={handleFileChange}
@@ -694,7 +694,7 @@ function CreateEventInner() {
                           className="h-9 cursor-pointer text-xs"
                         />
                         {file && (
-                          <div className="flex items-center gap-2 rounded-xl bg-brand-50 px-3 py-2">
+                          <div className="flex items-center gap-2 rounded-xl bg-brand-soft px-3 py-2">
                             <FileText className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
                             <div className="min-w-0 flex-1">
                               <p className="truncate text-xs font-medium">{file.name}</p>
@@ -757,7 +757,7 @@ function CreateEventInner() {
                   { label: "Event date & time", done: productType !== "event" || (!!eventDate && !!eventTime) },
                 ].map(({ label, done }) => (
                   <div key={label} className="flex items-center gap-2">
-                    <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${done ? "bg-brand-500 text-white" : "border border-gray-300 text-gray-400"}`}>
+                    <div className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full text-[9px] font-bold ${done ? "bg-brand-500 text-white" : "border border-line-strong text-faint"}`}>
                       {done ? "✓" : ""}
                     </div>
                     <span className={`text-xs ${done ? "text-foreground" : "text-muted-foreground"}`}>{label}</span>

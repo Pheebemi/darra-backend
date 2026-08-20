@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth/auth-context";
 import { cn } from "@/lib/utils";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
   LayoutDashboard,
   Package,
@@ -123,6 +124,7 @@ export function DashboardSidebar({ onNavigate }: { onNavigate?: () => void }) {
             <p className="truncate text-xs font-medium leading-none text-white">{user?.full_name || "User"}</p>
             <p className="mt-1 truncate text-[11px] text-brand-200/60">{user?.email}</p>
           </div>
+          <ThemeToggle tone="onDark" className="shrink-0" />
         </div>
 
         <button

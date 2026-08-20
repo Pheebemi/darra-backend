@@ -191,7 +191,7 @@ export default function EarningsPage() {
       <div className="mx-auto max-w-5xl space-y-8 p-6 sm:p-8">
         {/* Header */}
         <div>
-          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-brand-500">Finance</p>
+          <p className="mb-1 text-xs font-semibold uppercase tracking-widest text-accent-link">Finance</p>
           <h1 className="text-2xl font-semibold text-ink sm:text-3xl">Earnings</h1>
         </div>
 
@@ -237,28 +237,28 @@ export default function EarningsPage() {
           <h2 className="mb-4 text-xl font-semibold text-ink">Breakdown</h2>
           <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
             {[
-              { label: "Total Sales", value: earnings.total_sales, icon: TrendingUp, chip: "bg-[#EBFBF0]", iconColor: "text-[#00B42A]" },
-              { label: "Platform Fee (4%)", value: earnings.total_commission, icon: TrendingDown, chip: "bg-red-50", iconColor: "text-[#b3261e]" },
-              { label: "Total Payouts", value: earnings.total_payouts, icon: Wallet, chip: "bg-brand-100", iconColor: "text-brand-500" },
-              { label: "Available Balance", value: earnings.available_balance, icon: Wallet, chip: "bg-[#FFF9E5]", iconColor: "text-[#B08600]" },
+              { label: "Total Sales", value: earnings.total_sales, icon: TrendingUp, chip: "bg-ok-soft", iconColor: "text-ok" },
+              { label: "Platform Fee (4%)", value: earnings.total_commission, icon: TrendingDown, chip: "bg-err-soft", iconColor: "text-err" },
+              { label: "Total Payouts", value: earnings.total_payouts, icon: Wallet, chip: "bg-brand-softer", iconColor: "text-accent-link" },
+              { label: "Available Balance", value: earnings.available_balance, icon: Wallet, chip: "bg-warn-soft", iconColor: "text-warn" },
             ].map(({ label, value, icon: Icon, chip, iconColor }) => (
-              <div key={label} className="rounded-3xl border border-gray-100 bg-white p-5">
+              <div key={label} className="rounded-3xl border border-line bg-surface p-5">
                 <div className={`mb-4 flex h-10 w-10 items-center justify-center rounded-xl ${chip}`}>
                   <Icon className={`h-5 w-5 ${iconColor}`} />
                 </div>
                 <p className="truncate text-xl font-bold text-ink sm:text-2xl">
                   {formatCurrency(value)}
                 </p>
-                <p className="mt-1 text-xs font-medium text-gray-600 sm:text-sm">{label}</p>
+                <p className="mt-1 text-xs font-medium text-body sm:text-sm">{label}</p>
               </div>
             ))}
           </div>
         </div>
 
         {/* Commission Structure */}
-        <div className="rounded-3xl bg-brand-50 p-6 sm:p-8">
+        <div className="rounded-3xl bg-brand-soft p-6 sm:p-8">
           <div className="mb-4 flex items-center gap-2">
-            <Info className="h-5 w-5 text-brand-500" />
+            <Info className="h-5 w-5 text-accent-link" />
             <h3 className="text-lg font-semibold text-ink">How commissions work</h3>
           </div>
           <div className="grid gap-3 sm:grid-cols-3">
@@ -267,8 +267,8 @@ export default function EarningsPage() {
               { k: "Your Earnings", v: "96% of sale price" },
               { k: "Example", v: "₦1,500 sale → You earn ₦1,440" },
             ].map(({ k, v }) => (
-              <div key={k} className="rounded-2xl bg-white p-4">
-                <p className="text-xs font-medium text-gray-600">{k}</p>
+              <div key={k} className="rounded-2xl bg-surface p-4">
+                <p className="text-xs font-medium text-body">{k}</p>
                 <p className="mt-1 text-sm font-semibold text-ink">{v}</p>
               </div>
             ))}
@@ -276,7 +276,7 @@ export default function EarningsPage() {
         </div>
 
         {/* Last Updated */}
-        <p className="text-center text-xs text-gray-500">
+        <p className="text-center text-xs text-subtle">
           Last updated: {formatDate(earnings.last_updated)}
         </p>
       </div>

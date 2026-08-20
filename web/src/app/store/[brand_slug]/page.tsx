@@ -86,7 +86,7 @@ export default function PublicStorePage() {
       <div className="flex min-h-[60vh] flex-col items-center justify-center gap-4 bg-page px-5 text-center">
         <img src="/illustrations/web-search.svg" alt="" className="h-40 w-auto" />
         <h1 className="text-3xl font-semibold text-ink">Store not found</h1>
-        <p className="text-gray-600">This store doesn't exist or has been removed.</p>
+        <p className="text-body">This store doesn't exist or has been removed.</p>
         <Link
           href="/products"
           className="mt-2 inline-flex items-center gap-2 rounded-full bg-brand-500 px-6 py-3 font-medium text-white transition-colors hover:bg-brand-600 focus:outline-none focus:ring focus:ring-brand-300"
@@ -111,7 +111,7 @@ export default function PublicStorePage() {
           />
         ) : (
           <div className="absolute inset-0 flex items-center justify-end overflow-hidden pr-16">
-            <Store className="hidden h-32 w-32 text-brand-500/30 sm:block" />
+            <Store className="hidden h-32 w-32 text-accent-link/30 sm:block" />
           </div>
         )}
       </div>
@@ -128,35 +128,35 @@ export default function PublicStorePage() {
               <div className="flex items-center gap-2">
                 <h1 className="text-3xl font-semibold text-ink">{store.brand_name}</h1>
                 {store.store_active ? (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-[#EBFBF0] px-3 py-1 text-xs font-medium text-[#00B42A]">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-ok-soft px-3 py-1 text-xs font-medium text-ok">
                     <CheckCircle2 className="h-3 w-3" /> Open
                   </span>
                 ) : (
-                  <span className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-xs font-medium text-gray-500">
+                  <span className="inline-flex items-center gap-1 rounded-full bg-inset px-3 py-1 text-xs font-medium text-subtle">
                     <XCircle className="h-3 w-3" /> Closed
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600">{store.full_name}</p>
+              <p className="text-sm text-body">{store.full_name}</p>
             </div>
           </div>
         </div>
 
         {/* Info bar */}
-        <div className="mb-10 flex flex-wrap items-center gap-6 border-b border-brand-100 pb-6 text-sm text-gray-600">
+        <div className="mb-10 flex flex-wrap items-center gap-6 border-b border-brand-softer pb-6 text-sm text-body">
           <div className="flex items-center gap-1.5">
-            <Package className="h-4 w-4 text-brand-500" />
+            <Package className="h-4 w-4 text-accent-link" />
             <span>{store.products.length} {store.products.length === 1 ? "product" : "products"}</span>
           </div>
           {(store.open_time || store.close_time) && (
             <div className="flex items-center gap-1.5">
-              <Clock className="h-4 w-4 text-brand-500" />
+              <Clock className="h-4 w-4 text-accent-link" />
               <span>{store.open_time || "—"} – {store.close_time || "—"}</span>
             </div>
           )}
           {store.about && (
             <div
-              className="w-full text-sm text-gray-600 [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-ink [&_p]:mb-1"
+              className="w-full text-sm text-body [&_strong]:font-semibold [&_em]:italic [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4 [&_h2]:text-base [&_h2]:font-semibold [&_h2]:text-ink [&_p]:mb-1"
               dangerouslySetInnerHTML={{ __html: store.about }}
             />
           )}
@@ -166,18 +166,18 @@ export default function PublicStorePage() {
         <h2 className="mb-6 text-3xl font-semibold text-ink">All Products</h2>
 
         {store.products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-white py-16 text-center">
+          <div className="flex flex-col items-center justify-center rounded-3xl border border-dashed border-brand-200 bg-surface py-16 text-center">
             <img src="/illustrations/blank-canvas.svg" alt="" className="mb-6 h-40 w-auto" />
             <p className="text-xl font-semibold text-ink">No products yet</p>
-            <p className="mt-1 text-gray-600">This seller hasn't listed anything yet.</p>
+            <p className="mt-1 text-body">This seller hasn't listed anything yet.</p>
           </div>
         ) : (
           <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
             {store.products.map(product => (
               <Link key={product.id} href={`/products/${product.slug || product.id}`} className="group block">
-                <div className="overflow-hidden rounded-3xl border border-gray-100 bg-white transition-shadow duration-300 hover:shadow-xl">
+                <div className="overflow-hidden rounded-3xl border border-line bg-surface transition-shadow duration-300 hover:shadow-xl">
                   {/* Image */}
-                  <div className="relative h-52 w-full overflow-hidden bg-brand-50">
+                  <div className="relative h-52 w-full overflow-hidden bg-brand-soft">
                     {product.cover_image_url ? (
                       <img
                         src={getImageUrl(product.cover_image_url) || ""}
@@ -198,13 +198,13 @@ export default function PublicStorePage() {
                   </div>
                   {/* Info */}
                   <div className="p-5">
-                    <h3 className="mb-1 line-clamp-1 text-xl font-semibold text-gray-900 transition-colors group-hover:text-brand-500">
+                    <h3 className="mb-1 line-clamp-1 text-xl font-semibold text-strong transition-colors group-hover:text-accent-link">
                       {product.title}
                     </h3>
-                    <p className="mb-4 line-clamp-2 text-sm text-gray-600">{product.description}</p>
+                    <p className="mb-4 line-clamp-2 text-sm text-body">{product.description}</p>
                     <div className="flex items-center justify-between">
                       <span className="font-semibold text-ink">{formatCurrency(product.price)}</span>
-                      <span className="inline-flex items-center gap-1 text-sm font-medium text-brand-500 opacity-0 transition-opacity group-hover:opacity-100">
+                      <span className="inline-flex items-center gap-1 text-sm font-medium text-accent-link opacity-0 transition-opacity group-hover:opacity-100">
                         View <ArrowRight className="h-3.5 w-3.5" />
                       </span>
                     </div>
