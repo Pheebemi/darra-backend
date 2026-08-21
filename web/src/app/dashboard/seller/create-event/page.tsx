@@ -268,6 +268,10 @@ function CreateEventInner() {
           title: title.trim(),
           product_type: productType,
           price: price || "0",
+          // Whatever the seller has already written. Sent as the brief so the
+          // model polishes their words instead of inventing from a title —
+          // for an eBook or audio file it's the only real detail it gets.
+          notes: description.trim(),
           event_date: eventDate && eventTime ? `${eventDate}T${eventTime}` : "",
           event_end_date: eventEndDate && eventEndTime ? `${eventEndDate}T${eventEndTime}` : "",
           venue_name: venueName.trim(),
@@ -487,20 +491,32 @@ function CreateEventInner() {
                           title={
                             !productTypeConfirmed
                               ? "Select a product type first"
-                              : "Generate a description with AI"
+                              : description.trim()
+                                ? "Rewrite what you've written into polished copy"
+                                : "Generate a description with AI"
                           }
                         >
                           {isGeneratingDescription ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                          {isGeneratingDescription ? "Generating..." : "Generate with AI"}
+                          {isGeneratingDescription
+                            ? "Generating..."
+                            : description.trim()
+                              ? "Rewrite with AI"
+                              : "Generate with AI"}
                         </Button>
                       </div>
                       <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your product..." rows={4} />
                       {/* A title attribute on a disabled button is easy to
                           miss, so say why it's inactive in the open. */}
-                      {!productTypeConfirmed && !!title.trim() && (
+                      {!productTypeConfirmed && !!title.trim() ? (
                         <p className="text-xs text-faint">
                           Pick a product type above to enable AI descriptions.
                         </p>
+                      ) : (
+                        !!description.trim() && (
+                          <p className="text-xs text-faint">
+                            AI will rewrite what you&apos;ve written, keeping your facts.
+                          </p>
+                        )
                       )}
                     </div>
 

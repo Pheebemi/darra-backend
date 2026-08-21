@@ -24,6 +24,35 @@ JPG_BYTES = b'\xff\xd8\xff\xe0' + b'\x00' * 64
 PDF_BYTES = b'%PDF-1.4' + b'\x00' * 64
 
 
+def capture_ai_prompt(product_data, ticket_types=None):
+    """
+    Run the generator against a stubbed HTTP call and return the user prompt
+    it would have sent, so tests can assert on what the model actually sees.
+    """
+    from unittest import mock
+    from products.ai import generate_product_description
+
+    captured = {}
+
+    def fake_post(url, headers, json, timeout):
+        captured['payload'] = json
+
+        class FakeResponse:
+            def raise_for_status(self):
+                pass
+
+            def json(self):
+                return {'choices': [{'message': {'content': 'Generated copy.'}}]}
+
+        return FakeResponse()
+
+    with mock.patch('products.ai.requests.post', side_effect=fake_post):
+        generate_product_description(product_data, ticket_types)
+
+    return captured['payload']['messages'][1]['content']
+
+
+
 class CoverImageValidationTests(TestCase):
     """
     Covers may be PNG or JPG. The old code accepted PNG only, so every JPG
@@ -150,29 +179,7 @@ class ProductDescriptionPromptTests(TestCase):
     carry them for an actual event.
     """
 
-    @staticmethod
-    def _capture_prompt(product_data, ticket_types=None):
-        from unittest import mock
-        from products.ai import generate_product_description
-
-        captured = {}
-
-        def fake_post(url, headers, json, timeout):
-            captured['payload'] = json
-
-            class FakeResponse:
-                def raise_for_status(self):
-                    pass
-
-                def json(self):
-                    return {'choices': [{'message': {'content': 'Generated copy.'}}]}
-
-            return FakeResponse()
-
-        with mock.patch('products.ai.requests.post', side_effect=fake_post):
-            generate_product_description(product_data, ticket_types)
-
-        return captured['payload']['messages'][1]['content']
+    _capture_prompt = staticmethod(capture_ai_prompt)
 
     @override_settings(SUPPORT_AI_API_KEY='test-key')
     def test_ebook_prompt_omits_event_fields(self):
@@ -880,3 +887,88 @@ class ReviewEligibilityConsistencyTests(TestCase):
     def test_anonymous_visitor_is_not_offered_the_form(self):
         listing = self.client_api.get(f'/api/products/{self.product.id}/reviews/')
         self.assertFalse(listing.data['can_review'])
+
+
+class ProductDescriptionNotesTests(TestCase):
+    """
+    A seller's own words are the most valuable input the model gets — for an
+    eBook or audio file they are the only real detail beyond a title, a type
+    and a price.
+    """
+
+    _capture_prompt = staticmethod(capture_ai_prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_seller_notes_are_sent_as_the_brief(self):
+        prompt = self._capture_prompt({
+            'title': 'Lighting for Beginners',
+            'product_type': 'pdf',
+            'notes': 'Covers three-point lighting and shooting on a phone.',
+        })
+
+        self.assertIn('three-point lighting', prompt)
+        self.assertIn("Rewrite the seller's own notes", prompt)
+        # The model must not embellish beyond what the seller claimed.
+        self.assertIn('do not add features', prompt.lower().replace('  ', ' '))
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_without_notes_it_writes_from_the_facts(self):
+        prompt = self._capture_prompt({
+            'title': 'Lighting for Beginners',
+            'product_type': 'pdf',
+        })
+
+        self.assertNotIn("Rewrite the seller's own notes", prompt)
+        self.assertIn('Do not invent claims', prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_blank_notes_do_not_trigger_rewrite_mode(self):
+        prompt = self._capture_prompt({
+            'title': 'Lighting for Beginners',
+            'product_type': 'pdf',
+            'notes': '   ',
+        })
+        self.assertNotIn("Rewrite the seller's own notes", prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_brand_name_is_included_when_present(self):
+        prompt = self._capture_prompt({
+            'title': 'Lighting for Beginners',
+            'product_type': 'pdf',
+            'brand_name': 'Demo Store',
+        })
+        self.assertIn('Demo Store', prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_very_long_notes_are_truncated(self):
+        prompt = self._capture_prompt({
+            'title': 'Long One',
+            'product_type': 'pdf',
+            'notes': 'x' * 5000,
+        })
+        # Capped so one seller cannot blow up the request body.
+        self.assertLess(prompt.count('x'), 2100)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_view_forwards_notes_and_uses_the_accounts_brand(self):
+        from unittest import mock
+        from rest_framework.test import APIClient
+
+        seller = make_seller(brand_name='Real Brand')
+        client = APIClient()
+        client.force_authenticate(user=seller)
+
+        with mock.patch(
+            'products.views.generate_product_description', return_value='copy',
+        ) as generate:
+            client.post('/api/products/my-products/generate-description/', {
+                'title': 'Lighting for Beginners',
+                'product_type': 'pdf',
+                'notes': 'My own rough notes.',
+                # A client must not be able to claim someone else's shop name.
+                'brand_name': 'Somebody Elses Shop',
+            }, format='json')
+
+        payload = generate.call_args.args[0]
+        self.assertEqual(payload['notes'], 'My own rough notes.')
+        self.assertEqual(payload['brand_name'], 'Real Brand')

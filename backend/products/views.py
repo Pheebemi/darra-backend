@@ -150,6 +150,12 @@ class GenerateProductDescriptionView(APIView):
                 'title': title,
                 'product_type': request.data.get('product_type', ''),
                 'price': request.data.get('price', ''),
+                # The seller's own draft copy, used as the brief to rewrite
+                # rather than as something to replace unseen.
+                'notes': request.data.get('notes', ''),
+                # Taken from the account, not the request — a client must not
+                # be able to put someone else's shop name in the copy.
+                'brand_name': getattr(request.user, 'brand_name', '') or '',
                 'event_date': request.data.get('event_date', ''),
                 'event_end_date': request.data.get('event_end_date', ''),
                 'venue_name': request.data.get('venue_name', ''),
