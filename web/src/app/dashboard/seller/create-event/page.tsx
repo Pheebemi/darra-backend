@@ -138,8 +138,17 @@ function CreateEventInner() {
   const fetchProductForEdit = async () => {
     try {
       setFetchingProduct(true);
-      const res = await fetch(`/api/products/${editId}`);
-      if (!res.ok) throw new Error("Failed to fetch product");
+      // The owner-scoped endpoint, not the public one. A draft is hidden from
+      // the public detail route by design, so loading your own unpublished
+      // product for editing has to go through the authenticated path.
+      const res = await fetch(`/api/seller/products/${editId}`);
+      if (!res.ok) {
+        throw new Error(
+          res.status === 404
+            ? "Product not found, or it isn't yours to edit."
+            : "Failed to fetch product"
+        );
+      }
       const data = await res.json();
 
       setTitle(data.title || "");
