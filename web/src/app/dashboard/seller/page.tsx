@@ -24,6 +24,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { toast } from "sonner";
+import { RatingSummary } from "@/components/star-rating";
 
 interface AnalyticsData {
   total_revenue: number;
@@ -36,6 +37,8 @@ interface AnalyticsData {
   products_growth: number;
   avg_order_value: number;
   conversion_rate: number;
+  avg_rating: number | null;
+  review_count: number;
   top_products: Array<{ name: string; sales: number; revenue: number; growth: number }>;
   daily_revenue: Array<{ date: string; revenue: number }>;
 }
@@ -175,6 +178,16 @@ export default function SellerDashboard() {
             <h1 className="text-2xl font-semibold text-ink sm:text-3xl">
               {user?.brand_name || user?.full_name || "Your Store"}
             </h1>
+            {/* Lifetime store rating. It sits here rather than in the stat
+                grid below because it is reputation, not a metric for the
+                selected period — the range buttons don't apply to it. */}
+            {!loading && !!analytics?.review_count && (
+              <RatingSummary
+                average={analytics.avg_rating}
+                count={analytics.review_count}
+                className="mt-2"
+              />
+            )}
           </div>
           <Button asChild>
             <Link href="/dashboard/seller/create-event">

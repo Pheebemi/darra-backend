@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/select";
 import { Search, ShoppingBag, X, SlidersHorizontal } from "lucide-react";
 import { toast } from "sonner";
+import { RatingSummary } from "@/components/star-rating";
 
 interface TicketTier {
   id: number;
@@ -34,6 +35,8 @@ interface Product {
   ticket_tiers?: TicketTier[];
   is_ticket_event?: boolean;
   seller_name: string;
+  average_rating?: number | null;
+  review_count?: number;
 }
 
 // These ids must be real Product.product_type values, since the server now
@@ -293,6 +296,14 @@ function ProductsContent() {
                       <p className="mt-0.5 truncate text-sm text-body">
                         {product.seller_name}
                       </p>
+                    )}
+                    {!!product.review_count && (
+                      <RatingSummary
+                        average={product.average_rating ?? null}
+                        count={product.review_count}
+                        size="sm"
+                        className="mt-2"
+                      />
                     )}
                     <div className="mt-4 flex items-center justify-between">
                       <span className="font-semibold text-ink">

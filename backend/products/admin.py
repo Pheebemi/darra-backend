@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.db import models
 from django import forms
 from django.utils.html import format_html
-from .models import Product, TicketCategory, TicketTier
+from .models import Product, Review, TicketCategory, TicketTier
 
 @admin.register(TicketCategory)
 class TicketCategoryAdmin(admin.ModelAdmin):
@@ -62,9 +62,10 @@ class ProductAdminForm(forms.ModelForm):
 @admin.register(Product)
 class ProductAdmin(admin.ModelAdmin):
     form = ProductAdminForm
-    list_display = ('title', 'owner', 'product_type', 'price', 'ticket_summary', 'created_at')
+    list_display = ('title', 'owner', 'product_type', 'price', 'is_published', 'ticket_summary', 'created_at')
     search_fields = ('title', 'owner__email', 'product_type', 'ticket_category__name')
-    list_filter = ('product_type', 'ticket_category', 'created_at')
+    list_filter = ('is_published', 'product_type', 'ticket_category', 'created_at')
+    list_editable = ('is_published',)
     readonly_fields = ('ticket_details_table', 'current_tickets_summary')
     
     formfield_overrides = {
@@ -73,7 +74,7 @@ class ProductAdmin(admin.ModelAdmin):
     
     fieldsets = (
         ('Basic Information', {
-            'fields': ('title', 'description', 'description_html', 'product_type', 'owner'),
+            'fields': ('title', 'description', 'description_html', 'product_type', 'owner', 'is_published'),
             'description': 'For events, the main price will be set to 0 automatically. Individual ticket prices are set below.'
         }),
         ('Media', {
@@ -361,3 +362,17 @@ class ProductAdmin(admin.ModelAdmin):
         obj.ticket_quantity = None
         
         return response
+
+@admin.register(Review)
+class ReviewAdmin(admin.ModelAdmin):
+    list_display = ('product', 'user', 'rating', 'short_comment', 'created_at')
+    list_filter = ('rating', 'created_at')
+    search_fields = ('product__title', 'user__email', 'comment')
+    readonly_fields = ('created_at', 'updated_at')
+    ordering = ('-created_at',)
+
+    def short_comment(self, obj):
+        if not obj.comment:
+            return '—'
+        return obj.comment[:60] + ('…' if len(obj.comment) > 60 else '')
+    short_comment.short_description = 'Comment'

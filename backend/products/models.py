@@ -190,6 +190,17 @@ class Product(models.Model):
     cover_image = models.ImageField(upload_to='products/covers/', blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
+    # Draft/published state. Defaults to True so every product that existed
+    # before this field was added stays visible — unpublishing is an explicit
+    # choice, never something a migration does silently. An unpublished product
+    # disappears from public browse and detail, but keeps its slug, its file and
+    # its purchase history, so it can be put back without breaking old links or
+    # the libraries of people who already bought it.
+    is_published = models.BooleanField(
+        default=True,
+        help_text='Unpublished products are hidden from buyers but keep their sales history.',
+    )
+
     # For events/tickets
     event_date = models.DateTimeField(blank=True, null=True)
     event_end_date = models.DateTimeField(blank=True, null=True)
@@ -330,3 +341,63 @@ class Product(models.Model):
     def available_ticket_tiers(self):
         """Get only active ticket tiers with remaining quantity"""
         return self.ticket_tiers.filter(is_active=True).exclude(quantity_sold__gte=models.F('quantity_available'))
+
+
+class Review(models.Model):
+    """
+    A buyer's rating of a product they actually bought.
+
+    One review per person per product (enforced by a unique constraint), so a
+    single unhappy buyer can't bury a listing by posting repeatedly. Eligibility
+    is checked against the buyer's completed purchases rather than stored on the
+    review, so a refunded or reversed order can be handled without migrating
+    review rows.
+    """
+
+    product = models.ForeignKey(
+        Product, on_delete=models.CASCADE, related_name='reviews'
+    )
+    user = models.ForeignKey(
+        User, on_delete=models.CASCADE, related_name='reviews'
+    )
+    rating = models.PositiveSmallIntegerField(
+        choices=[(i, str(i)) for i in range(1, 6)],
+        help_text='Whole stars, 1 to 5.',
+    )
+    comment = models.TextField(blank=True, max_length=2000)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=['product', 'user'], name='one_review_per_user_per_product'
+            ),
+        ]
+        indexes = [
+            # The product page reads reviews newest-first for one product; this
+            # is the access pattern that actually runs on every product view.
+            models.Index(fields=['product', '-created_at']),
+        ]
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.email} rated {self.product.title} {self.rating}/5'
+
+    @staticmethod
+    def user_has_purchased(user, product):
+        """
+        Whether this user has a completed purchase of this product.
+
+        Checked at review time instead of trusting the client, and scoped to
+        successful payments — a pending or failed checkout must not unlock a
+        review.
+        """
+        if not user or not user.is_authenticated:
+            return False
+        from apps.payments.models import Purchase
+        return Purchase.objects.filter(
+            product=product,
+            payment__user=user,
+            payment__status='success',
+        ).exists()

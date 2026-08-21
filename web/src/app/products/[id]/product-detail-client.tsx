@@ -33,6 +33,8 @@ import { toast } from "sonner";
 import { useAuth } from "@/lib/auth/auth-context";
 import { useCart } from "@/lib/cart/cart-context";
 import { getImageUrl } from "@/lib/utils";
+import { ProductReviews } from "@/components/product-reviews";
+import { RatingSummary } from "@/components/star-rating";
 
 interface TicketTier {
   id: number;
@@ -68,6 +70,9 @@ interface Product {
   is_ticket_event?: boolean;
   seller_name: string;
   seller_id: number;
+  slug?: string;
+  average_rating?: number | null;
+  review_count?: number;
 }
 
 const fmtDate = (s: string) =>
@@ -524,6 +529,10 @@ export default function ProductDetailClient({ product }: { product: Product }) {
             </div>
           </div>
         </div>
+
+          <div className="mt-10">
+            <ProductReviews productId={product.slug || product.id} />
+          </div>
       </div>
     );
   }
@@ -575,9 +584,16 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           <div className="space-y-4">
             <div className="rounded-3xl border border-line bg-surface p-6">
               <h1 className="mb-1 text-2xl font-semibold text-ink sm:text-3xl">{product.title}</h1>
-              <div className="mb-4 flex items-center gap-1.5 text-sm text-body">
-                <User className="h-3.5 w-3.5" />
-                <span>by {product.seller_name}</span>
+              <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-1.5 text-sm text-body">
+                <span className="inline-flex items-center gap-1.5">
+                  <User className="h-3.5 w-3.5" />
+                  by {product.seller_name}
+                </span>
+                <RatingSummary
+                  average={product.average_rating ?? null}
+                  count={product.review_count ?? 0}
+                  size="sm"
+                />
               </div>
               <Separator className="my-4" />
               <h2 className="mb-3 text-sm font-semibold uppercase tracking-widest text-accent-link">About this product</h2>
@@ -606,6 +622,12 @@ export default function ProductDetailClient({ product }: { product: Product }) {
           </div>
         </div>
       </div>
+
+        {/* Reviews sit under both layouts — social proof belongs on the
+            page a buyer decides from, not a separate tab. */}
+        <div className="mt-10">
+          <ProductReviews productId={product.slug || product.id} />
+        </div>
     </div>
   );
 }

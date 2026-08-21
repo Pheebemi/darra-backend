@@ -1,8 +1,9 @@
 import json
 
+from django.db.models import Avg
 from rest_framework import serializers
 
-from .models import Product, TicketCategory, TicketTier, media_url_for
+from .models import Product, Review, TicketCategory, TicketTier, media_url_for
 
 DEFAULT_TICKET_COLOR = '#5465FF'
 
@@ -153,6 +154,8 @@ class ProductSerializer(serializers.ModelSerializer):
     file_url = serializers.SerializerMethodField()
     cover_image_url = serializers.SerializerMethodField()
     thumbnail_url = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Product
@@ -160,9 +163,33 @@ class ProductSerializer(serializers.ModelSerializer):
             'id', 'slug', 'title', 'description', 'description_html', 'price', 'product_type',
             'cover_image', 'has_file', 'file_url', 'cover_image_url', 'thumbnail_url',
             'created_at', 'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
-            'seller_name', 'seller_id', 'ticket_category', 'ticket_tiers', 'is_ticket_event'
+            'seller_name', 'seller_id', 'ticket_category', 'ticket_tiers', 'is_ticket_event',
+            'is_published', 'average_rating', 'review_count',
         ]
         read_only_fields = ['owner', 'created_at', 'slug']
+
+    def get_average_rating(self, obj):
+        """
+        Mean rating, or None when nobody has reviewed yet.
+
+        None rather than 0 on purpose: a brand-new product with no reviews is
+        not the same as one rated zero, and the UI needs to tell them apart to
+        decide between "No reviews yet" and a star row.
+
+        Reads the `avg_rating` annotation when the queryset supplied one, so
+        list endpoints aggregate in a single query instead of one per row.
+        """
+        annotated = getattr(obj, 'avg_rating', 'missing')
+        if annotated != 'missing':
+            return round(annotated, 2) if annotated is not None else None
+        result = obj.reviews.aggregate(avg=Avg('rating'))['avg']
+        return round(result, 2) if result is not None else None
+
+    def get_review_count(self, obj):
+        annotated = getattr(obj, 'num_reviews', None)
+        if annotated is not None:
+            return annotated
+        return obj.reviews.count()
 
     def get_has_file(self, obj):
         """Whether a downloadable file exists — safe to expose publicly."""
@@ -295,3 +322,29 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
             product.save()
 
         return product
+
+
+class ReviewSerializer(serializers.ModelSerializer):
+    user_name = serializers.SerializerMethodField()
+    is_own = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Review
+        fields = ['id', 'rating', 'comment', 'created_at', 'updated_at',
+                  'user_name', 'is_own']
+        read_only_fields = ['id', 'created_at', 'updated_at']
+
+    def get_user_name(self, obj):
+        # Reviews are public, so the reviewer's email must never be exposed
+        # here — fall back to a generic label rather than leaking it.
+        return obj.user.full_name or 'Darra buyer'
+
+    def get_is_own(self, obj):
+        request = self.context.get('request')
+        user = getattr(request, 'user', None)
+        return bool(user and user.is_authenticated and obj.user_id == user.id)
+
+    def validate_rating(self, value):
+        if not 1 <= value <= 5:
+            raise serializers.ValidationError('Rating must be between 1 and 5.')
+        return value

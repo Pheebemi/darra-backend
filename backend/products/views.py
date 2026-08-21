@@ -1,13 +1,13 @@
 from django.shortcuts import render
 from rest_framework import generics, permissions, status
-from .models import Product, TicketCategory, TicketTier
+from .models import Product, Review, TicketCategory, TicketTier
 from .serializers import (
     ProductSerializer, ProductCreateSerializer, ProductUpdateSerializer,
-    TicketCategorySerializer, TicketTierSerializer
+    ReviewSerializer, TicketCategorySerializer, TicketTierSerializer
 )
 from rest_framework.views import APIView
 from rest_framework.response import Response
-from django.db.models import Sum, Count, Q
+from django.db.models import Avg, Sum, Count, Q
 from rest_framework.permissions import IsAuthenticated
 from django.utils import timezone
 from datetime import timedelta
@@ -22,7 +22,7 @@ from .models import _r2_configured
 from .r2_uploads import build_file_key, generate_presigned_put, attach_r2_file
 from django.core.exceptions import ValidationError as DjangoValidationError
 from rest_framework.exceptions import ValidationError as DRFValidationError
-from core.pagination import StandardResultsPagination
+from core.pagination import StandardResultsPagination, paginate_list
 from core.cache_utils import (
     cache_product_list, cache_product_data, cache_user_data, 
     performance_monitor, CacheManager
@@ -254,7 +254,17 @@ class ProductListView(generics.ListAPIView):
 
     @performance_monitor('get_product_list')
     def get_queryset(self):
-        queryset = Product.objects.select_related('owner', 'ticket_category').prefetch_related('ticket_tiers')
+        queryset = (
+            Product.objects
+            # Drafts are the seller's private work in progress — they must
+            # never appear in public browse.
+            .filter(is_published=True)
+            .select_related('owner', 'ticket_category')
+            .prefetch_related('ticket_tiers')
+            # Aggregate here rather than per-row in the serializer, so a page
+            # of 24 products costs one query instead of 48.
+            .annotate(avg_rating=Avg('reviews__rating'), num_reviews=Count('reviews', distinct=True))
+        )
         product_type = self.request.query_params.get('product_type', None)
         ticket_category = self.request.query_params.get('ticket_category', None)
         search = self.request.query_params.get('search', None)
@@ -291,10 +301,21 @@ class PublicProductDetailView(generics.RetrieveAPIView):
         # The URL segment can be a slug (great-ebook) or a numeric id — resolve
         # either, so slug links and any old /products/<id> links both work.
         from django.shortcuts import get_object_or_404
+        from django.http import Http404
         identifier = str(self.kwargs.get('identifier', ''))
         queryset = self.get_queryset()
         lookup = {'pk': identifier} if identifier.isdigit() else {'slug': identifier}
         obj = get_object_or_404(queryset, **lookup)
+
+        # A draft is visible only to the seller who owns it, so they can
+        # preview the real page before publishing. To everyone else an
+        # unpublished product does not exist — 404 rather than 403, so the URL
+        # doesn't confirm that a hidden listing is sitting there.
+        if not obj.is_published:
+            user = self.request.user
+            if not (user.is_authenticated and obj.owner_id == user.id):
+                raise Http404('No Product matches the given query.')
+
         self.check_object_permissions(self.request, obj)
         return obj
 
@@ -400,6 +421,18 @@ class SellerAnalyticsView(APIView):
         if total_orders > 0:
             avg_order_value = total_revenue / total_orders
 
+        # Store-wide rating across everything this seller has listed.
+        #
+        # Deliberately NOT scoped to the selected period like the sales
+        # metrics above: a rating is a reputation figure, and someone who
+        # earned 4.8 over a year should not see it collapse to "no rating"
+        # because nobody happened to review in the last 7 days.
+        rating_summary = Review.objects.filter(product__owner=user).aggregate(
+            avg=Avg('rating'), total=Count('id')
+        )
+        avg_rating = round(rating_summary['avg'], 2) if rating_summary['avg'] is not None else None
+        review_count = rating_summary['total']
+
         # Get top performing products
         top_products = successful_purchases.values(
             'product__title'
@@ -445,7 +478,10 @@ class SellerAnalyticsView(APIView):
             "conversion_rate": 0,   # Would need view/download data
             "avg_session_duration": 0,  # Would need analytics integration
             "return_rate": 0,       # Would need return/refund data
-            "avg_rating": 0,        # Would need rating system
+            # None, not 0, when nothing is rated yet — "no reviews" and
+            # "rated zero" have to stay distinguishable to the dashboard.
+            "avg_rating": avg_rating,
+            "review_count": review_count,
             "top_country": "Nigeria",  # Default for now
             "top_products": top_products_data,
             "daily_revenue": [
@@ -462,4 +498,122 @@ class SellerAnalyticsView(APIView):
             "downloads_growth": orders_growth,
             "conversion_growth": 0,
             "aov_growth": 0,
+        })
+
+
+def _resolve_product(identifier, *, published_only=True):
+    """Look a product up by slug or numeric id, the same way the detail page does."""
+    from django.shortcuts import get_object_or_404
+    identifier = str(identifier)
+    lookup = {'pk': identifier} if identifier.isdigit() else {'slug': identifier}
+    if published_only:
+        lookup['is_published'] = True
+    return get_object_or_404(Product, **lookup)
+
+
+class ProductReviewListCreateView(APIView):
+    """
+    GET  — public list of a product's reviews, newest first.
+    POST — create or update the caller's own review.
+
+    POST is an upsert rather than a plain create: the model allows one review
+    per person per product, so a second POST from the same buyer edits what
+    they already wrote instead of failing on the unique constraint.
+    """
+    permission_classes = [permissions.AllowAny]
+
+    def get(self, request, identifier):
+        product = _resolve_product(identifier)
+        reviews = product.reviews.select_related('user')
+        summary = reviews.aggregate(avg=Avg('rating'), total=Count('id'))
+        page = paginate_list(
+            request,
+            reviews,
+            serialize=lambda r: ReviewSerializer(r, context={'request': request}).data,
+            default_page_size=10,
+        )
+        page['average_rating'] = round(summary['avg'], 2) if summary['avg'] is not None else None
+        page['review_count'] = summary['total']
+        page['can_review'] = Review.user_has_purchased(request.user, product)
+        page['has_reviewed'] = bool(
+            request.user.is_authenticated
+            and reviews.filter(user=request.user).exists()
+        )
+        return Response(page)
+
+    def post(self, request, identifier):
+        if not request.user.is_authenticated:
+            return Response(
+                {'message': 'Sign in to leave a review.'},
+                status=status.HTTP_401_UNAUTHORIZED,
+            )
+
+        product = _resolve_product(identifier)
+
+        # Only people who actually bought it. Checked server-side against
+        # successful payments — the client cannot assert this.
+        if not Review.user_has_purchased(request.user, product):
+            return Response(
+                {'message': 'You can only review a product you have purchased.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # A seller reviewing their own listing would be self-dealing.
+        if product.owner_id == request.user.id:
+            return Response(
+                {'message': 'You cannot review your own product.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        existing = Review.objects.filter(product=product, user=request.user).first()
+        serializer = ReviewSerializer(
+            existing, data=request.data, partial=bool(existing),
+            context={'request': request},
+        )
+        serializer.is_valid(raise_exception=True)
+        serializer.save(product=product, user=request.user)
+        CacheManager.invalidate_product_cache(product.id)
+        return Response(
+            serializer.data,
+            status=status.HTTP_200_OK if existing else status.HTTP_201_CREATED,
+        )
+
+
+class ProductReviewDeleteView(APIView):
+    """Delete the caller's own review."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def delete(self, request, identifier):
+        product = _resolve_product(identifier)
+        deleted, _ = Review.objects.filter(product=product, user=request.user).delete()
+        if not deleted:
+            return Response(
+                {'message': 'You have not reviewed this product.'},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+        CacheManager.invalidate_product_cache(product.id)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
+class ProductPublishToggleView(APIView):
+    """Publish or unpublish one of the caller's own products."""
+    permission_classes = [permissions.IsAuthenticated]
+
+    def post(self, request, pk):
+        from django.shortcuts import get_object_or_404
+        # Scoped to the caller's own products, so this can never flip
+        # someone else's listing.
+        product = get_object_or_404(Product, pk=pk, owner=request.user)
+
+        requested = request.data.get('is_published')
+        if requested is None:
+            product.is_published = not product.is_published
+        else:
+            product.is_published = str(requested).lower() in ('1', 'true', 'yes')
+
+        product.save(update_fields=['is_published'])
+        CacheManager.invalidate_product_cache(product.id)
+        return Response({
+            'id': product.id,
+            'is_published': product.is_published,
         })

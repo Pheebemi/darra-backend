@@ -7,10 +7,12 @@ from decimal import Decimal
 
 from django.core.cache import cache
 from django.test import TestCase, override_settings
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework import serializers as drf
 
-from core.test_factories import make_seller, make_product, make_event, make_user
-from .models import Product, TicketCategory, TicketTier, private_product_storage, _r2_configured
+from core.test_factories import make_seller, make_product, make_event, make_user, make_payment
+from .models import Product, Review, TicketCategory, TicketTier, private_product_storage, _r2_configured
 from .serializers import ProductSerializer, parse_ticket_types
 from .file_validation import validate_cover_image
 from django.core.exceptions import ValidationError as DjangoValidationError
@@ -564,3 +566,268 @@ class ProductListPaginationTests(TestCase):
         # 30 items exist; the cap (100) means we still get all 30, not an error.
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.json()['pagination']['page_size'], 100)
+
+
+class ProductPublishStateTests(TestCase):
+    """Drafts are hidden from buyers but stay intact for their owner."""
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.seller = make_seller()
+        self.client_api = APIClient()
+
+    def test_existing_products_default_to_published(self):
+        # The migration adds is_published with default=True precisely so no
+        # live listing silently disappears on deploy.
+        product = make_product(owner=self.seller)
+        self.assertTrue(product.is_published)
+
+    def test_draft_is_absent_from_public_list(self):
+        visible = make_product(owner=self.seller, title='Visible One')
+        hidden = make_product(owner=self.seller, title='Hidden One', is_published=False)
+
+        res = self.client_api.get('/api/products/')
+        titles = [p['title'] for p in res.data['results']]
+
+        self.assertIn(visible.title, titles)
+        self.assertNotIn(hidden.title, titles)
+
+    def test_draft_detail_404s_for_the_public(self):
+        hidden = make_product(owner=self.seller, is_published=False)
+        res = self.client_api.get(f'/api/products/{hidden.id}/')
+        self.assertEqual(res.status_code, 404)
+
+    def test_owner_can_still_preview_their_own_draft(self):
+        hidden = make_product(owner=self.seller, is_published=False)
+        self.client_api.force_authenticate(user=self.seller)
+        res = self.client_api.get(f'/api/products/{hidden.id}/')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.data['is_published'])
+
+    def test_seller_can_toggle_publish_state(self):
+        product = make_product(owner=self.seller)
+        self.client_api.force_authenticate(user=self.seller)
+
+        res = self.client_api.post(f'/api/products/my-products/{product.id}/publish/', {}, format='json')
+        self.assertEqual(res.status_code, 200)
+        self.assertFalse(res.data['is_published'])
+        product.refresh_from_db()
+        self.assertFalse(product.is_published)
+
+        # Explicit value rather than a flip.
+        res = self.client_api.post(
+            f'/api/products/my-products/{product.id}/publish/',
+            {'is_published': True}, format='json',
+        )
+        self.assertTrue(res.data['is_published'])
+
+    def test_cannot_toggle_someone_elses_product(self):
+        other = make_seller()
+        product = make_product(owner=other)
+        self.client_api.force_authenticate(user=self.seller)
+        res = self.client_api.post(f'/api/products/my-products/{product.id}/publish/', {}, format='json')
+        self.assertEqual(res.status_code, 404)
+        product.refresh_from_db()
+        self.assertTrue(product.is_published, "another seller's product was modified")
+
+
+class ProductReviewTests(TestCase):
+    """Only verified buyers can review, once each."""
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+        from apps.payments.models import Payment
+        self.Payment = Payment
+        self.seller = make_seller()
+        self.product = make_product(owner=self.seller)
+        self.buyer = make_user()
+        self.client_api = APIClient()
+
+    def _buy(self, user=None, product=None):
+        """Give `user` a completed purchase of `product`."""
+        payment = make_payment(
+            user=user or self.buyer,
+            product=product or self.product,
+            status=self.Payment.PaymentStatus.SUCCESS,
+        )
+        return payment
+
+    def test_non_purchaser_cannot_review(self):
+        self.client_api.force_authenticate(user=self.buyer)
+        res = self.client_api.post(
+            f'/api/products/{self.product.id}/reviews/',
+            {'rating': 5, 'comment': 'Never bought it'}, format='json',
+        )
+        self.assertEqual(res.status_code, 403)
+        self.assertEqual(Review.objects.count(), 0)
+
+    def test_pending_payment_does_not_unlock_a_review(self):
+        # A checkout that never completed must not count as a purchase.
+        make_payment(user=self.buyer, product=self.product)  # defaults to PENDING
+        self.client_api.force_authenticate(user=self.buyer)
+        res = self.client_api.post(
+            f'/api/products/{self.product.id}/reviews/',
+            {'rating': 5}, format='json',
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_purchaser_can_review(self):
+        self._buy()
+        self.client_api.force_authenticate(user=self.buyer)
+        res = self.client_api.post(
+            f'/api/products/{self.product.id}/reviews/',
+            {'rating': 4, 'comment': 'Solid guide.'}, format='json',
+        )
+        self.assertEqual(res.status_code, 201)
+        self.assertEqual(Review.objects.count(), 1)
+
+    def test_second_review_updates_instead_of_duplicating(self):
+        self._buy()
+        self.client_api.force_authenticate(user=self.buyer)
+        url = f'/api/products/{self.product.id}/reviews/'
+        self.client_api.post(url, {'rating': 2, 'comment': 'First take'}, format='json')
+        res = self.client_api.post(url, {'rating': 5, 'comment': 'Changed my mind'}, format='json')
+
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(Review.objects.count(), 1, 'a duplicate review row was created')
+        review = Review.objects.get()
+        self.assertEqual(review.rating, 5)
+        self.assertEqual(review.comment, 'Changed my mind')
+
+    def test_seller_cannot_review_own_product(self):
+        # Even if the seller somehow has a purchase row against their own item.
+        self._buy(user=self.seller)
+        self.client_api.force_authenticate(user=self.seller)
+        res = self.client_api.post(
+            f'/api/products/{self.product.id}/reviews/',
+            {'rating': 5}, format='json',
+        )
+        self.assertEqual(res.status_code, 403)
+
+    def test_rating_must_be_within_range(self):
+        self._buy()
+        self.client_api.force_authenticate(user=self.buyer)
+        for bad in (0, 6, 99):
+            res = self.client_api.post(
+                f'/api/products/{self.product.id}/reviews/',
+                {'rating': bad}, format='json',
+            )
+            self.assertEqual(res.status_code, 400, f'rating {bad} was accepted')
+
+    def test_anonymous_gets_401_not_a_crash(self):
+        res = self.client_api.post(
+            f'/api/products/{self.product.id}/reviews/',
+            {'rating': 5}, format='json',
+        )
+        self.assertEqual(res.status_code, 401)
+
+    def test_reviews_are_publicly_listable_without_leaking_emails(self):
+        self._buy()
+        Review.objects.create(product=self.product, user=self.buyer, rating=5, comment='Great')
+
+        res = self.client_api.get(f'/api/products/{self.product.id}/reviews/')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data['review_count'], 1)
+        self.assertEqual(res.data['average_rating'], 5.0)
+        body = str(res.data)
+        self.assertNotIn(self.buyer.email, body, 'reviewer email leaked into a public response')
+
+    def test_product_payload_exposes_aggregates(self):
+        buyer2 = make_user()
+        self._buy()
+        self._buy(user=buyer2)
+        Review.objects.create(product=self.product, user=self.buyer, rating=5)
+        Review.objects.create(product=self.product, user=buyer2, rating=2)
+
+        res = self.client_api.get(f'/api/products/{self.product.id}/')
+        self.assertEqual(res.data['average_rating'], 3.5)
+        self.assertEqual(res.data['review_count'], 2)
+
+    def test_unreviewed_product_reports_none_not_zero(self):
+        # None and 0 must stay distinguishable — "no reviews" is not "rated 0".
+        res = self.client_api.get(f'/api/products/{self.product.id}/')
+        self.assertIsNone(res.data['average_rating'])
+        self.assertEqual(res.data['review_count'], 0)
+
+    def test_list_endpoint_annotates_ratings(self):
+        self._buy()
+        Review.objects.create(product=self.product, user=self.buyer, rating=4)
+        res = self.client_api.get('/api/products/')
+        row = next(p for p in res.data['results'] if p['id'] == self.product.id)
+        self.assertEqual(row['average_rating'], 4.0)
+        self.assertEqual(row['review_count'], 1)
+
+    def test_buyer_can_delete_own_review(self):
+        self._buy()
+        Review.objects.create(product=self.product, user=self.buyer, rating=3)
+        self.client_api.force_authenticate(user=self.buyer)
+        res = self.client_api.delete(f'/api/products/{self.product.id}/reviews/mine/')
+        self.assertEqual(res.status_code, 204)
+        self.assertEqual(Review.objects.count(), 0)
+
+    def test_cannot_delete_another_persons_review(self):
+        other = make_user()
+        self._buy()
+        Review.objects.create(product=self.product, user=self.buyer, rating=3)
+        self.client_api.force_authenticate(user=other)
+        res = self.client_api.delete(f'/api/products/{self.product.id}/reviews/mine/')
+        self.assertEqual(res.status_code, 404)
+        self.assertEqual(Review.objects.count(), 1, "someone else's review was deleted")
+
+
+class SellerAnalyticsRatingTests(TestCase):
+    """The dashboard's avg_rating is a real store-wide figure, not a placeholder."""
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+        from apps.payments.models import Payment
+        self.Payment = Payment
+        self.seller = make_seller()
+        self.client_api = APIClient()
+        self.client_api.force_authenticate(user=self.seller)
+
+    def _review(self, product, rating):
+        buyer = make_user()
+        make_payment(user=buyer, product=product, status=self.Payment.PaymentStatus.SUCCESS)
+        return Review.objects.create(product=product, user=buyer, rating=rating)
+
+    def test_no_reviews_reports_none_not_zero(self):
+        make_product(owner=self.seller)
+        res = self.client_api.get('/api/products/analytics/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNone(res.data['avg_rating'])
+        self.assertEqual(res.data['review_count'], 0)
+
+    def test_averages_across_all_of_the_sellers_products(self):
+        a = make_product(owner=self.seller)
+        b = make_product(owner=self.seller)
+        self._review(a, 5)
+        self._review(a, 4)
+        self._review(b, 3)
+
+        res = self.client_api.get('/api/products/analytics/')
+        self.assertEqual(res.data['avg_rating'], 4.0)
+        self.assertEqual(res.data['review_count'], 3)
+
+    def test_another_sellers_reviews_are_excluded(self):
+        mine = make_product(owner=self.seller)
+        theirs = make_product(owner=make_seller())
+        self._review(mine, 5)
+        self._review(theirs, 1)
+
+        res = self.client_api.get('/api/products/analytics/')
+        self.assertEqual(res.data['avg_rating'], 5.0, "another seller's reviews leaked in")
+        self.assertEqual(res.data['review_count'], 1)
+
+    def test_rating_ignores_the_selected_period(self):
+        # A rating earned earlier must not vanish just because the seller is
+        # looking at a short window with no recent reviews.
+        product = make_product(owner=self.seller)
+        review = self._review(product, 5)
+        Review.objects.filter(pk=review.pk).update(
+            created_at=timezone.now() - timedelta(days=400)
+        )
+
+        res = self.client_api.get('/api/products/analytics/?time_range=7d')
+        self.assertEqual(res.data['avg_rating'], 5.0)
+        self.assertEqual(res.data['review_count'], 1)
