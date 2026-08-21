@@ -421,6 +421,18 @@ class SellerAnalyticsView(APIView):
         if total_orders > 0:
             avg_order_value = total_revenue / total_orders
 
+        # Store-wide rating across everything this seller has listed.
+        #
+        # Deliberately NOT scoped to the selected period like the sales
+        # metrics above: a rating is a reputation figure, and someone who
+        # earned 4.8 over a year should not see it collapse to "no rating"
+        # because nobody happened to review in the last 7 days.
+        rating_summary = Review.objects.filter(product__owner=user).aggregate(
+            avg=Avg('rating'), total=Count('id')
+        )
+        avg_rating = round(rating_summary['avg'], 2) if rating_summary['avg'] is not None else None
+        review_count = rating_summary['total']
+
         # Get top performing products
         top_products = successful_purchases.values(
             'product__title'
@@ -466,7 +478,10 @@ class SellerAnalyticsView(APIView):
             "conversion_rate": 0,   # Would need view/download data
             "avg_session_duration": 0,  # Would need analytics integration
             "return_rate": 0,       # Would need return/refund data
-            "avg_rating": 0,        # Would need rating system
+            # None, not 0, when nothing is rated yet — "no reviews" and
+            # "rated zero" have to stay distinguishable to the dashboard.
+            "avg_rating": avg_rating,
+            "review_count": review_count,
             "top_country": "Nigeria",  # Default for now
             "top_products": top_products_data,
             "daily_revenue": [

@@ -7,6 +7,8 @@ from decimal import Decimal
 
 from django.core.cache import cache
 from django.test import TestCase, override_settings
+from django.utils import timezone
+from datetime import timedelta
 from rest_framework import serializers as drf
 
 from core.test_factories import make_seller, make_product, make_event, make_user, make_payment
@@ -771,3 +773,61 @@ class ProductReviewTests(TestCase):
         res = self.client_api.delete(f'/api/products/{self.product.id}/reviews/mine/')
         self.assertEqual(res.status_code, 404)
         self.assertEqual(Review.objects.count(), 1, "someone else's review was deleted")
+
+
+class SellerAnalyticsRatingTests(TestCase):
+    """The dashboard's avg_rating is a real store-wide figure, not a placeholder."""
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+        from apps.payments.models import Payment
+        self.Payment = Payment
+        self.seller = make_seller()
+        self.client_api = APIClient()
+        self.client_api.force_authenticate(user=self.seller)
+
+    def _review(self, product, rating):
+        buyer = make_user()
+        make_payment(user=buyer, product=product, status=self.Payment.PaymentStatus.SUCCESS)
+        return Review.objects.create(product=product, user=buyer, rating=rating)
+
+    def test_no_reviews_reports_none_not_zero(self):
+        make_product(owner=self.seller)
+        res = self.client_api.get('/api/products/analytics/')
+        self.assertEqual(res.status_code, 200)
+        self.assertIsNone(res.data['avg_rating'])
+        self.assertEqual(res.data['review_count'], 0)
+
+    def test_averages_across_all_of_the_sellers_products(self):
+        a = make_product(owner=self.seller)
+        b = make_product(owner=self.seller)
+        self._review(a, 5)
+        self._review(a, 4)
+        self._review(b, 3)
+
+        res = self.client_api.get('/api/products/analytics/')
+        self.assertEqual(res.data['avg_rating'], 4.0)
+        self.assertEqual(res.data['review_count'], 3)
+
+    def test_another_sellers_reviews_are_excluded(self):
+        mine = make_product(owner=self.seller)
+        theirs = make_product(owner=make_seller())
+        self._review(mine, 5)
+        self._review(theirs, 1)
+
+        res = self.client_api.get('/api/products/analytics/')
+        self.assertEqual(res.data['avg_rating'], 5.0, "another seller's reviews leaked in")
+        self.assertEqual(res.data['review_count'], 1)
+
+    def test_rating_ignores_the_selected_period(self):
+        # A rating earned earlier must not vanish just because the seller is
+        # looking at a short window with no recent reviews.
+        product = make_product(owner=self.seller)
+        review = self._review(product, 5)
+        Review.objects.filter(pk=review.pk).update(
+            created_at=timezone.now() - timedelta(days=400)
+        )
+
+        res = self.client_api.get('/api/products/analytics/?time_range=7d')
+        self.assertEqual(res.data['avg_rating'], 5.0)
+        self.assertEqual(res.data['review_count'], 1)
