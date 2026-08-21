@@ -24,10 +24,13 @@ def generate_product_description(product_data, ticket_types=None):
     product_type = product_data.get('product_type', '')
     is_event = product_type == 'event'
 
-    details = {
-        'Title': product_data.get('title', ''),
-        'Type': PRODUCT_TYPE_LABELS.get(product_type, product_type),
-    }
+    details = {'Title': product_data.get('title', '')}
+    # An empty type means the seller hasn't chosen one yet. Omit it rather
+    # than guessing: the form's dropdown defaults to "event", and passing that
+    # unconfirmed default through is what used to get eBooks described as
+    # events. Without a type the model is told to stay format-neutral.
+    if product_type:
+        details['Type'] = PRODUCT_TYPE_LABELS.get(product_type, product_type)
     price = product_data.get('price')
     if price and str(price) != '0':
         details['Price'] = price
@@ -75,12 +78,26 @@ def generate_product_description(product_data, ticket_types=None):
             'or guarantees. '
         )
 
+    if product_type:
+        format_rule = (
+            'Do not mention "event" or "ticket" unless the product type given '
+            'below is an event. '
+        )
+    else:
+        # No type chosen yet — say nothing about the delivery format at all,
+        # in either direction.
+        format_rule = (
+            'The product type is not known yet, so write about what the '
+            'product offers without describing how it is delivered. Do not '
+            'call it an event, a ticket, a download, a file, or a book. '
+        )
+
     prompt = (
         'You are writing for Darra, a digital marketplace where creators sell '
         'eBooks, audio, and event tickets. '
         f'{task}'
-        'Do not mention "event" or "ticket" unless the product type given '
-        'below is an event. Return plain text in 1-3 short paragraphs, '
+        f'{format_rule}'
+        'Return plain text in 1-3 short paragraphs, '
         'without a heading, markdown, emojis, or quotation marks. '
         f'Product details: {details}'
     )

@@ -972,3 +972,57 @@ class ProductDescriptionNotesTests(TestCase):
         payload = generate.call_args.args[0]
         self.assertEqual(payload['notes'], 'My own rough notes.')
         self.assertEqual(payload['brand_name'], 'Real Brand')
+
+
+class ProductDescriptionUnknownTypeTests(TestCase):
+    """
+    The generate button is available as soon as there is a title, so the
+    seller may not have chosen a product type yet. An unknown type must make
+    the copy format-neutral rather than guessing — the form's dropdown
+    defaults to "event", and guessing is what described eBooks as events.
+    """
+
+    _capture_prompt = staticmethod(capture_ai_prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_unknown_type_is_omitted_from_the_details(self):
+        prompt = self._capture_prompt({'title': 'Untyped Thing', 'product_type': ''})
+        self.assertIn('Untyped Thing', prompt)
+        self.assertNotIn("'Type'", prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_unknown_type_asks_for_format_neutral_copy(self):
+        prompt = self._capture_prompt({'title': 'Untyped Thing', 'product_type': ''})
+        self.assertIn('product type is not known yet', prompt)
+        self.assertIn('Do not call it an event, a ticket, a download', prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_unknown_type_never_pulls_in_event_fields(self):
+        prompt = self._capture_prompt(
+            {
+                'title': 'Untyped Thing',
+                'product_type': '',
+                'venue_name': 'City Hall',
+                'speakers': 'Someone',
+            },
+            ticket_types=[{'name': 'VIP', 'price': 1, 'quantity': 1}],
+        )
+        self.assertNotIn('City Hall', prompt)
+        self.assertNotIn('Ticket options', prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_a_chosen_type_still_states_it(self):
+        prompt = self._capture_prompt({'title': 'My eBook', 'product_type': 'pdf'})
+        self.assertIn('eBook (PDF download)', prompt)
+        self.assertNotIn('product type is not known yet', prompt)
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_notes_still_drive_a_rewrite_without_a_type(self):
+        prompt = self._capture_prompt({
+            'title': 'Untyped Thing',
+            'product_type': '',
+            'notes': 'It teaches phone photography.',
+        })
+        self.assertIn("Rewrite the seller's own notes", prompt)
+        self.assertIn('phone photography', prompt)
+        self.assertIn('product type is not known yet', prompt)
