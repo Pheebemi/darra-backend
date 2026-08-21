@@ -81,10 +81,10 @@ function CreateEventInner() {
   const [description, setDescription] = useState("");
   const [price, setPrice] = useState("");
   const [productType, setProductType] = useState("event");
-  // "event" above is just the initial Select value, not a seller choice — the
-  // AI generator needs to know the seller actually confirmed it, otherwise a
-  // click before they've touched this field would describe an eBook/audio
-  // upload as an event.
+  // "event" above is just the initial Select value, not a seller choice.
+  // Tracked separately so the AI request can send an empty type until the
+  // seller actually picks one — passing the unconfirmed default through is
+  // what used to get eBooks described as events.
   const [productTypeConfirmed, setProductTypeConfirmed] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [eventDate, setEventDate] = useState("");
@@ -138,8 +138,17 @@ function CreateEventInner() {
   const fetchProductForEdit = async () => {
     try {
       setFetchingProduct(true);
-      const res = await fetch(`/api/products/${editId}`);
-      if (!res.ok) throw new Error("Failed to fetch product");
+      // The owner-scoped endpoint, not the public one. A draft is hidden from
+      // the public detail route by design, so loading your own unpublished
+      // product for editing has to go through the authenticated path.
+      const res = await fetch(`/api/seller/products/${editId}`);
+      if (!res.ok) {
+        throw new Error(
+          res.status === 404
+            ? "Product not found, or it isn't yours to edit."
+            : "Failed to fetch product"
+        );
+      }
       const data = await res.json();
 
       setTitle(data.title || "");
@@ -254,10 +263,6 @@ function CreateEventInner() {
       toast.error("Enter a product title first");
       return;
     }
-    if (!productTypeConfirmed) {
-      toast.error("Select a product type first");
-      return;
-    }
 
     setIsGeneratingDescription(true);
     try {
@@ -266,7 +271,10 @@ function CreateEventInner() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title.trim(),
-          product_type: productType,
+          // Empty when the seller hasn't touched the dropdown. The field
+          // defaults to "event", and sending that unconfirmed default is what
+          // used to make eBooks get described as events.
+          product_type: productTypeConfirmed ? productType : "",
           price: price || "0",
           // Whatever the seller has already written. Sent as the brief so the
           // model polishes their words instead of inventing from a title —
@@ -487,10 +495,10 @@ function CreateEventInner() {
                           variant="outline"
                           size="sm"
                           onClick={handleGenerateDescription}
-                          disabled={isGeneratingDescription || !title.trim() || !productTypeConfirmed}
+                          disabled={isGeneratingDescription || !title.trim()}
                           title={
-                            !productTypeConfirmed
-                              ? "Select a product type first"
+                            !title.trim()
+                              ? "Add a product title first"
                               : description.trim()
                                 ? "Rewrite what you've written into polished copy"
                                 : "Generate a description with AI"
@@ -507,16 +515,10 @@ function CreateEventInner() {
                       <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your product..." rows={4} />
                       {/* A title attribute on a disabled button is easy to
                           miss, so say why it's inactive in the open. */}
-                      {!productTypeConfirmed && !!title.trim() ? (
+                      {!!description.trim() && (
                         <p className="text-xs text-faint">
-                          Pick a product type above to enable AI descriptions.
+                          AI will rewrite what you&apos;ve written, keeping your facts.
                         </p>
-                      ) : (
-                        !!description.trim() && (
-                          <p className="text-xs text-faint">
-                            AI will rewrite what you&apos;ve written, keeping your facts.
-                          </p>
-                        )
                       )}
                     </div>
 
