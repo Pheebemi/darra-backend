@@ -449,28 +449,6 @@ function CreateEventInner() {
                       <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Product title" className="h-11" />
                     </div>
 
-                    <div className="space-y-1.5">
-                      <div className="flex items-center justify-between gap-3">
-                        <Label htmlFor="description" className="text-sm font-medium text-strong">Description</Label>
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          onClick={handleGenerateDescription}
-                          disabled={isGeneratingDescription || !title.trim() || !productTypeConfirmed}
-                          title={
-                            !productTypeConfirmed
-                              ? "Select a product type first"
-                              : "Generate a description with AI"
-                          }
-                        >
-                          {isGeneratingDescription ? <Loader2 className="animate-spin" /> : <Sparkles />}
-                          {isGeneratingDescription ? "Generating..." : "Generate with AI"}
-                        </Button>
-                      </div>
-                      <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your product..." rows={4} />
-                    </div>
-
                     <div className="grid gap-4 sm:grid-cols-2">
                       <div className="space-y-1.5">
                         <Label htmlFor="productType" className="text-sm font-medium text-strong">Product Type</Label>
@@ -494,6 +472,35 @@ function CreateEventInner() {
                           <Label htmlFor="price" className="text-sm font-medium text-strong">Price (₦)</Label>
                           <Input id="price" type="number" value={price} onChange={(e) => setPrice(e.target.value)} placeholder="0.00" step="0.01" min="0" className="h-11" />
                         </div>
+                      )}
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between gap-3">
+                        <Label htmlFor="description" className="text-sm font-medium text-strong">Description</Label>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          onClick={handleGenerateDescription}
+                          disabled={isGeneratingDescription || !title.trim() || !productTypeConfirmed}
+                          title={
+                            !productTypeConfirmed
+                              ? "Select a product type first"
+                              : "Generate a description with AI"
+                          }
+                        >
+                          {isGeneratingDescription ? <Loader2 className="animate-spin" /> : <Sparkles />}
+                          {isGeneratingDescription ? "Generating..." : "Generate with AI"}
+                        </Button>
+                      </div>
+                      <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Describe your product..." rows={4} />
+                      {/* A title attribute on a disabled button is easy to
+                          miss, so say why it's inactive in the open. */}
+                      {!productTypeConfirmed && !!title.trim() && (
+                        <p className="text-xs text-faint">
+                          Pick a product type above to enable AI descriptions.
+                        </p>
                       )}
                     </div>
 

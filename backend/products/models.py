@@ -385,6 +385,22 @@ class Review(models.Model):
         return f'{self.user.email} rated {self.product.title} {self.rating}/5'
 
     @staticmethod
+    def can_be_reviewed_by(user, product):
+        """
+        Whether this user is allowed to review this product.
+
+        The single source of truth for eligibility, so the flag the product
+        page reads and the check the write endpoint enforces can't drift
+        apart — previously `can_review` skipped the owner rule, so a seller
+        holding a purchase of their own product would be shown a form that
+        then 403'd on submit.
+        """
+        if not Review.user_has_purchased(user, product):
+            return False
+        # Reviewing your own listing is self-dealing.
+        return product.owner_id != user.id
+
+    @staticmethod
     def user_has_purchased(user, product):
         """
         Whether this user has a completed purchase of this product.

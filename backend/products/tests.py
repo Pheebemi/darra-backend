@@ -831,3 +831,52 @@ class SellerAnalyticsRatingTests(TestCase):
         res = self.client_api.get('/api/products/analytics/?time_range=7d')
         self.assertEqual(res.data['avg_rating'], 5.0)
         self.assertEqual(res.data['review_count'], 1)
+
+
+class ReviewEligibilityConsistencyTests(TestCase):
+    """
+    The flag the product page reads and the rule the write endpoint enforces
+    must agree. They used to drift: can_review checked only the purchase, so
+    a seller holding a purchase of their own product was shown a form that
+    then 403'd on submit.
+    """
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+        from apps.payments.models import Payment
+        self.Payment = Payment
+        self.seller = make_seller()
+        self.product = make_product(owner=self.seller)
+        self.client_api = APIClient()
+
+    def test_owner_with_a_purchase_is_not_offered_the_form(self):
+        # Contrive the state the cart normally prevents.
+        make_payment(user=self.seller, product=self.product,
+                     status=self.Payment.PaymentStatus.SUCCESS)
+        self.client_api.force_authenticate(user=self.seller)
+
+        listing = self.client_api.get(f'/api/products/{self.product.id}/reviews/')
+        self.assertFalse(listing.data['can_review'], 'seller was offered a form they cannot submit')
+
+        posting = self.client_api.post(
+            f'/api/products/{self.product.id}/reviews/', {'rating': 5}, format='json',
+        )
+        self.assertEqual(posting.status_code, 403)
+
+    def test_flag_matches_the_endpoint_for_a_real_buyer(self):
+        buyer = make_user()
+        make_payment(user=buyer, product=self.product,
+                     status=self.Payment.PaymentStatus.SUCCESS)
+        self.client_api.force_authenticate(user=buyer)
+
+        listing = self.client_api.get(f'/api/products/{self.product.id}/reviews/')
+        self.assertTrue(listing.data['can_review'])
+
+        posting = self.client_api.post(
+            f'/api/products/{self.product.id}/reviews/', {'rating': 5}, format='json',
+        )
+        self.assertEqual(posting.status_code, 201)
+
+    def test_anonymous_visitor_is_not_offered_the_form(self):
+        listing = self.client_api.get(f'/api/products/{self.product.id}/reviews/')
+        self.assertFalse(listing.data['can_review'])

@@ -534,7 +534,7 @@ class ProductReviewListCreateView(APIView):
         )
         page['average_rating'] = round(summary['avg'], 2) if summary['avg'] is not None else None
         page['review_count'] = summary['total']
-        page['can_review'] = Review.user_has_purchased(request.user, product)
+        page['can_review'] = Review.can_be_reviewed_by(request.user, product)
         page['has_reviewed'] = bool(
             request.user.is_authenticated
             and reviews.filter(user=request.user).exists()
@@ -550,18 +550,18 @@ class ProductReviewListCreateView(APIView):
 
         product = _resolve_product(identifier)
 
-        # Only people who actually bought it. Checked server-side against
-        # successful payments — the client cannot assert this.
-        if not Review.user_has_purchased(request.user, product):
-            return Response(
-                {'message': 'You can only review a product you have purchased.'},
-                status=status.HTTP_403_FORBIDDEN,
-            )
-
         # A seller reviewing their own listing would be self-dealing.
         if product.owner_id == request.user.id:
             return Response(
                 {'message': 'You cannot review your own product.'},
+                status=status.HTTP_403_FORBIDDEN,
+            )
+
+        # Only people who actually bought it. Checked server-side against
+        # successful payments — the client cannot assert this.
+        if not Review.can_be_reviewed_by(request.user, product):
+            return Response(
+                {'message': 'You can only review a product you have purchased.'},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
