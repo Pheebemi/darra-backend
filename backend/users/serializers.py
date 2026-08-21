@@ -172,13 +172,42 @@ class BankDetailSerializer(serializers.ModelSerializer):
 class SellerStoreSerializer(serializers.ModelSerializer):
     products = serializers.SerializerMethodField()
     banner_url = serializers.SerializerMethodField()
+    average_rating = serializers.SerializerMethodField()
+    review_count = serializers.SerializerMethodField()
 
     class Meta:
         model = User
         fields = [
             'id', 'full_name', 'brand_name', 'brand_slug',
-            'about', 'open_time', 'close_time', 'store_active', 'banner_url', 'products'
+            'about', 'open_time', 'close_time', 'store_active', 'banner_url',
+            'products', 'average_rating', 'review_count',
         ]
+
+    def _rating_summary(self, obj):
+        """
+        Shop rating derived from the reviews on this seller's products.
+
+        Derived rather than collected separately: a second, standalone
+        "rate this seller" score would need its own eligibility rules and
+        would inevitably disagree with the product ratings buyers can already
+        see. Cached on the instance because both fields need the same query.
+        """
+        if not hasattr(obj, '_cached_rating_summary'):
+            from django.db.models import Avg, Count
+            from products.models import Review
+            obj._cached_rating_summary = Review.objects.filter(
+                product__owner=obj
+            ).aggregate(avg=Avg('rating'), total=Count('id'))
+        return obj._cached_rating_summary
+
+    def get_average_rating(self, obj):
+        # None, not 0, when unrated — "no reviews" and "rated zero" have to
+        # stay distinguishable to the UI.
+        avg = self._rating_summary(obj)['avg']
+        return round(avg, 2) if avg is not None else None
+
+    def get_review_count(self, obj):
+        return self._rating_summary(obj)['total']
 
     def get_banner_url(self, obj):
         if obj.banner:
@@ -190,5 +219,8 @@ class SellerStoreSerializer(serializers.ModelSerializer):
 
     def get_products(self, obj):
         from products.serializers import ProductSerializer
-        products = obj.products.all().order_by('-id')
+        # Published only. This is a public storefront, so a seller's drafts
+        # must not appear here — the product list and detail endpoints
+        # already filter them out, and this was the remaining way in.
+        products = obj.products.filter(is_published=True).order_by('-id')
         return ProductSerializer(products, many=True, context=self.context).data

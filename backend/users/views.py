@@ -32,7 +32,7 @@ from .serializers import BankDetailSerializer
 from rest_framework.throttling import AnonRateThrottle
 from django.contrib.auth import authenticate
 from django.conf import settings
-from django.db.models import Count, Q
+from django.db.models import Avg, Count, Q
 from core.pagination import paginate_list
 from core.throttling import AuthenticationRateThrottle  # Import custom rate limiting
 from .otp_security import (
@@ -535,7 +535,18 @@ class AllStoresView(APIView):
             .exclude(brand_slug='')
             # annotate() instead of s.products.count() inside the loop, which
             # ran one extra query per seller.
-            .annotate(product_count=Count('products'))
+            #
+            # distinct=True on both counts matters: joining through reviews
+            # fans each product out into one row per review, which would
+            # otherwise inflate product_count. The Avg is unaffected, since a
+            # review joins to exactly one product.
+            .annotate(
+                product_count=Count(
+                    'products', filter=Q(products__is_published=True), distinct=True
+                ),
+                avg_rating=Avg('products__reviews__rating'),
+                review_count=Count('products__reviews', distinct=True),
+            )
             # Explicit order so paging is stable; id breaks ties.
             .order_by('brand_name', 'id')
         )
@@ -554,5 +565,9 @@ class AllStoresView(APIView):
                 'brand_slug': s.brand_slug,
                 'about': s.about,
                 'product_count': s.product_count,
+                # None, not 0, when unrated — the card hides the row entirely
+                # rather than showing a discouraging 0.0 on a new store.
+                'average_rating': round(s.avg_rating, 2) if s.avg_rating is not None else None,
+                'review_count': s.review_count,
             },
         ))

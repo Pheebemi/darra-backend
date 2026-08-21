@@ -3,12 +3,15 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Input } from "@/components/ui/input";
 import { Store, Search, ArrowRight } from "lucide-react";
+import { RatingSummary } from "@/components/star-rating";
 
 interface StoreItem {
   brand_name: string;
   brand_slug: string;
   about: string | null;
   product_count: number;
+  average_rating?: number | null;
+  review_count?: number;
 }
 
 // The store "about" is saved as HTML by the rich-text editor. On these list
@@ -140,6 +143,14 @@ export default function AllStoresPage() {
                     </div>
                     {stripHtml(store.about) && (
                       <p className="mb-4 line-clamp-2 text-sm text-body">{stripHtml(store.about)}</p>
+                    )}
+                    {!!store.review_count && (
+                      <RatingSummary
+                        average={store.average_rating ?? null}
+                        count={store.review_count}
+                        size="sm"
+                        className="mb-3"
+                      />
                     )}
                     <div className="mt-auto flex items-center justify-between">
                       <span className="text-sm font-medium text-accent-link">

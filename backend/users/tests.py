@@ -136,3 +136,90 @@ class AuthThrottleTests(TestCase):
             codes.append(res.status_code)
         self.assertIn(429, codes, "login endpoint never throttled")
         self.assertEqual(codes.index(429), 10)  # first ten allowed, then blocked
+
+
+class StoreRatingTests(TestCase):
+    """
+    Shop ratings are derived from the reviews on a seller's products, not
+    collected separately — and a public storefront must not expose drafts.
+    """
+
+    def setUp(self):
+        from rest_framework.test import APIClient
+        from core.test_factories import make_seller
+        self.client_api = APIClient()
+        self.seller = make_seller(brand_name='Rated Store', brand_slug='rated-store')
+
+    def _reviewed_product(self, ratings, owner=None, **kwargs):
+        from core.test_factories import make_product, make_payment, make_user
+        from apps.payments.models import Payment
+        from products.models import Review
+        product = make_product(owner=owner or self.seller, **kwargs)
+        for rating in ratings:
+            buyer = make_user()
+            make_payment(user=buyer, product=product, status=Payment.PaymentStatus.SUCCESS)
+            Review.objects.create(product=product, user=buyer, rating=rating)
+        return product
+
+    def test_store_detail_derives_rating_from_product_reviews(self):
+        self._reviewed_product([5, 4])
+        self._reviewed_product([3])
+
+        res = self.client_api.get('/api/auth/store/rated-store/')
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data['average_rating'], 4.0)
+        self.assertEqual(res.data['review_count'], 3)
+
+    def test_unrated_store_reports_none_not_zero(self):
+        from core.test_factories import make_product
+        make_product(owner=self.seller)
+        res = self.client_api.get('/api/auth/store/rated-store/')
+        self.assertIsNone(res.data['average_rating'])
+        self.assertEqual(res.data['review_count'], 0)
+
+    def test_store_page_hides_unpublished_products(self):
+        from core.test_factories import make_product
+        make_product(owner=self.seller, title='Live One', is_published=True)
+        make_product(owner=self.seller, title='Secret Draft', is_published=False)
+
+        res = self.client_api.get('/api/auth/store/rated-store/')
+        titles = [p['title'] for p in res.data['products']]
+        self.assertIn('Live One', titles)
+        self.assertNotIn('Secret Draft', titles, 'a draft leaked onto the public storefront')
+
+    def test_stores_list_includes_rating(self):
+        self._reviewed_product([5, 4])
+        res = self.client_api.get('/api/auth/stores/')
+        row = next(s for s in res.data['results'] if s['brand_slug'] == 'rated-store')
+        self.assertEqual(row['average_rating'], 4.5)
+        self.assertEqual(row['review_count'], 2)
+
+    def test_stores_list_product_count_is_not_inflated_by_reviews(self):
+        # Joining through reviews fans each product into one row per review.
+        # Without distinct=True a 1-product store with 3 reviews would report
+        # 3 products.
+        self._reviewed_product([5, 4, 3])
+
+        res = self.client_api.get('/api/auth/stores/')
+        row = next(s for s in res.data['results'] if s['brand_slug'] == 'rated-store')
+        self.assertEqual(row['product_count'], 1)
+        self.assertEqual(row['review_count'], 3)
+
+    def test_stores_list_product_count_excludes_drafts(self):
+        from core.test_factories import make_product
+        make_product(owner=self.seller, is_published=True)
+        make_product(owner=self.seller, is_published=False)
+
+        res = self.client_api.get('/api/auth/stores/')
+        row = next(s for s in res.data['results'] if s['brand_slug'] == 'rated-store')
+        self.assertEqual(row['product_count'], 1, 'drafts were counted on the public listing')
+
+    def test_another_sellers_reviews_do_not_affect_this_store(self):
+        from core.test_factories import make_seller
+        other = make_seller(brand_name='Other Store', brand_slug='other-store')
+        self._reviewed_product([5])
+        self._reviewed_product([1], owner=other)
+
+        res = self.client_api.get('/api/auth/store/rated-store/')
+        self.assertEqual(res.data['average_rating'], 5.0)
+        self.assertEqual(res.data['review_count'], 1)

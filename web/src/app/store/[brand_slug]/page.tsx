@@ -4,6 +4,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Store, Clock, CheckCircle2, XCircle, Package, ArrowRight } from "lucide-react";
+import { RatingSummary } from "@/components/star-rating";
 
 interface Product {
   id: number;
@@ -26,6 +27,8 @@ interface StoreData {
   store_active: boolean;
   banner_url: string | null;
   products: Product[];
+  average_rating?: number | null;
+  review_count?: number;
 }
 
 export default function PublicStorePage() {
@@ -148,6 +151,17 @@ export default function PublicStorePage() {
             <Package className="h-4 w-4 text-accent-link" />
             <span>{store.products.length} {store.products.length === 1 ? "product" : "products"}</span>
           </div>
+          {/* Shop rating, derived from this seller's product reviews. It sits
+              here rather than under the store name because that row is
+              items-end over the banner — an extra line there grows upward
+              into the dark artwork. */}
+          {!!store.review_count && (
+            <RatingSummary
+              average={store.average_rating ?? null}
+              count={store.review_count}
+              size="sm"
+            />
+          )}
           {(store.open_time || store.close_time) && (
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-accent-link" />
