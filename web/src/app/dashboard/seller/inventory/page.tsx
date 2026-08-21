@@ -29,7 +29,6 @@ import {
   Search,
   Filter,
   Edit,
-  Share2,
   MoreVertical,
   Calendar,
   Users,
@@ -41,6 +40,9 @@ import {
   Archive,
   Video,
   Ticket,
+  Eye,
+  EyeOff,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -56,6 +58,9 @@ interface Product {
   event_date?: string;
   ticket_quantity?: number;
   is_ticket_event?: boolean;
+  is_published?: boolean;
+  average_rating?: number | null;
+  review_count?: number;
 }
 
 const PRODUCT_TYPES = [
@@ -113,6 +118,7 @@ export default function InventoryPage() {
   const [search, setSearch] = useState("");
   const [filterType, setFilterType] = useState("");
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [publishingId, setPublishingId] = useState<number | null>(null);
 
   useEffect(() => {
     if (initialized && !isAuthenticated) {
@@ -151,6 +157,40 @@ export default function InventoryPage() {
 
   const handleEditProduct = (product: Product) => {
     router.push(`/dashboard/seller/create-event?edit=${product.id}`);
+  };
+
+  const togglePublish = async (product: Product) => {
+    const next = !(product.is_published ?? true);
+    setPublishingId(product.id);
+    // Optimistic: the toggle is a single boolean, so showing the new state
+    // immediately and rolling back on failure beats a spinner on every click.
+    setProducts((prev) =>
+      prev.map((p) => (p.id === product.id ? { ...p, is_published: next } : p))
+    );
+    try {
+      const res = await fetch(`/api/seller/products/${product.id}/publish`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_published: next }),
+      });
+      if (!res.ok) throw new Error("Failed to update");
+      const data = await res.json();
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === product.id ? { ...p, is_published: data.is_published } : p
+        )
+      );
+      toast.success(data.is_published ? "Product published" : "Moved to drafts");
+    } catch {
+      setProducts((prev) =>
+        prev.map((p) =>
+          p.id === product.id ? { ...p, is_published: !next } : p
+        )
+      );
+      toast.error("Could not update the product");
+    } finally {
+      setPublishingId(null);
+    }
   };
 
   const clearSearch = () => {
@@ -386,13 +426,21 @@ export default function InventoryPage() {
                   )}
                   <CardHeader>
                     <div className="mb-2 flex items-center justify-between">
-                      <Badge
-                        variant="secondary"
-                        style={{ backgroundColor: `${color}20`, color }}
-                      >
-                        <Icon className="mr-1 h-3 w-3" />
-                        {product.product_type.toUpperCase()}
-                      </Badge>
+                      <div className="flex items-center gap-1.5">
+                        <Badge
+                          variant="secondary"
+                          style={{ backgroundColor: `${color}20`, color }}
+                        >
+                          <Icon className="mr-1 h-3 w-3" />
+                          {product.product_type.toUpperCase()}
+                        </Badge>
+                        {product.is_published === false && (
+                          <Badge className="border-0 bg-warn-soft text-warn hover:bg-warn-soft">
+                            <EyeOff className="mr-1 h-3 w-3" />
+                            Draft
+                          </Badge>
+                        )}
+                      </div>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -440,12 +488,24 @@ export default function InventoryPage() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          title={
+                            product.is_published === false
+                              ? "Publish this product"
+                              : "Move to drafts"
+                          }
+                          disabled={publishingId === product.id}
                           onClick={(e) => {
                             e.stopPropagation();
-                            // Handle share
+                            togglePublish(product);
                           }}
                         >
-                          <Share2 className="h-4 w-4" />
+                          {publishingId === product.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : product.is_published === false ? (
+                            <Eye className="h-4 w-4" />
+                          ) : (
+                            <EyeOff className="h-4 w-4" />
+                          )}
                         </Button>
                       </div>
                     </div>
