@@ -58,24 +58,26 @@ export function RatingSummary({
   size?: keyof typeof SIZES;
   className?: string;
 }) {
-  if (!count || average === null) {
-    return (
-      <span className={cn("text-xs text-faint", className)}>No reviews yet</span>
-    );
-  }
+  // An unrated product still shows the star row, greyed out. Hiding it
+  // entirely made the rating look like a missing feature rather than an
+  // empty one, and left the card layout shifting once a first review landed.
+  const unrated = !count || average === null;
 
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)}>
-      <StarRating value={average} size={size} />
-      <span className="text-xs font-medium text-body">
-        {average.toFixed(1)}
-        <span className="ml-1 font-normal text-faint">
-          ({count})
+      <StarRating value={unrated ? 0 : average} size={size} />
+      {unrated ? (
+        <span className="text-xs text-faint">No reviews yet</span>
+      ) : (
+        <span className="text-xs font-medium text-body">
+          {average.toFixed(1)}
+          <span className="ml-1 font-normal text-faint">({count})</span>
         </span>
-      </span>
+      )}
       <span className="sr-only">
-        Rated {average.toFixed(1)} out of 5 from {count} review
-        {count === 1 ? "" : "s"}
+        {unrated
+          ? "Not yet rated"
+          : `Rated ${average.toFixed(1)} out of 5 from ${count} review${count === 1 ? "" : "s"}`}
       </span>
     </span>
   );

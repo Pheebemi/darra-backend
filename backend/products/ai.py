@@ -127,9 +127,34 @@ def generate_product_description(product_data, ticket_types=None):
             },
             timeout=20,
         )
-        response.raise_for_status()
-        description = response.json()['choices'][0]['message']['content'].strip()
-        return description[:5000]
-    except (requests.RequestException, ValueError, KeyError, IndexError, TypeError) as exc:
-        logger.warning('Product description generation failed: %s', exc)
+    except requests.RequestException as exc:
+        logger.error(
+            'Product description AI unreachable at %s: %s',
+            settings.SUPPORT_AI_API_URL, exc,
+        )
         return ''
+
+    # raise_for_status() would collapse the provider's explanation into a bare
+    # "429 Client Error", which is what made this impossible to diagnose from
+    # the logs. Read the status and body directly instead, the way the support
+    # chat already does. The body is logged for us but never returned — it can
+    # carry account and billing detail.
+    if not response.ok:
+        logger.error(
+            'Product description AI returned %s for model %s: %s',
+            response.status_code,
+            settings.SUPPORT_AI_MODEL,
+            response.text[:500],
+        )
+        return ''
+
+    try:
+        description = response.json()['choices'][0]['message']['content'].strip()
+    except (ValueError, KeyError, IndexError, TypeError) as exc:
+        logger.error(
+            'Unexpected product description AI response shape: %s | body: %s',
+            exc, response.text[:500],
+        )
+        return ''
+
+    return description[:5000]

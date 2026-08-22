@@ -181,10 +181,10 @@ export default function SellerDashboard() {
             {/* Lifetime store rating. It sits here rather than in the stat
                 grid below because it is reputation, not a metric for the
                 selected period — the range buttons don't apply to it. */}
-            {!loading && !!analytics?.review_count && (
+            {!loading && (
               <RatingSummary
-                average={analytics.avg_rating}
-                count={analytics.review_count}
+                average={analytics?.avg_rating ?? null}
+                count={analytics?.review_count ?? 0}
                 className="mt-2"
               />
             )}

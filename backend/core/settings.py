@@ -617,5 +617,24 @@ LOGGING = {
             'level': 'INFO',
             'propagate': True,
         },
+        # Our own app loggers. Without these, a logger.error() in products.ai
+        # or apps.support had no handler and never reached the log file — which
+        # is why an AI failure showed up only as Django's bare "Bad Gateway"
+        # line with no explanation underneath it.
+        'products': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'apps': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
+        'users': {
+            'handlers': ['file', 'console'],
+            'level': 'INFO',
+            'propagate': True,
+        },
     },
 }

@@ -1,3 +1,4 @@
+from django.conf import settings
 from django.shortcuts import render
 from rest_framework import generics, permissions, status
 from .models import Product, Review, TicketCategory, TicketTier
@@ -137,6 +138,14 @@ class GenerateProductDescriptionView(APIView):
                 status=status.HTTP_400_BAD_REQUEST,
             )
 
+        if not settings.SUPPORT_AI_API_KEY:
+            # Distinct from a provider failure: no amount of retrying fixes a
+            # missing key, so don't tell the seller to try again.
+            return Response(
+                {'message': 'AI descriptions are not configured on this site yet.'},
+                status=status.HTTP_503_SERVICE_UNAVAILABLE,
+            )
+
         ticket_types = request.data.get('ticket_types', [])
         if isinstance(ticket_types, str):
             import json
@@ -166,7 +175,7 @@ class GenerateProductDescriptionView(APIView):
         )
         if not description:
             return Response(
-                {'message': 'The AI description could not be generated right now.'},
+                {'message': 'The AI service did not respond. Please try again in a moment.'},
                 status=status.HTTP_502_BAD_GATEWAY,
             )
         return Response({'description': description})

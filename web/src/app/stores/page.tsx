@@ -144,14 +144,12 @@ export default function AllStoresPage() {
                     {stripHtml(store.about) && (
                       <p className="mb-4 line-clamp-2 text-sm text-body">{stripHtml(store.about)}</p>
                     )}
-                    {!!store.review_count && (
-                      <RatingSummary
-                        average={store.average_rating ?? null}
-                        count={store.review_count}
-                        size="sm"
-                        className="mb-3"
-                      />
-                    )}
+                    <RatingSummary
+                      average={store.average_rating ?? null}
+                      count={store.review_count ?? 0}
+                      size="sm"
+                      className="mb-3"
+                    />
                     <div className="mt-auto flex items-center justify-between">
                       <span className="text-sm font-medium text-accent-link">
                         {store.product_count} {store.product_count === 1 ? "product" : "products"}

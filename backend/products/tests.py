@@ -37,9 +37,12 @@ def capture_ai_prompt(product_data, ticket_types=None):
     def fake_post(url, headers, json, timeout):
         captured['payload'] = json
 
+        # Mirrors the parts of requests.Response the generator reads: it
+        # checks .ok and falls back to .text when the body can't be parsed.
         class FakeResponse:
-            def raise_for_status(self):
-                pass
+            status_code = 200
+            ok = True
+            text = '{"choices": [{"message": {"content": "Generated copy."}}]}'
 
             def json(self):
                 return {'choices': [{'message': {'content': 'Generated copy.'}}]}
@@ -1026,3 +1029,88 @@ class ProductDescriptionUnknownTypeTests(TestCase):
         self.assertIn("Rewrite the seller's own notes", prompt)
         self.assertIn('phone photography', prompt)
         self.assertIn('product type is not known yet', prompt)
+
+
+class ProductDescriptionFailureDiagnosticsTests(TestCase):
+    """
+    When the AI call fails, the reason has to reach the log. It previously
+    went through raise_for_status() and a warning on a logger with no
+    handler, so a failure showed up only as Django's bare "Bad Gateway" with
+    nothing explaining it.
+    """
+
+    @staticmethod
+    def _call_with_response(status_code, body, ok=None):
+        from unittest import mock
+        from products.ai import generate_product_description
+
+        class FakeResponse:
+            status_code = None
+            text = ''
+
+            @property
+            def ok(self):
+                return 200 <= self.status_code < 300
+
+            def json(self):
+                import json as _json
+                return _json.loads(self.text)
+
+        resp = FakeResponse()
+        resp.status_code = status_code
+        resp.text = body
+
+        with mock.patch('products.ai.requests.post', return_value=resp):
+            return generate_product_description({'title': 'X', 'product_type': 'pdf'})
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_provider_error_body_is_logged(self):
+        with self.assertLogs('products.ai', level='ERROR') as logs:
+            result = self._call_with_response(429, '{"error":{"message":"Rate limit reached"}}')
+
+        self.assertEqual(result, '')
+        joined = '\n'.join(logs.output)
+        self.assertIn('429', joined)
+        self.assertIn('Rate limit reached', joined, 'the provider reason was not logged')
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_decommissioned_model_reason_is_logged(self):
+        with self.assertLogs('products.ai', level='ERROR') as logs:
+            self._call_with_response(400, '{"error":{"message":"model has been decommissioned"}}')
+        self.assertIn('decommissioned', '\n'.join(logs.output))
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_unreachable_provider_is_logged(self):
+        from unittest import mock
+        import requests as requests_lib
+        from products.ai import generate_product_description
+
+        with mock.patch(
+            'products.ai.requests.post',
+            side_effect=requests_lib.ConnectionError('name resolution failed'),
+        ):
+            with self.assertLogs('products.ai', level='ERROR') as logs:
+                result = generate_product_description({'title': 'X', 'product_type': 'pdf'})
+
+        self.assertEqual(result, '')
+        self.assertIn('unreachable', '\n'.join(logs.output))
+
+    @override_settings(SUPPORT_AI_API_KEY='test-key')
+    def test_unexpected_shape_is_logged_with_the_body(self):
+        with self.assertLogs('products.ai', level='ERROR') as logs:
+            result = self._call_with_response(200, '{"unexpected":"shape"}')
+        self.assertEqual(result, '')
+        self.assertIn('Unexpected', '\n'.join(logs.output))
+
+    @override_settings(SUPPORT_AI_API_KEY='')
+    def test_missing_key_returns_a_config_error_not_try_again(self):
+        from rest_framework.test import APIClient
+        client = APIClient()
+        client.force_authenticate(user=make_seller())
+        res = client.post('/api/products/my-products/generate-description/', {
+            'title': 'X', 'product_type': 'pdf',
+        }, format='json')
+
+        self.assertEqual(res.status_code, 503)
+        self.assertIn('not configured', res.data['message'])
+        self.assertNotIn('try again', res.data['message'].lower())
