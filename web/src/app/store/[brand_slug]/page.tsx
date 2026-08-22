@@ -155,13 +155,11 @@ export default function PublicStorePage() {
               here rather than under the store name because that row is
               items-end over the banner — an extra line there grows upward
               into the dark artwork. */}
-          {!!store.review_count && (
-            <RatingSummary
-              average={store.average_rating ?? null}
-              count={store.review_count}
-              size="sm"
-            />
-          )}
+          <RatingSummary
+            average={store.average_rating ?? null}
+            count={store.review_count ?? 0}
+            size="sm"
+          />
           {(store.open_time || store.close_time) && (
             <div className="flex items-center gap-1.5">
               <Clock className="h-4 w-4 text-accent-link" />

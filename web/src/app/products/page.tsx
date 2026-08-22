@@ -297,14 +297,12 @@ function ProductsContent() {
                         {product.seller_name}
                       </p>
                     )}
-                    {!!product.review_count && (
-                      <RatingSummary
-                        average={product.average_rating ?? null}
-                        count={product.review_count}
-                        size="sm"
-                        className="mt-2"
-                      />
-                    )}
+                    <RatingSummary
+                      average={product.average_rating ?? null}
+                      count={product.review_count ?? 0}
+                      size="sm"
+                      className="mt-2"
+                    />
                     <div className="mt-4 flex items-center justify-between">
                       <span className="font-semibold text-ink">
                         {price !== null ? `₦${price.toLocaleString()}` : "—"}
