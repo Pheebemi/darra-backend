@@ -49,7 +49,7 @@ PyMySQL>=1.1.0  # MySQL driver
 psycopg2-binary>=2.9.7  # PostgreSQL driver (for production)
 
 # Caching and performance
-redis>=4.6.0  # Redis client
+redis>=8.1.0  # Redis client
 django-redis>=5.4.0  # Django Redis integration
 
 # Additional performance dependencies
