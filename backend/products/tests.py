@@ -1114,3 +1114,336 @@ class ProductDescriptionFailureDiagnosticsTests(TestCase):
         self.assertEqual(res.status_code, 503)
         self.assertIn('not configured', res.data['message'])
         self.assertNotIn('try again', res.data['message'].lower())
+
+
+class CouponScopingTests(TestCase):
+    """apply_coupon only ever touches the issuing seller's own cart lines."""
+
+    def setUp(self):
+        from .models import Coupon
+        self.Coupon = Coupon
+        self.seller = make_seller()
+        self.other_seller = make_seller()
+        self.buyer = make_user()
+
+    def _coupon(self, **kwargs):
+        kwargs.setdefault('seller', self.seller)
+        kwargs.setdefault('code', 'SAVE20')
+        kwargs.setdefault('discount_type', self.Coupon.DiscountType.PERCENT)
+        kwargs.setdefault('value', Decimal('20'))
+        return self.Coupon.objects.create(**kwargs)
+
+    def test_percent_discount_applies_only_to_matching_seller(self):
+        from .coupons import apply_coupon
+
+        coupon = self._coupon()
+        mine = make_product(owner=self.seller, price=Decimal('1000.00'))
+        theirs = make_product(owner=self.other_seller, price=Decimal('500.00'))
+
+        cart_lines = [
+            {'product': mine, 'quantity': 1, 'unit_price': mine.price},
+            {'product': theirs, 'quantity': 1, 'unit_price': theirs.price},
+        ]
+        _, discounts = apply_coupon(coupon.code, cart_lines, self.buyer)
+
+        self.assertEqual(discounts[0], Decimal('200.00'))  # 20% of 1000
+        self.assertEqual(discounts[1], Decimal('0'))  # untouched — different seller
+
+    def test_code_is_matched_case_insensitively_and_trimmed(self):
+        from .coupons import apply_coupon
+
+        self._coupon(code='LAUNCH')
+        product = make_product(owner=self.seller, price=Decimal('1000.00'))
+        cart_lines = [{'product': product, 'quantity': 1, 'unit_price': product.price}]
+
+        coupon, discounts = apply_coupon('  launch  ', cart_lines, self.buyer)
+        self.assertEqual(coupon.code, 'LAUNCH')
+        self.assertGreater(discounts[0], Decimal('0'))
+
+    def test_scoped_to_specific_products_skips_the_rest(self):
+        from .coupons import apply_coupon
+
+        coupon = self._coupon()
+        included = make_product(owner=self.seller, price=Decimal('1000.00'))
+        excluded = make_product(owner=self.seller, price=Decimal('1000.00'))
+        coupon.products.add(included)
+
+        cart_lines = [
+            {'product': included, 'quantity': 1, 'unit_price': included.price},
+            {'product': excluded, 'quantity': 1, 'unit_price': excluded.price},
+        ]
+        _, discounts = apply_coupon(coupon.code, cart_lines, self.buyer)
+
+        self.assertGreater(discounts[0], Decimal('0'))
+        self.assertEqual(discounts[1], Decimal('0'))
+
+    def test_fixed_discount_never_goes_past_free(self):
+        from .coupons import apply_coupon
+
+        coupon = self._coupon(discount_type=self.Coupon.DiscountType.FIXED, value=Decimal('5000'))
+        product = make_product(owner=self.seller, price=Decimal('2000.00'))
+        cart_lines = [{'product': product, 'quantity': 1, 'unit_price': product.price}]
+
+        _, discounts = apply_coupon(coupon.code, cart_lines, self.buyer)
+        self.assertEqual(discounts[0], Decimal('2000.00'))
+
+    def test_unknown_code_raises(self):
+        from .coupons import apply_coupon, CouponError
+
+        product = make_product(owner=self.seller, price=Decimal('1000.00'))
+        cart_lines = [{'product': product, 'quantity': 1, 'unit_price': product.price}]
+        with self.assertRaises(CouponError):
+            apply_coupon('NOPE', cart_lines, self.buyer)
+
+    def test_inactive_coupon_raises(self):
+        from .coupons import apply_coupon, CouponError
+
+        coupon = self._coupon(is_active=False)
+        product = make_product(owner=self.seller, price=Decimal('1000.00'))
+        cart_lines = [{'product': product, 'quantity': 1, 'unit_price': product.price}]
+        with self.assertRaises(CouponError):
+            apply_coupon(coupon.code, cart_lines, self.buyer)
+
+    def test_expired_coupon_raises(self):
+        from .coupons import apply_coupon, CouponError
+
+        coupon = self._coupon(expires_at=timezone.now() - timedelta(days=1))
+        product = make_product(owner=self.seller, price=Decimal('1000.00'))
+        cart_lines = [{'product': product, 'quantity': 1, 'unit_price': product.price}]
+        with self.assertRaises(CouponError):
+            apply_coupon(coupon.code, cart_lines, self.buyer)
+
+    def test_coupon_matching_nothing_in_cart_raises(self):
+        from .coupons import apply_coupon, CouponError
+
+        coupon = self._coupon()
+        theirs = make_product(owner=self.other_seller, price=Decimal('1000.00'))
+        cart_lines = [{'product': theirs, 'quantity': 1, 'unit_price': theirs.price}]
+        with self.assertRaises(CouponError):
+            apply_coupon(coupon.code, cart_lines, self.buyer)
+
+    def test_max_redemptions_exhausted_raises(self):
+        from .coupons import apply_coupon, CouponError
+        from apps.payments.models import Payment, Purchase
+
+        coupon = self._coupon(max_redemptions=1)
+        product = make_product(owner=self.seller, price=Decimal('1000.00'))
+
+        payment = make_payment(user=self.buyer, product=product, status=Payment.PaymentStatus.SUCCESS)
+        payment.purchases.update(coupon=coupon)
+
+        cart_lines = [{'product': product, 'quantity': 1, 'unit_price': product.price}]
+        with self.assertRaises(CouponError):
+            apply_coupon(coupon.code, cart_lines, make_user())
+
+    def test_per_buyer_limit_blocks_repeat_use_by_same_buyer(self):
+        from .coupons import apply_coupon, CouponError
+        from apps.payments.models import Payment
+
+        coupon = self._coupon(max_redemptions_per_buyer=1)
+        product = make_product(owner=self.seller, price=Decimal('1000.00'))
+
+        payment = make_payment(user=self.buyer, product=product, status=Payment.PaymentStatus.SUCCESS)
+        payment.purchases.update(coupon=coupon)
+
+        cart_lines = [{'product': product, 'quantity': 1, 'unit_price': product.price}]
+        # Same buyer, already redeemed once — blocked.
+        with self.assertRaises(CouponError):
+            apply_coupon(coupon.code, cart_lines, self.buyer)
+        # A different buyer is unaffected by the first buyer's usage.
+        _, discounts = apply_coupon(coupon.code, cart_lines, make_user())
+        self.assertGreater(discounts[0], Decimal('0'))
+
+    def test_pending_purchase_does_not_count_toward_limit(self):
+        from .coupons import apply_coupon
+        from apps.payments.models import Payment
+
+        coupon = self._coupon(max_redemptions=1)
+        product = make_product(owner=self.seller, price=Decimal('1000.00'))
+
+        # A payment that was created but never completed must not burn the
+        # one available redemption.
+        payment = make_payment(user=self.buyer, product=product, status=Payment.PaymentStatus.PENDING)
+        payment.purchases.update(coupon=coupon)
+
+        cart_lines = [{'product': product, 'quantity': 1, 'unit_price': product.price}]
+        _, discounts = apply_coupon(coupon.code, cart_lines, make_user())
+        self.assertGreater(discounts[0], Decimal('0'))
+
+
+class CouponSerializerValidationTests(TestCase):
+    """Percent coupons are capped at 50% so a payout can never go negative."""
+
+    def setUp(self):
+        self.seller = make_seller()
+
+    def _serializer(self, data):
+        from unittest.mock import Mock
+        from .serializers import CouponSerializer
+        request = Mock(user=self.seller)
+        return CouponSerializer(data=data, context={'request': request})
+
+    def test_percent_over_fifty_is_rejected(self):
+        serializer = self._serializer({'code': 'HALFOFF', 'discount_type': 'percent', 'value': '60'})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('value', serializer.errors)
+
+    def test_percent_at_fifty_is_allowed(self):
+        serializer = self._serializer({'code': 'HALFOFF', 'discount_type': 'percent', 'value': '50'})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_fixed_discount_is_not_capped_by_the_percent_rule(self):
+        serializer = self._serializer({'code': 'BIGFIXED', 'discount_type': 'fixed', 'value': '9000'})
+        self.assertTrue(serializer.is_valid(), serializer.errors)
+
+    def test_duplicate_code_is_rejected(self):
+        from .models import Coupon
+        Coupon.objects.create(
+            seller=self.seller, code='TAKEN', discount_type='percent', value=Decimal('10')
+        )
+        serializer = self._serializer({'code': 'taken', 'discount_type': 'percent', 'value': '10'})
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('code', serializer.errors)
+
+    def test_zero_value_is_rejected(self):
+        serializer = self._serializer({'code': 'ZERO', 'discount_type': 'fixed', 'value': '0'})
+        self.assertFalse(serializer.is_valid())
+
+    def test_seller_can_only_scope_to_own_products(self):
+        other_seller = make_seller()
+        their_product = make_product(owner=other_seller)
+        serializer = self._serializer({
+            'code': 'SCOPED', 'discount_type': 'percent', 'value': '10',
+            'products': [their_product.id],
+        })
+        self.assertFalse(serializer.is_valid())
+
+
+class CouponCheckoutIntegrationTests(TestCase):
+    """
+    End-to-end: a coupon applied at checkout discounts only the matching
+    seller's lines, and commission is still calculated off the pre-discount
+    list price — the seller absorbs the discount, Darra's cut doesn't move.
+    """
+
+    def setUp(self):
+        from .models import Coupon
+        self.Coupon = Coupon
+        self.seller = make_seller()
+        self.buyer = make_user()
+        self.product = make_product(owner=self.seller, price=Decimal('10000.00'))
+        self.coupon = Coupon.objects.create(
+            seller=self.seller, code='LAUNCH20', discount_type='percent', value=Decimal('20'),
+        )
+
+    def test_checkout_applies_discount_and_commission_stays_on_list_price(self):
+        from apps.payments.services import PaymentService, PaystackService
+        from apps.payments.models import SellerCommission
+
+        payment = PaymentService.create_payment_from_cart(
+            self.buyer,
+            [{'product_id': self.product.id, 'quantity': 1}],
+            'paystack',
+            coupon_code='launch20',
+        )
+
+        purchase = payment.purchases.get()
+        self.assertEqual(purchase.unit_price, Decimal('8000.00'))  # 20% off 10000
+        self.assertEqual(purchase.total_price, Decimal('8000.00'))
+        self.assertEqual(purchase.discount_amount, Decimal('2000.00'))
+        self.assertEqual(purchase.coupon_id, self.coupon.id)
+        self.assertEqual(payment.amount, Decimal('8000.00'))  # what Paystack actually charges
+
+        commission = PaystackService().create_seller_commission(purchase)
+        self.assertEqual(commission.commission_amount, Decimal('400.00'))  # 4% of the 10000 list price
+        self.assertEqual(commission.seller_payout, Decimal('7600.00'))  # 8000 collected - 400 commission
+        self.assertEqual(SellerCommission.objects.get(purchase=purchase).product_price, Decimal('8000.00'))
+
+    def test_checkout_without_a_coupon_is_unaffected(self):
+        from apps.payments.services import PaymentService
+
+        payment = PaymentService.create_payment_from_cart(
+            self.buyer,
+            [{'product_id': self.product.id, 'quantity': 1}],
+            'paystack',
+        )
+        purchase = payment.purchases.get()
+        self.assertEqual(purchase.unit_price, Decimal('10000.00'))
+        self.assertEqual(purchase.discount_amount, Decimal('0'))
+        self.assertIsNone(purchase.coupon_id)
+
+    def test_checkout_rejects_an_invalid_coupon(self):
+        from apps.payments.services import PaymentService
+        from django.core.exceptions import ValidationError
+
+        with self.assertRaises(ValidationError):
+            PaymentService.create_payment_from_cart(
+                self.buyer,
+                [{'product_id': self.product.id, 'quantity': 1}],
+                'paystack',
+                coupon_code='DOES-NOT-EXIST',
+            )
+
+    def test_validate_endpoint_reports_the_discount_without_charging(self):
+        from rest_framework.test import APIClient
+
+        client = APIClient()
+        client.force_authenticate(user=self.buyer)
+        res = client.post(
+            '/api/payments/coupons/validate/',
+            {'code': 'launch20', 'items': [{'product_id': self.product.id, 'quantity': 1}]},
+            format='json',
+        )
+        self.assertEqual(res.status_code, 200)
+        self.assertEqual(res.data['discount_total'], '2000.00')
+        self.assertEqual(len(res.data['lines']), 1)
+        self.assertEqual(res.data['lines'][0]['product_id'], self.product.id)
+
+
+class SellerCouponApiTests(TestCase):
+    def setUp(self):
+        from rest_framework.test import APIClient
+        self.seller = make_seller()
+        self.client_api = APIClient()
+        self.client_api.force_authenticate(user=self.seller)
+
+    def test_seller_can_create_and_list_a_coupon(self):
+        res = self.client_api.post(
+            '/api/products/coupons/', {'code': 'NEWCODE', 'discount_type': 'percent', 'value': '15'},
+            format='json',
+        )
+        self.assertEqual(res.status_code, 201, res.data)
+
+        res = self.client_api.get('/api/products/coupons/')
+        self.assertEqual(res.status_code, 200)
+        codes = [c['code'] for c in res.data]
+        self.assertIn('NEWCODE', codes)
+
+    def test_cannot_edit_another_sellers_coupon(self):
+        from .models import Coupon
+        other_seller = make_seller()
+        coupon = Coupon.objects.create(
+            seller=other_seller, code='NOTYOURS', discount_type='percent', value=Decimal('10'),
+        )
+        res = self.client_api.patch(
+            f'/api/products/coupons/{coupon.id}/', {'is_active': False}, format='json'
+        )
+        self.assertEqual(res.status_code, 404)
+
+    def test_list_reports_redemptions_and_revenue(self):
+        from .models import Coupon
+        from apps.payments.services import PaymentService
+
+        product = make_product(owner=self.seller, price=Decimal('1000.00'))
+        Coupon.objects.create(seller=self.seller, code='TRACKED', discount_type='percent', value=Decimal('10'))
+        buyer = make_user()
+        payment = PaymentService.create_payment_from_cart(
+            buyer, [{'product_id': product.id, 'quantity': 1}], 'paystack', coupon_code='TRACKED',
+        )
+        from apps.payments.services import PaymentService as PS
+        PS.process_successful_payment(payment)
+
+        res = self.client_api.get('/api/products/coupons/')
+        row = next(c for c in res.data if c['code'] == 'TRACKED')
+        self.assertEqual(row['redemptions'], 1)
+        self.assertEqual(Decimal(row['revenue']), Decimal('900.00'))

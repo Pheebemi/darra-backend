@@ -6,6 +6,7 @@ from .views import (
     TicketTierCreateView, PresignProductFileUploadView,
     GenerateProductDescriptionView, ProductReviewListCreateView,
     ProductReviewDeleteView, ProductPublishToggleView,
+    SellerCouponListCreateView, SellerCouponDetailView,
 )
 
 urlpatterns = [
@@ -25,6 +26,10 @@ urlpatterns = [
     path('upload/presign/', PresignProductFileUploadView.as_view(), name='presign-upload'),
     path('analytics/', SellerAnalyticsView.as_view(), name='seller-analytics'),
     path('orders/', SellerOrdersView.as_view(), name='seller-orders'),
+
+    # Seller discount codes
+    path('coupons/', SellerCouponListCreateView.as_view(), name='seller-coupons'),
+    path('coupons/<int:pk>/', SellerCouponDetailView.as_view(), name='seller-coupon-detail'),
 
     # Ticket system endpoints
     path('ticket-categories/', TicketCategoryListView.as_view(), name='ticket-categories'),

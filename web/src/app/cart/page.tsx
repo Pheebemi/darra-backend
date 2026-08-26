@@ -6,18 +6,81 @@ import { SafeImage } from "@/components/safe-image";
 import { useCart } from "@/lib/cart/cart-context";
 import { useAuth } from "@/lib/auth/auth-context";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, Plus, Minus, ArrowRight, Shield, Zap, Package, CreditCard } from "lucide-react";
+import { Trash2, Plus, Minus, ArrowRight, Shield, Zap, Package, CreditCard, Tag, X, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { errorMessage } from "@/lib/api/errors";
+
+interface AppliedCoupon {
+  code: string;
+  seller_name: string;
+  discount_total: string;
+}
 
 export default function CartPage() {
   const { items, removeItem, updateQuantity, getTotal, clearCart } = useCart();
   const { user, isAuthenticated } = useAuth();
   const router = useRouter();
   const [processing, setProcessing] = useState(false);
+  const [couponInput, setCouponInput] = useState("");
+  const [applyingCoupon, setApplyingCoupon] = useState(false);
+  const [appliedCoupon, setAppliedCoupon] = useState<AppliedCoupon | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) router.push("/login");
   }, [isAuthenticated, router]);
+
+  const cartItemsPayload = () =>
+    items.map((item) => ({
+      product_id: item.productId,
+      quantity: item.quantity,
+      ...(item.tierId && { ticket_tier_id: item.tierId }),
+    }));
+
+  // Re-check the applied code whenever the cart itself changes — removing the
+  // item it discounted, or dropping the quantity, can make it stop applying.
+  // Silent: this isn't the buyer's action, so it only speaks up if the code
+  // no longer works.
+  useEffect(() => {
+    if (!appliedCoupon || items.length === 0) return;
+    (async () => {
+      try {
+        const res = await fetch("/api/payments/coupons/validate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code: appliedCoupon.code, items: cartItemsPayload() }),
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message);
+        setAppliedCoupon({ code: data.code, seller_name: data.seller_name, discount_total: data.discount_total });
+      } catch (err) {
+        setAppliedCoupon(null);
+        toast.error(errorMessage(err, "Your discount code no longer applies"));
+      }
+    })();
+    // Only the cart contents should re-trigger this, not the coupon we just set.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [items]);
+
+  const applyCoupon = async () => {
+    if (!couponInput.trim()) return;
+    try {
+      setApplyingCoupon(true);
+      const res = await fetch("/api/payments/coupons/validate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: couponInput.trim(), items: cartItemsPayload() }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || "Could not apply that code");
+      setAppliedCoupon({ code: data.code, seller_name: data.seller_name, discount_total: data.discount_total });
+      setCouponInput("");
+      toast.success(`${data.code} applied`);
+    } catch (err) {
+      toast.error(errorMessage(err, "Could not apply that code"));
+    } finally {
+      setApplyingCoupon(false);
+    }
+  };
 
   const handleCheckout = async () => {
     if (!user?.email) { toast.error("Please log in to checkout"); return; }
@@ -29,13 +92,10 @@ export default function CartPage() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          items: items.map((item) => ({
-            product_id: item.productId,
-            quantity: item.quantity,
-            ...(item.tierId && { ticket_tier_id: item.tierId }),
-          })),
+          items: cartItemsPayload(),
           email: user.email,
           payment_provider: "flutterwave",
+          ...(appliedCoupon && { coupon_code: appliedCoupon.code }),
         }),
       });
 
@@ -56,6 +116,8 @@ export default function CartPage() {
 
   const total = getTotal();
   const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const discount = appliedCoupon ? Number(appliedCoupon.discount_total) : 0;
+  const finalTotal = Math.max(0, total - discount);
 
   if (items.length === 0) {
     return (
@@ -180,17 +242,59 @@ export default function CartPage() {
                   <span className="text-body">Subtotal ({totalItems} {totalItems === 1 ? "item" : "items"})</span>
                   <span className="text-strong">₦{total.toLocaleString()}</span>
                 </div>
+                {appliedCoupon && (
+                  <div className="flex justify-between">
+                    <span className="text-body">
+                      {appliedCoupon.code} <span className="text-faint">({appliedCoupon.seller_name})</span>
+                    </span>
+                    <span className="font-medium text-ok">−₦{discount.toLocaleString()}</span>
+                  </div>
+                )}
                 <div className="flex justify-between">
                   <span className="text-body">Processing fee</span>
                   <span className="text-body">Calculated at checkout</span>
                 </div>
               </div>
 
+              {/* Discount code */}
+              {appliedCoupon ? (
+                <div className="flex items-center justify-between rounded-2xl bg-ok-soft px-4 py-2.5 text-sm">
+                  <span className="flex items-center gap-1.5 font-medium text-ok">
+                    <Tag className="h-3.5 w-3.5" />
+                    {appliedCoupon.code} applied
+                  </span>
+                  <button
+                    onClick={() => setAppliedCoupon(null)}
+                    className="text-faint transition-colors hover:text-err"
+                    aria-label="Remove discount code"
+                  >
+                    <X className="h-4 w-4" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <input
+                    value={couponInput}
+                    onChange={(e) => setCouponInput(e.target.value.toUpperCase())}
+                    onKeyDown={(e) => e.key === "Enter" && applyCoupon()}
+                    placeholder="Discount code"
+                    className="min-w-0 flex-1 rounded-full border border-line-strong bg-page px-4 py-2 text-sm uppercase text-ink placeholder:normal-case placeholder:text-faint focus:border-brand-500 focus:outline-none"
+                  />
+                  <button
+                    onClick={applyCoupon}
+                    disabled={applyingCoupon || !couponInput.trim()}
+                    className="shrink-0 rounded-full border border-brand-500 px-4 py-2 text-sm font-medium text-accent-link transition-colors hover:bg-brand-500 hover:text-white disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    {applyingCoupon ? <Loader2 className="h-4 w-4 animate-spin" /> : "Apply"}
+                  </button>
+                </div>
+              )}
+
               <Separator />
 
               <div className="flex justify-between font-semibold">
                 <span className="text-ink">Total</span>
-                <span className="text-accent-link">₦{total.toLocaleString()}</span>
+                <span className="text-accent-link">₦{finalTotal.toLocaleString()}</span>
               </div>
 
               {/* Payment method */}

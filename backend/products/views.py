@@ -1,8 +1,9 @@
 from django.conf import settings
 from django.shortcuts import render
 from rest_framework import generics, permissions, status
-from .models import Product, Review, TicketCategory, TicketTier
+from .models import Product, Review, TicketCategory, TicketTier, Coupon
 from .serializers import (
+    CouponSerializer,
     ProductSerializer, ProductCreateSerializer, ProductUpdateSerializer,
     ReviewSerializer, TicketCategorySerializer, TicketTierSerializer
 )
@@ -632,3 +633,38 @@ class ProductPublishToggleView(APIView):
             'id': product.id,
             'is_published': product.is_published,
         })
+
+
+def _seller_coupon_queryset(user):
+    """
+    The seller's own coupons, annotated with how many times each has
+    actually been redeemed (a successful purchase carrying it) and how much
+    revenue those redemptions brought in — so the Discounts screen doesn't
+    issue a query per row.
+    """
+    return Coupon.objects.filter(seller=user).annotate(
+        redemptions=Count(
+            'purchases', filter=Q(purchases__payment__status=Payment.PaymentStatus.SUCCESS), distinct=True
+        ),
+        revenue=Sum(
+            'purchases__total_price', filter=Q(purchases__payment__status=Payment.PaymentStatus.SUCCESS)
+        ),
+    ).prefetch_related('products')
+
+
+class SellerCouponListCreateView(generics.ListCreateAPIView):
+    """A seller's own discount codes — list and create."""
+    serializer_class = CouponSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return _seller_coupon_queryset(self.request.user)
+
+
+class SellerCouponDetailView(generics.RetrieveUpdateDestroyAPIView):
+    """Edit, toggle, or remove one of the caller's own coupons."""
+    serializer_class = CouponSerializer
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get_queryset(self):
+        return _seller_coupon_queryset(self.request.user)

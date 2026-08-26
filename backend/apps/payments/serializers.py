@@ -80,6 +80,7 @@ class CheckoutSerializer(serializers.Serializer):
         default='paystack'
     )
     callback_url = serializers.URLField(required=False, allow_null=True)
+    coupon_code = serializers.CharField(required=False, allow_blank=True, allow_null=True)
 
 class SellerCommissionSerializer(serializers.ModelSerializer):
     product_title = serializers.CharField(source='purchase.product.title', read_only=True)

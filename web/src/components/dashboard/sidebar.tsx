@@ -18,6 +18,7 @@ import {
   TicketCheck,
   User,
   Store,
+  Tag,
 } from "lucide-react";
 
 interface NavItem {
@@ -32,6 +33,7 @@ const sellerNav: NavItem[] = [
   { title: "Add Product",  href: "/dashboard/seller/create-event",       icon: Plus },
   { title: "Orders",       href: "/dashboard/seller/orders",             icon: ShoppingCart },
   { title: "Purchases",    href: "/dashboard/seller/tickets",            icon: TicketCheck },
+  { title: "Discounts",    href: "/dashboard/seller/discounts",          icon: Tag },
   { title: "Verify QR",    href: "/dashboard/seller/verify-tickets",     icon: QrCode },
   { title: "Earnings",     href: "/dashboard/seller/earnings",           icon: DollarSign },
   { title: "My Store",    href: "/dashboard/seller/store",              icon: Store },

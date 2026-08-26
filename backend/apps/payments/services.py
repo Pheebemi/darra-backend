@@ -245,17 +245,28 @@ class FlutterwaveService:
         # else: still NEW/PENDING at Flutterwave — leave it processing.
         return payout_request.status
 
-    def calculate_seller_commission(self, product_price):
-        """Calculate 4% commission and seller payout"""
-        commission = product_price * Decimal('0.04')
-        seller_payout = product_price - commission
+    def calculate_seller_commission(self, list_price, paid_price=None):
+        """
+        Commission is always 4% of the product's list price — a seller's own
+        coupon doesn't cost Darra anything, so a discount never lowers what
+        we take. seller_payout is what's left of what the buyer actually
+        paid (paid_price) once that commission comes out, so it only drops
+        below the no-coupon case when paid_price is itself discounted.
+        """
+        if paid_price is None:
+            paid_price = list_price
+        commission = list_price * Decimal('0.04')
+        seller_payout = paid_price - commission
         return commission, seller_payout
 
     def create_seller_commission(self, purchase):
         """Create commission record for seller"""
         try:
-            commission_amount, seller_payout = self.calculate_seller_commission(purchase.total_price)
-            
+            list_total = purchase.total_price + purchase.discount_amount
+            commission_amount, seller_payout = self.calculate_seller_commission(
+                list_total, purchase.total_price
+            )
+
             commission, created = SellerCommission.objects.get_or_create(
                 seller=purchase.product.owner,
                 purchase=purchase,
@@ -266,10 +277,10 @@ class FlutterwaveService:
                     'status': 'pending'
                 }
             )
-            
+
             if created:
                 print(f"DEBUG: Created commission record for {purchase.product.owner.email}: ₦{commission_amount}")
-            
+
             return commission
         except Exception as e:
             print(f"DEBUG: Error creating commission: {str(e)}")
@@ -366,17 +377,28 @@ class PaystackService:
         except requests.exceptions.RequestException as e:
             raise ValidationError(f"Paystack API error: {str(e)}")
 
-    def calculate_seller_commission(self, product_price):
-        """Calculate 4% commission and seller payout"""
-        commission = product_price * Decimal('0.04')
-        seller_payout = product_price - commission
+    def calculate_seller_commission(self, list_price, paid_price=None):
+        """
+        Commission is always 4% of the product's list price — a seller's own
+        coupon doesn't cost Darra anything, so a discount never lowers what
+        we take. seller_payout is what's left of what the buyer actually
+        paid (paid_price) once that commission comes out, so it only drops
+        below the no-coupon case when paid_price is itself discounted.
+        """
+        if paid_price is None:
+            paid_price = list_price
+        commission = list_price * Decimal('0.04')
+        seller_payout = paid_price - commission
         return commission, seller_payout
 
     def create_seller_commission(self, purchase):
         """Create commission record for seller"""
         try:
-            commission_amount, seller_payout = self.calculate_seller_commission(purchase.total_price)
-            
+            list_total = purchase.total_price + purchase.discount_amount
+            commission_amount, seller_payout = self.calculate_seller_commission(
+                list_total, purchase.total_price
+            )
+
             commission, created = SellerCommission.objects.get_or_create(
                 seller=purchase.product.owner,
                 purchase=purchase,
@@ -387,10 +409,10 @@ class PaystackService:
                     'status': 'pending'
                 }
             )
-            
+
             if created:
                 print(f"DEBUG: Created commission record for {purchase.product.owner.email}: ₦{commission_amount}")
-            
+
             return commission
         except Exception as e:
             print(f"DEBUG: Error creating commission: {str(e)}")
@@ -609,7 +631,7 @@ class PaystackService:
 
 class PaymentService:
     @staticmethod
-    def create_payment_from_cart(user, cart_items, payment_provider=None):
+    def create_payment_from_cart(user, cart_items, payment_provider=None, coupon_code=None):
         """Create payment from cart items"""
         print(f"DEBUG: PaymentService.create_payment_from_cart called with cart_items: {cart_items}")
         print(f"DEBUG: Type of cart_items: {type(cart_items)}")
@@ -665,13 +687,33 @@ class PaymentService:
                 total_amount += product.price * quantity
                 processed_items.append({
                     'product': product,
-                    'quantity': quantity
+                    'quantity': quantity,
+                    'unit_price': product.price,
                 })
             else:
                 print(f"DEBUG: Item missing both product_id and product fields")
                 print(f"DEBUG: Available keys: {list(item.keys()) if isinstance(item, dict) else 'Not a dict'}")
                 raise ValidationError("Each item must have either 'product_id' or 'product' field")
-        
+
+        # Apply a coupon, if one was submitted. This re-validates from
+        # scratch against the database — the discount amounts the cart
+        # showed the buyer are never trusted for what actually gets charged.
+        coupon = None
+        if coupon_code:
+            from products.coupons import apply_coupon, CouponError
+            cart_lines = [
+                {'product': item['product'], 'quantity': item['quantity'], 'unit_price': item['unit_price']}
+                for item in processed_items
+            ]
+            try:
+                coupon, per_unit_discounts = apply_coupon(coupon_code, cart_lines, user)
+            except CouponError as e:
+                raise ValidationError(str(e))
+
+            for item, discount in zip(processed_items, per_unit_discounts):
+                item['discount_per_unit'] = discount
+                total_amount -= discount * item['quantity']
+
         # Create payment with requested provider or default
         payment = Payment.objects.create(
             user=user,
@@ -680,17 +722,21 @@ class PaymentService:
             currency='NGN',
             payment_provider=payment_provider if payment_provider else getattr(settings, 'PAYMENT_PROVIDER', 'paystack')
         )
-        
+
         # Create purchases
         for item in processed_items:
+            discount_per_unit = item.get('discount_per_unit', Decimal('0'))
+            charged_unit_price = item['unit_price'] - discount_per_unit
             purchase = Purchase.objects.create(
                 payment=payment,
                 product=item['product'],
                 quantity=item['quantity'],
-                unit_price=item['unit_price'],
-                total_price=item['unit_price'] * item['quantity']
+                unit_price=charged_unit_price,
+                total_price=charged_unit_price * item['quantity'],
+                coupon=coupon if discount_per_unit > 0 else None,
+                discount_amount=discount_per_unit * item['quantity'],
             )
-            
+
             # Set ticket tier if specified
             if item.get('ticket_tier_id'):
                 try:
