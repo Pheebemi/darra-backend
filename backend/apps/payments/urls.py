@@ -17,10 +17,12 @@ from .views import (
     send_digital_product_to_email,
     download_product_file,
     download_ticket_qr,
+    validate_coupon,
 )
 
 urlpatterns = [
     path('checkout/', CheckoutView.as_view(), name='checkout'),
+    path('coupons/validate/', validate_coupon, name='validate-coupon'),
     path('test-connection/', test_connection, name='test_connection'),
     path('test-flutterwave/', test_flutterwave_connection, name='test_flutterwave_connection'),
     path('verify/<str:reference>/', verify_payment, name='verify_payment'),

@@ -61,7 +61,12 @@ class CheckoutView(generics.CreateAPIView):
                 
                 # Process checkout - pass the payment provider directly
                 print(f"DEBUG: About to create payment from cart with items: {serializer.validated_data['items']}")
-                payment = PaymentService.create_payment_from_cart(request.user, serializer.validated_data['items'], requested_provider)
+                payment = PaymentService.create_payment_from_cart(
+                    request.user,
+                    serializer.validated_data['items'],
+                    requested_provider,
+                    coupon_code=serializer.validated_data.get('coupon_code'),
+                )
                 print(f"DEBUG: Payment created successfully: {payment.id}, {payment.reference}, {payment.amount}")
                 print(f"DEBUG: Payment provider set to: {payment.payment_provider}")
                 
@@ -103,7 +108,11 @@ class CheckoutView(generics.CreateAPIView):
                 print(f"DEBUG: Checkout error: {str(e)}")
                 return Response({
                     'error': 'Checkout failed',
-                    'details': str(e)
+                    'details': str(e),
+                    # The frontend's checkout handler reads `message` — without
+                    # this key a real reason (e.g. an expired coupon) silently
+                    # collapsed into a generic "Checkout failed" toast.
+                    'message': str(e),
                 }, status=status.HTTP_400_BAD_REQUEST)
         else:
             print(f"DEBUG: Checkout validation errors: {serializer.errors}")
@@ -961,3 +970,72 @@ def download_ticket_qr(request, ticket_id):
     response = FileResponse(open(file_path, 'rb'), content_type='image/png')
     response['Content-Disposition'] = f'attachment; filename="ticket_{ticket.ticket_id}_qr.png"'
     return response
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def validate_coupon(request):
+    """
+    Check a coupon code against the buyer's current cart and return the
+    discount it would apply. Called from the cart before checkout; checkout
+    itself re-runs this same logic against the database rather than trusting
+    the numbers this endpoint returned.
+    """
+    from products.models import Product
+    from products.coupons import apply_coupon, CouponError
+
+    code = request.data.get('code', '')
+    items = request.data.get('items', [])
+    if not items:
+        return Response({'message': 'Your cart is empty.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    cart_lines = []
+    for item in items:
+        try:
+            product = Product.objects.select_related('owner').get(id=item['product_id'])
+        except (Product.DoesNotExist, KeyError, TypeError, ValueError):
+            return Response(
+                {'message': 'One of the items in your cart is no longer available.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        try:
+            quantity = int(item.get('quantity', 1))
+        except (TypeError, ValueError):
+            quantity = 1
+
+        unit_price = product.price
+        ticket_tier_id = item.get('ticket_tier_id')
+        if ticket_tier_id:
+            try:
+                unit_price = product.ticket_tiers.get(id=ticket_tier_id).price
+            except Exception:
+                pass
+
+        cart_lines.append({'product': product, 'quantity': quantity, 'unit_price': unit_price})
+
+    try:
+        coupon, per_unit_discounts = apply_coupon(code, cart_lines, request.user)
+    except CouponError as e:
+        return Response({'message': str(e)}, status=status.HTTP_400_BAD_REQUEST)
+
+    lines = []
+    total_discount = Decimal('0')
+    for line, discount in zip(cart_lines, per_unit_discounts):
+        if discount <= 0:
+            continue
+        line_discount = discount * line['quantity']
+        total_discount += line_discount
+        lines.append({
+            'product_id': line['product'].id,
+            'title': line['product'].title,
+            'discount_amount': str(line_discount),
+        })
+
+    seller_name = coupon.seller.brand_name or coupon.seller.full_name
+
+    return Response({
+        'code': coupon.code,
+        'seller_name': seller_name,
+        'discount_total': str(total_discount),
+        'lines': lines,
+    })

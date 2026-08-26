@@ -417,3 +417,51 @@ class Review(models.Model):
             payment__user=user,
             payment__status='success',
         ).exists()
+
+
+class Coupon(models.Model):
+    """
+    A seller-issued discount code. Darra never runs its own coupons — a code
+    always belongs to one seller and only ever discounts that seller's own
+    lines in a cart, never another seller's products sharing the same order.
+
+    Commission is unaffected by any of this: it is still 4% of the product's
+    list price, calculated at the purchase, not off whatever the coupon
+    knocked off. Percentage coupons are capped at 50% so a seller can never
+    end up owing more commission than they collected on a line.
+    """
+
+    class DiscountType(models.TextChoices):
+        PERCENT = 'percent', 'Percentage off'
+        FIXED = 'fixed', 'Amount off'
+
+    seller = models.ForeignKey(User, on_delete=models.CASCADE, related_name='coupons')
+    code = models.CharField(max_length=32, unique=True)
+    discount_type = models.CharField(
+        max_length=10, choices=DiscountType.choices, default=DiscountType.PERCENT
+    )
+    value = models.DecimalField(max_digits=10, decimal_places=2)
+
+    # Empty means the code applies to every one of the seller's products.
+    products = models.ManyToManyField(Product, blank=True, related_name='coupons')
+
+    max_redemptions = models.PositiveIntegerField(
+        blank=True, null=True, help_text='Leave blank for unlimited uses.'
+    )
+    max_redemptions_per_buyer = models.PositiveIntegerField(default=1)
+    expires_at = models.DateTimeField(blank=True, null=True)
+    is_active = models.BooleanField(default=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return self.code
+
+    def save(self, *args, **kwargs):
+        # Codes are matched case-insensitively at checkout by comparing
+        # against this uppercased form, so storage is normalised once here
+        # rather than at every read site.
+        self.code = self.code.strip().upper()
+        super().save(*args, **kwargs)

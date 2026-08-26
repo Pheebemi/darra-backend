@@ -41,9 +41,18 @@ class Purchase(models.Model):
     payment = models.ForeignKey(Payment, on_delete=models.CASCADE, related_name='purchases')
     product = models.ForeignKey(Product, on_delete=models.CASCADE, related_name='purchases')
     quantity = models.PositiveIntegerField(default=1)
+    # What was actually charged per unit — after any coupon discount.
     unit_price = models.DecimalField(max_digits=10, decimal_places=2)
     total_price = models.DecimalField(max_digits=10, decimal_places=2)
     selected_ticket_tier = models.ForeignKey('products.TicketTier', on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases')
+    coupon = models.ForeignKey(
+        'products.Coupon', on_delete=models.SET_NULL, null=True, blank=True, related_name='purchases'
+    )
+    # Total naira knocked off this line by the coupon above, kept separately
+    # from unit_price/total_price (which already reflect what was actually
+    # paid) so commission can still be calculated against the original list
+    # price: list_total = total_price + discount_amount.
+    discount_amount = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     created_at = models.DateTimeField(auto_now_add=True)
 
     def __str__(self):

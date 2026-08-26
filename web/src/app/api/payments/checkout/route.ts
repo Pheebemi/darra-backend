@@ -14,7 +14,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { items, email, payment_provider = "flutterwave" } = body;
+    const { items, email, payment_provider = "flutterwave", coupon_code } = body;
 
     if (!items || !Array.isArray(items) || items.length === 0) {
       return NextResponse.json(
@@ -42,6 +42,7 @@ const callbackUrl = `${siteUrl}/payment/callback`;
         email,
         callback_url: callbackUrl,
         payment_provider,
+        ...(coupon_code && { coupon_code }),
       },
       {
         headers: {

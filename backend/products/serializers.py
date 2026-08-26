@@ -3,7 +3,7 @@ import json
 from django.db.models import Avg
 from rest_framework import serializers
 
-from .models import Product, Review, TicketCategory, TicketTier, media_url_for
+from .models import Product, Review, TicketCategory, TicketTier, Coupon, media_url_for
 
 DEFAULT_TICKET_COLOR = '#5465FF'
 
@@ -348,3 +348,73 @@ class ReviewSerializer(serializers.ModelSerializer):
         if not 1 <= value <= 5:
             raise serializers.ValidationError('Rating must be between 1 and 5.')
         return value
+
+
+class CouponProductSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Product
+        fields = ['id', 'title']
+
+
+class CouponSerializer(serializers.ModelSerializer):
+    # A seller may only scope a coupon to their own products — the queryset
+    # is narrowed to the requesting user in __init__ below.
+    products = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Product.objects.none(), required=False
+    )
+    product_details = CouponProductSerializer(source='products', many=True, read_only=True)
+    # Populated by the view's annotated queryset (Count/Sum over successful
+    # purchases). Defaulted so a freshly-created coupon serializes cleanly
+    # before it has ever been read back through that queryset.
+    redemptions = serializers.IntegerField(read_only=True, default=0)
+    revenue = serializers.DecimalField(max_digits=12, decimal_places=2, read_only=True, default=0)
+
+    class Meta:
+        model = Coupon
+        fields = [
+            'id', 'code', 'discount_type', 'value', 'products', 'product_details',
+            'max_redemptions', 'max_redemptions_per_buyer', 'expires_at', 'is_active',
+            'redemptions', 'revenue', 'created_at',
+        ]
+        read_only_fields = ['id', 'created_at']
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        request = self.context.get('request')
+        if request is not None:
+            self.fields['products'].queryset = Product.objects.filter(owner=request.user)
+
+    def validate_code(self, value):
+        value = (value or '').strip().upper()
+        if not value:
+            raise serializers.ValidationError('Enter a code.')
+        existing = Coupon.objects.filter(code=value)
+        if self.instance:
+            existing = existing.exclude(pk=self.instance.pk)
+        if existing.exists():
+            raise serializers.ValidationError('That code is already taken.')
+        return value
+
+    def validate(self, attrs):
+        discount_type = attrs.get(
+            'discount_type', getattr(self.instance, 'discount_type', Coupon.DiscountType.PERCENT)
+        )
+        value = attrs.get('value', getattr(self.instance, 'value', None))
+
+        if value is not None and value <= 0:
+            raise serializers.ValidationError({'value': 'Discount must be greater than zero.'})
+
+        # Commission is always 4% of list price regardless of the coupon, so
+        # a percentage deep enough can leave a seller owing more than they
+        # collected on that sale. Capping at 50% keeps a seller's payout
+        # positive no matter how the coupon is used.
+        if discount_type == Coupon.DiscountType.PERCENT and value is not None and value > 50:
+            raise serializers.ValidationError({
+                'value': 'Percentage discounts are capped at 50% — commission is still charged '
+                         'on the full price, so a deeper cut can leave you owing more than you collect.'
+            })
+        return attrs
+
+    def create(self, validated_data):
+        validated_data['seller'] = self.context['request'].user
+        return super().create(validated_data)
