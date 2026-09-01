@@ -206,6 +206,12 @@ class Product(models.Model):
     event_end_date = models.DateTimeField(blank=True, null=True)
     venue_name = models.CharField(max_length=255, blank=True, null=True)
     location = models.CharField(max_length=500, blank=True, null=True)
+    # Set when the seller picks a suggestion from the location autocomplete,
+    # rather than derived by re-geocoding `location` on every page view — a
+    # free-text address can drift or fail to resolve, this is the seller's
+    # own confirmed pin.
+    latitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
+    longitude = models.DecimalField(max_digits=9, decimal_places=6, blank=True, null=True)
     speakers = models.TextField(blank=True, null=True)
     ticket_quantity = models.PositiveIntegerField(blank=True, null=True)
     

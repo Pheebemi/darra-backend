@@ -65,6 +65,8 @@ interface Product {
   event_end_date?: string;
   venue_name?: string;
   location?: string;
+  latitude?: number | string | null;
+  longitude?: number | string | null;
   speakers?: string;
   ticket_tiers?: TicketTier[];
   is_ticket_event?: boolean;
@@ -135,7 +137,18 @@ export default function ProductDetailClient({ product }: { product: Product }) {
   const [mapCoords, setMapCoords] = useState<{ lat: number; lon: number } | null>(null);
 
   useEffect(() => {
-    if (!isEvent || (!product.location && !product.venue_name)) return;
+    if (!isEvent) return;
+
+    // Prefer the seller's own confirmed pin, set when they picked a
+    // suggestion in the location autocomplete — exact, and needs no lookup.
+    if (product.latitude != null && product.longitude != null) {
+      setMapCoords({ lat: Number(product.latitude), lon: Number(product.longitude) });
+      return;
+    }
+
+    // Legacy fallback for events created before the autocomplete existed,
+    // which only ever stored free text: best-effort re-geocode of that text.
+    if (!product.location && !product.venue_name) return;
     const query = [product.venue_name, product.location].filter(Boolean).join(", ");
     fetch(`https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(query)}&format=json&limit=1`, {
       headers: { "Accept-Language": "en" },
@@ -145,7 +158,7 @@ export default function ProductDetailClient({ product }: { product: Product }) {
         if (data?.[0]) setMapCoords({ lat: parseFloat(data[0].lat), lon: parseFloat(data[0].lon) });
       })
       .catch(() => {});
-  }, [isEvent, product.location, product.venue_name]);
+  }, [isEvent, product.location, product.venue_name, product.latitude, product.longitude]);
   const availableTiers = product.ticket_tiers?.filter((t) => !t.is_sold_out) || [];
   const hasSelectedTiers = Object.keys(selectedTiers).length > 0;
   const totalSelectedTickets = Object.values(selectedTiers).reduce((s, q) => s + q, 0);
