@@ -332,8 +332,12 @@ function CreateEventInner() {
         }
         if (venueName.trim()) formData.append("venue_name", venueName.trim());
         if (location.trim()) formData.append("location", location.trim());
-        if (latitude !== null) formData.append("latitude", String(latitude));
-        if (longitude !== null) formData.append("longitude", String(longitude));
+        // toFixed(6), not String() — the database column holds exactly 6
+        // decimal places, and a bare String() can't guarantee that even for
+        // an already-rounded number (binary floating point doesn't always
+        // round-trip a "clean" decimal to the shortest matching string).
+        if (latitude !== null) formData.append("latitude", latitude.toFixed(6));
+        if (longitude !== null) formData.append("longitude", longitude.toFixed(6));
         if (speakers.trim()) formData.append("speakers", speakers.trim());
         formData.append(
           "ticket_types",

@@ -1477,3 +1477,22 @@ class EventLocationCoordinatesTests(TestCase):
         data = ProductSerializer(product).data
         self.assertIsNone(data['latitude'])
         self.assertIsNone(data['longitude'])
+
+    def test_seven_decimal_places_is_rejected(self):
+        """
+        Documents the bug: Nominatim commonly returns coordinates with 7
+        decimal places, which fails this field's 6-decimal-place column
+        outright — this is why the frontend must round before submitting,
+        not just format the number.
+        """
+        from .serializers import ProductUpdateSerializer
+
+        serializer = ProductUpdateSerializer(data={'latitude': '11.3612345'}, partial=True)
+        self.assertFalse(serializer.is_valid())
+        self.assertIn('latitude', serializer.errors)
+
+    def test_six_decimal_places_is_accepted(self):
+        from .serializers import ProductUpdateSerializer
+
+        serializer = ProductUpdateSerializer(data={'latitude': '11.361234'}, partial=True)
+        self.assertTrue(serializer.is_valid(), serializer.errors)
