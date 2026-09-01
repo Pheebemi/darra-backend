@@ -46,7 +46,7 @@ django-csp>=3.7
 
 # Database drivers and connection pooling
 PyMySQL>=1.1.0  # MySQL driver
-psycopg2-binary>=2.9.7  # PostgreSQL driver (for production)
+psycopg2-binary>=2.9.12  # PostgreSQL driver (for production)
 
 # Caching and performance
 redis>=4.6.0  # Redis client
