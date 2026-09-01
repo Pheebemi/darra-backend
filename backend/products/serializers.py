@@ -162,7 +162,7 @@ class ProductSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'slug', 'title', 'description', 'description_html', 'price', 'product_type',
             'cover_image', 'has_file', 'file_url', 'cover_image_url', 'thumbnail_url',
-            'created_at', 'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
+            'created_at', 'event_date', 'event_end_date', 'venue_name', 'location', 'latitude', 'longitude', 'speakers', 'ticket_quantity',
             'seller_name', 'seller_id', 'ticket_category', 'ticket_tiers', 'is_ticket_event',
             'is_published', 'average_rating', 'review_count',
         ]
@@ -229,7 +229,7 @@ class ProductCreateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'title', 'description', 'description_html', 'price', 'product_type',
-            'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
+            'event_date', 'event_end_date', 'venue_name', 'location', 'latitude', 'longitude', 'speakers', 'ticket_quantity',
             'ticket_category_id', 'ticket_types'
         ]
 
@@ -261,7 +261,7 @@ class ProductUpdateSerializer(serializers.ModelSerializer):
         model = Product
         fields = [
             'title', 'description', 'description_html', 'price', 'product_type',
-            'event_date', 'event_end_date', 'venue_name', 'location', 'speakers', 'ticket_quantity',
+            'event_date', 'event_end_date', 'venue_name', 'location', 'latitude', 'longitude', 'speakers', 'ticket_quantity',
             'ticket_category_id', 'ticket_types'
         ]
 

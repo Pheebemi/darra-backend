@@ -1447,3 +1447,33 @@ class SellerCouponApiTests(TestCase):
         row = next(c for c in res.data if c['code'] == 'TRACKED')
         self.assertEqual(row['redemptions'], 1)
         self.assertEqual(Decimal(row['revenue']), Decimal('900.00'))
+
+
+class EventLocationCoordinatesTests(TestCase):
+    """
+    latitude/longitude are set once, when the seller picks a suggestion from
+    the location autocomplete — round-tripping them through the serializer is
+    what lets the buyer-facing map render the seller's confirmed pin instead
+    of re-geocoding the free-text address on every page view.
+    """
+
+    def test_coordinates_round_trip_through_the_serializer(self):
+        from .serializers import ProductSerializer
+
+        product = make_event(
+            venue_name='Taraba State Event Centre',
+            location='Jalingo, Taraba State, Nigeria',
+            latitude=Decimal('8.896400'),
+            longitude=Decimal('11.361500'),
+        )
+        data = ProductSerializer(product).data
+        self.assertEqual(Decimal(data['latitude']), Decimal('8.896400'))
+        self.assertEqual(Decimal(data['longitude']), Decimal('11.361500'))
+
+    def test_coordinates_are_optional(self):
+        from .serializers import ProductSerializer
+
+        product = make_event(venue_name='Some Venue', location='Some City')
+        data = ProductSerializer(product).data
+        self.assertIsNone(data['latitude'])
+        self.assertIsNone(data['longitude'])

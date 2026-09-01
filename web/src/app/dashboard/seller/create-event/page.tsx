@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { LocationAutocomplete } from "@/components/location-autocomplete";
 import {
   Select,
   SelectContent,
@@ -97,6 +98,8 @@ function CreateEventInner() {
   const [eventEndTime, setEventEndTime] = useState("");
   const [venueName, setVenueName] = useState("");
   const [location, setLocation] = useState("");
+  const [latitude, setLatitude] = useState<number | null>(null);
+  const [longitude, setLongitude] = useState<number | null>(null);
   const [speakers, setSpeakers] = useState("");
 
   const [ticketCategories, setTicketCategories] = useState<TicketCategory[]>([]);
@@ -174,6 +177,8 @@ function CreateEventInner() {
       }
       setVenueName(data.venue_name || "");
       setLocation(data.location || "");
+      setLatitude(data.latitude != null ? Number(data.latitude) : null);
+      setLongitude(data.longitude != null ? Number(data.longitude) : null);
       setSpeakers(data.speakers || "");
 
       // Pre-fill ticket categories when editing. display_name already resolves
@@ -327,6 +332,8 @@ function CreateEventInner() {
         }
         if (venueName.trim()) formData.append("venue_name", venueName.trim());
         if (location.trim()) formData.append("location", location.trim());
+        if (latitude !== null) formData.append("latitude", String(latitude));
+        if (longitude !== null) formData.append("longitude", String(longitude));
         if (speakers.trim()) formData.append("speakers", speakers.trim());
         formData.append(
           "ticket_types",
@@ -548,10 +555,12 @@ function CreateEventInner() {
                           <Label htmlFor="venueName" className="text-sm font-medium text-strong">Venue Name</Label>
                           <Input id="venueName" value={venueName} onChange={(e) => setVenueName(e.target.value)} placeholder="e.g. Taraba State Event Centre" className="h-11" />
                         </div>
-                        <div className="space-y-1.5">
-                          <Label htmlFor="location" className="text-sm font-medium text-strong">Address / Location</Label>
-                          <Input id="location" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Jalingo, Taraba State, Nigeria" className="h-11" />
-                        </div>
+                        <LocationAutocomplete
+                          value={location}
+                          latitude={latitude}
+                          longitude={longitude}
+                          onChange={(loc, lat, lon) => { setLocation(loc); setLatitude(lat); setLongitude(lon); }}
+                        />
                         <div className="space-y-1.5">
                           <Label htmlFor="speakers" className="text-sm font-medium text-strong">Speakers / Guests</Label>
                           <Textarea id="speakers" value={speakers} onChange={(e) => setSpeakers(e.target.value)} placeholder={"One speaker per line:\nJohn Doe\nJane Smith"} rows={3} />
