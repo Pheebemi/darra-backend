@@ -1,6 +1,6 @@
 # Django and core dependencies
 Django>=5.2.4
-djangorestframework>=3.14.0
+djangorestframework>=3.18.0
 djangorestframework-simplejwt>=5.3.0
 # Pinned above the JWT-library CVEs (PYSEC-2026-175..179 etc.) — this is what
 # signs/verifies your auth tokens, so keep it patched.
