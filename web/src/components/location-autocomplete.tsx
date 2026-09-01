@@ -83,7 +83,12 @@ export function LocationAutocomplete({
   };
 
   const handleSelect = (suggestion: Suggestion) => {
-    onChange(suggestion.display_name, parseFloat(suggestion.lat), parseFloat(suggestion.lon));
+    // Nominatim commonly returns 7 decimal places; the database column only
+    // holds 6 (already ~11cm of precision — plenty for a venue pin), and
+    // sending more than that fails the backend's validation outright. Round
+    // once, here, so every consumer of onChange gets an already-clean value.
+    const round6 = (n: number) => Math.round(n * 1e6) / 1e6;
+    onChange(suggestion.display_name, round6(parseFloat(suggestion.lat)), round6(parseFloat(suggestion.lon)));
     setSuggestions([]);
     setOpen(false);
   };
