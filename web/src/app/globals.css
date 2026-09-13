@@ -26,7 +26,7 @@
   --color-input:                var(--input);
   --color-ring:                 var(--ring);
   --radius:                     var(--radius);
-  --font-sans:                  var(--font-geist-sans);
+  --font-sans:                  var(--font-plus-jakarta-sans);
   --font-mono:                  var(--font-geist-mono);
 
   /* ─── Thrive brand palette ─────────────────────────────────────────────
@@ -210,6 +210,15 @@
 body {
   background-color: var(--page);
   color: var(--foreground);
+  /* Explicit, not left to Preflight's automatic --font-sans wiring: Tailwind
+     v4 builds that wiring via --theme(), which needs a static value at build
+     time — it can't resolve a value declared as a live var() inside
+     `@theme inline` (which --font-sans is, to point at Next's font-loader
+     variable). Left to Preflight alone, this silently no-ops to the browser
+     default font everywhere, with no error. Setting it directly here reads
+     the same token but resolves in the browser, at runtime, where the
+     variable is actually defined. */
+  font-family: var(--font-sans);
   font-feature-settings: "rlig" 1, "calt" 1;
 }
 
