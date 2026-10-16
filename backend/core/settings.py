@@ -329,27 +329,46 @@ EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
 RESEND_API_KEY = os.getenv('RESEND_API_KEY', '')
 
+# SMTP account. Used as the main backend when there is no Resend key, and as
+# the fallback when there is one — defined once so both paths read the same
+# values. Host/port are env-driven so any SMTP provider works (Brevo, SES,
+# Gmail, …); defaults to Gmail.
+EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
+EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
+EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
+# TLS (STARTTLS) on 587 by default; if SSL is chosen, TLS must be off.
+EMAIL_USE_TLS = not EMAIL_USE_SSL and os.getenv('EMAIL_USE_TLS', 'True') == 'True'
+# Django's default is no timeout at all, so an unreachable SMTP host would hang
+# a web worker for as long as the OS allows. A fallback that can stall the
+# request it is meant to rescue is worse than no fallback.
+EMAIL_TIMEOUT = int(os.getenv('EMAIL_TIMEOUT', '10'))
+
+SMTP_CONFIGURED = bool(EMAIL_HOST_USER and EMAIL_HOST_PASSWORD)
+
 # Check if email credentials are configured
 if not DEBUG and RESEND_API_KEY:
     # Send through Resend's HTTPS API, not SMTP. PythonAnywhere's free tier
-    # blocks outbound SMTP, but api.resend.com is on its allowlist — so the API
-    # backend is what lets us send from @darra.com.ng without a paid plan.
-    # django-anymail is a drop-in backend: every existing send_mail /
-    # EmailMultiAlternatives call keeps working, it just goes over HTTPS.
-    EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
+    # only allows outbound connections to an allowlist of hosts, and
+    # api.resend.com is on it — so the API backend is what lets us send from
+    # @darra.com.ng without a paid plan. django-anymail is a drop-in backend:
+    # every existing send_mail / EmailMultiAlternatives call keeps working, it
+    # just goes over HTTPS.
     ANYMAIL = {'RESEND_API_KEY': RESEND_API_KEY}
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', 'support@darra.com.ng')
-    print("Email: Production mode - Resend HTTP API")
-elif not DEBUG and EMAIL_HOST_USER and EMAIL_HOST_PASSWORD:
+    if SMTP_CONFIGURED:
+        # Resend's free plan stops at 100 emails a day. Past that every send
+        # fails, and the failure that matters is a signup's verification code
+        # never arriving. With an SMTP account configured, each message that
+        # Resend rejects is retried through it (see core/email_backends.py).
+        EMAIL_BACKEND = 'core.email_backends.FallbackEmailBackend'
+        EMAIL_PRIMARY_BACKEND = 'anymail.backends.resend.EmailBackend'
+        EMAIL_FALLBACK_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+        print(f"Email: Production mode - Resend HTTP API, falling back to SMTP via {EMAIL_HOST}:{EMAIL_PORT}")
+    else:
+        EMAIL_BACKEND = 'anymail.backends.resend.EmailBackend'
+        print("Email: Production mode - Resend HTTP API (no SMTP fallback configured)")
+elif not DEBUG and SMTP_CONFIGURED:
     EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
-    # Host/port are env-driven so any SMTP provider works (Resend, Brevo, SES,
-    # Gmail, …). Defaults to Gmail for backwards compatibility. For Resend use
-    # EMAIL_HOST=smtp.resend.com, EMAIL_HOST_USER=resend, password = the API key.
-    EMAIL_HOST = os.getenv('EMAIL_HOST', 'smtp.gmail.com')
-    EMAIL_PORT = int(os.getenv('EMAIL_PORT', '587'))
-    EMAIL_USE_SSL = os.getenv('EMAIL_USE_SSL', 'False') == 'True'
-    # TLS (STARTTLS) on 587 by default; if SSL is chosen, TLS must be off.
-    EMAIL_USE_TLS = not EMAIL_USE_SSL and os.getenv('EMAIL_USE_TLS', 'True') == 'True'
     DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', EMAIL_HOST_USER)
     print(f"Email: Production mode - SMTP via {EMAIL_HOST}:{EMAIL_PORT}")
 else:
